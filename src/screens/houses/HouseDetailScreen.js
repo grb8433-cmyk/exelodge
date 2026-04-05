@@ -8,6 +8,7 @@ import {
   Linking,
   Alert,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import StarRating from '../../components/StarRating';
@@ -15,6 +16,8 @@ import Badge from '../../components/Badge';
 import { getPropertyById, getLandlordById, getReviewsByLandlord } from '../../utils/storage';
 import { colors, radii, shadows, spacing, typography } from '../../utils/theme';
 import { EXETER_AVG_PPPW } from '../../data/seeds';
+
+const PLACEHOLDER_IMAGE = 'https://images.unsplash.com/photo-1555854817-5b2260d50c47?auto=format&fit=crop&w=800&q=80'; // High-quality housing placeholder
 
 export default function HouseDetailScreen({ navigation, route }) {
   const { propertyId } = route.params;
@@ -24,22 +27,39 @@ export default function HouseDetailScreen({ navigation, route }) {
   const [reviewCount, setReviewCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
+  // Fix 'Stuck' bug: React to propertyId changes explicitly
   useEffect(() => {
+    let isMounted = true;
+    setLoading(true);
+
     (async () => {
-      const prop = await getPropertyById(propertyId);
-      setProperty(prop);
-      if (prop) {
-        const l = await getLandlordById(prop.landlordId);
-        setLandlord(l);
-        const reviews = await getReviewsByLandlord(prop.landlordId);
-        setReviewCount(reviews.length);
-        if (reviews.length > 0) {
-          const avg = reviews.reduce((s, r) => s + r.overallRating, 0) / reviews.length;
-          setAvgRating(+avg.toFixed(1));
+      try {
+        const prop = await getPropertyById(propertyId);
+        if (!isMounted) return;
+        
+        setProperty(prop);
+        if (prop) {
+          const [l, reviews] = await Promise.all([
+            getLandlordById(prop.landlordId),
+            getReviewsByLandlord(prop.landlordId)
+          ]);
+          
+          if (!isMounted) return;
+          setLandlord(l);
+          setReviewCount(reviews.length);
+          if (reviews.length > 0) {
+            const avg = reviews.reduce((s, r) => s + r.overallRating, 0) / reviews.length;
+            setAvgRating(+avg.toFixed(1));
+          }
         }
+      } catch (err) {
+        console.error('Fetch error:', err);
+      } finally {
+        if (isMounted) setLoading(false);
       }
-      setLoading(false);
     })();
+
+    return () => { isMounted = false; };
   }, [propertyId]);
 
   const openMaps = () => {
@@ -61,6 +81,9 @@ export default function HouseDetailScreen({ navigation, route }) {
     return (
       <View style={styles.centre}>
         <Text style={typography.body}>Property not found.</Text>
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+          <Text style={styles.backBtnText}>Go Back</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -68,24 +91,49 @@ export default function HouseDetailScreen({ navigation, route }) {
   const isGoodValue = property.pricePppw < EXETER_AVG_PPPW;
   const diff = Math.abs(property.pricePppw - EXETER_AVG_PPPW);
 
+  // Formatting currency safely
+  const formattedPrice = new Intl.NumberFormat('en-GB', {
+    style: 'currency',
+    currency: 'GBP',
+    maximumFractionDigits: 0,
+  }).format(property.pricePppw);
+
+  const formattedDiff = new Intl.NumberFormat('en-GB', {
+    style: 'currency',
+    currency: 'GBP',
+    maximumFractionDigits: 0,
+  }).format(diff);
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      {/* Header Image with Back Button Overlay */}
+      <View style={styles.imageContainer}>
+        <Image 
+          source={{ uri: property.imageUrl || PLACEHOLDER_IMAGE }} 
+          style={styles.heroImage}
+          resizeMode="cover"
+        />
+        <TouchableOpacity style={styles.overlayBack} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={colors.white} />
+        </TouchableOpacity>
+      </View>
+
       {/* Price hero */}
       <View style={styles.priceCard}>
         <View style={styles.priceRow}>
           <View>
-            <Text style={styles.price}>£{property.pricePppw}</Text>
+            <Text style={styles.price}>{formattedPrice}</Text>
             <Text style={styles.priceLabel}>per person per week</Text>
           </View>
           <Badge
-            label={isGoodValue ? `Good Value  ↓£${diff}` : `Above Avg  ↑£${diff}`}
+            label={isGoodValue ? `Good Value  ↓${formattedDiff}` : `Above Avg  ↑${formattedDiff}`}
             variant={isGoodValue ? 'green' : 'red'}
           />
         </View>
         <Text style={styles.valueContext}>
           {isGoodValue
-            ? `£${diff} below the Exeter student average of £${EXETER_AVG_PPPW}pppw`
-            : `£${diff} above the Exeter student average of £${EXETER_AVG_PPPW}pppw`}
+            ? `${formattedDiff} below the Exeter student average of £${EXETER_AVG_PPPW}pppw`
+            : `${formattedDiff} above the Exeter student average of £${EXETER_AVG_PPPW}pppw`}
         </Text>
       </View>
 
@@ -236,10 +284,26 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   content: {
-    padding: spacing.md,
+    paddingBottom: 40,
   },
-  centre: {
-    flex: 1,
+  imageContainer: {
+    width: '100%',
+    height: 250,
+    backgroundColor: colors.border,
+    position: 'relative',
+  },
+  heroImage: {
+    width: '100%',
+    height: '100%',
+  },
+  overlayBack: {
+    position: 'absolute',
+    top: spacing.md,
+    left: spacing.md,
+    width: 40,
+    height: 40,
+    borderRadius: radii.full,
+    backgroundColor: 'rgba(0,0,0,0.4)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -247,9 +311,26 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primaryLight,
     borderRadius: radii.lg,
     padding: spacing.md,
+    margin: spacing.md,
     marginBottom: spacing.md,
     borderWidth: 1,
     borderColor: colors.primary + '40',
+  },
+  centre: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: spacing.xl,
+  },
+  backBtn: {
+    marginTop: spacing.md,
+    padding: spacing.sm,
+    backgroundColor: colors.primary,
+    borderRadius: radii.sm,
+  },
+  backBtnText: {
+    color: colors.white,
+    fontWeight: '700',
   },
   priceRow: {
     flexDirection: 'row',
@@ -274,6 +355,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   section: {
+    paddingHorizontal: spacing.md,
     marginBottom: spacing.md,
   },
   address: {
@@ -293,6 +375,7 @@ const styles = StyleSheet.create({
     borderRadius: radii.lg,
     borderWidth: 1,
     borderColor: colors.border,
+    marginHorizontal: spacing.md,
     marginBottom: spacing.md,
     ...shadows.card,
   },
@@ -300,6 +383,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderRadius: radii.lg,
     padding: spacing.md,
+    marginHorizontal: spacing.md,
     marginBottom: spacing.md,
     borderWidth: 1,
     borderColor: colors.border,
@@ -399,6 +483,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     borderRadius: radii.sm,
     paddingVertical: 16,
+    marginHorizontal: spacing.md,
     marginBottom: spacing.sm,
     ...shadows.card,
   },
@@ -416,6 +501,7 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
     borderRadius: radii.sm,
     paddingVertical: 12,
+    marginHorizontal: spacing.md,
     backgroundColor: colors.white,
   },
   mapBtnText: {

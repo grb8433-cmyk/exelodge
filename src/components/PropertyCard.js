@@ -1,15 +1,29 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Badge from './Badge';
 import { colors, radii, shadows, spacing, typography } from '../utils/theme';
 import { EXETER_AVG_PPPW } from '../data/seeds';
 
+const PLACEHOLDER_IMAGE = 'https://images.unsplash.com/photo-1555854817-5b2260d50c47?auto=format&fit=crop&w=800&q=80';
+
 export default function PropertyCard({ property, landlordName, onPress, onLandlordPress }) {
   const isGoodValue = property.pricePppw < EXETER_AVG_PPPW;
   const diff = Math.abs(property.pricePppw - EXETER_AVG_PPPW);
 
-  const accessibilityLabel = `${property.address}, ${property.beds} bedrooms, £${property.pricePppw} per week. ${isGoodValue ? 'Good value.' : ''}`;
+  const formattedPrice = new Intl.NumberFormat('en-GB', {
+    style: 'currency',
+    currency: 'GBP',
+    maximumFractionDigits: 0,
+  }).format(property.pricePppw);
+
+  const formattedDiff = new Intl.NumberFormat('en-GB', {
+    style: 'currency',
+    currency: 'GBP',
+    maximumFractionDigits: 0,
+  }).format(diff);
+
+  const accessibilityLabel = `${property.address}, ${property.beds} bedrooms, ${formattedPrice} per week. ${isGoodValue ? 'Good value.' : ''}`;
 
   return (
     <TouchableOpacity 
@@ -20,14 +34,21 @@ export default function PropertyCard({ property, landlordName, onPress, onLandlo
       accessibilityLabel={accessibilityLabel}
       accessibilityHint="View full property details"
     >
+      {/* Property Thumbnail */}
+      <Image 
+        source={{ uri: property.imageUrl || PLACEHOLDER_IMAGE }} 
+        style={styles.thumbnail}
+        resizeMode="cover"
+      />
+
       {/* Price + Value badge row */}
       <View style={styles.topRow}>
         <View>
-          <Text style={styles.price}>£{property.pricePppw}</Text>
+          <Text style={styles.price}>{formattedPrice}</Text>
           <Text style={styles.priceLabel}>per person per week</Text>
         </View>
         <Badge
-          label={isGoodValue ? `Good Value  ↓£${diff}` : `Above Avg  ↑£${diff}`}
+          label={isGoodValue ? `Good Value  ↓${formattedDiff}` : `Above Avg  ↑${formattedDiff}`}
           variant={isGoodValue ? 'green' : 'red'}
         />
       </View>
@@ -96,6 +117,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     ...shadows.card,
+    overflow: 'hidden',
+  },
+  thumbnail: {
+    width: '100%',
+    height: 160,
+    marginHorizontal: -spacing.md,
+    marginTop: -spacing.md,
+    marginBottom: spacing.md,
+    width: 'calc(100% + 32px)',
   },
   topRow: {
     flexDirection: 'row',
