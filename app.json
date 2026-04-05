@@ -1,0 +1,35 @@
+{
+  "expo": {
+    "name": "ExeLodge",
+    "slug": "exelodge-student-housing",
+    "scheme": "exelodge",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "backgroundColor": "#ffffff",
+      "resizeMode": "contain"
+    },
+    "sdkVersion": "54.0.0",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.exelodge.studenthousing"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#16A34A"
+      },
+      "package": "com.exelodge.studenthousing"
+    },
+    "web": {
+      "favicon": "./src/assets/favicon.png",
+      "backgroundColor": "#F9FAFB",
+      "description": "Exeter student housing platform",
+      "name": "ExeLodge - Exeter Student Housing"
+    },
+    "newArchEnabled": false
+  }
+}
