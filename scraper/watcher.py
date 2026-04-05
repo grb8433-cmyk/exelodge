@@ -168,9 +168,9 @@ def main():
         
         for item in total_listings:
             try:
-                # TASK 1: Explicitly define payload with STRICT NAMED KEYS and casting
+                # TASK 1 & 2: Remove 'id' from payload to allow Supabase SERIAL integer auto-generation
+                # Explicitly define payload with STRICT NAMED KEYS and casting
                 payload = {
-                    "id": str(item['external_url']),
                     "address": str(item['address']),
                     "price_pppw": float(clean_price(item['price_pppw'])),
                     "beds": int(item['beds']) if item['beds'] else 1,
@@ -185,10 +185,13 @@ def main():
                 if payload['price_pppw'] < 70 or payload['price_pppw'] > 1000:
                     continue
 
+                # Ensure no 'id' exists if it was somehow added
+                payload.pop("id", None)
+
                 # TASK 1: Add detailed payload debug
                 print(f"PAYLOAD DEBUG: {payload}")
                 
-                # TASK 1: Explicit upsert with on_conflict
+                # TASK 1: Explicit upsert with on_conflict targeting 'external_url'
                 supabase.table("properties").upsert(
                     payload, 
                     on_conflict="external_url"
