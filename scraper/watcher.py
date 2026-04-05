@@ -5,11 +5,11 @@ import json
 import re
 import time
 from urllib.parse import urljoin
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from supabase import create_client, Client
 
 def main():
-    print("--- Step 1: ExeLodge Watcher Starting High-Quality Scrape ---")
+    print("--- Step 1: ExeLodge Watcher Starting Max Volume Deep Crawl ---")
     
     SUPABASE_URL = os.environ.get("SUPABASE_URL")
     SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
@@ -25,13 +25,7 @@ def main():
         print(f"Step 2 Failed: {e}")
         return
 
-    print("Step 3: Cleaning up all existing property data for fresh start...")
-    try:
-        supabase.table("properties").delete().neq("id", "0").execute()
-        print(f"Step 3 Success: Database cleared.")
-    except Exception as e:
-        print(f"Step 3 Warning: Cleanup failed: {e}")
-
+    # Ensure hardcoded landlord 'general' exists
     TEST_LANDLORD_ID = 'general'
     try:
         supabase.table("landlords").upsert({
@@ -45,36 +39,33 @@ def main():
     BASE_URL = "https://www.unihomes.co.uk/student-accommodation/exeter"
     all_listings = []
     page = 1
-    # 1. HARD LIMIT: Max 10 pages
-    max_pages = 10
+    
+    # IMPLEMENTATION: "Exeter Anchor" tracking
+    consecutive_non_exeter = 0
+    MAX_CONSECUTIVE_NON_EXETER = 10
 
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
     }
 
-    print(f"Step 4: Starting Recursive Multi-Page Scrape (Hard Limit: {max_pages} pages)...")
+    print(f"Step 3: Starting Deep Crawl (No hard page limits)...")
 
-    stop_entire_scrape = False
-    while page <= max_pages:
-        if stop_entire_scrape:
-            break
-
+    while True:
         url = f"{BASE_URL}?page={page}" if page > 1 else BASE_URL
         print(f"[Watcher] Fetching Page {page}: {url}")
         
         try:
-            response = requests.get(url, headers=headers, timeout=20)
+            response = requests.get(url, headers=headers, timeout=30)
             if response.status_code != 200:
-                print(f"[Watcher] Page {page} returned status {response.status_code}. Stopping pagination.")
+                print(f"[Watcher] Page {page} returned status {response.status_code}. Stopping.")
                 break
             
             soup = BeautifulSoup(response.text, 'html.parser')
             cards = soup.find_all(['div', 'article', 'section'], class_=lambda x: x and ('property' in x.lower() or 'card' in x.lower() or 'listing' in x.lower()))
             
-            # 3. EMPTY PAGE CHECK: If a page returns 0 properties, exit the loop.
             if not cards:
-                print(f"[Watcher] No properties found on page {page}. Exiting loop.")
+                print(f"[Watcher] No properties found on page {page}. Deep crawl complete.")
                 break
 
             page_found_count = 0
@@ -87,15 +78,7 @@ def main():
                     if not external_url:
                         continue
 
-                    # Image URL
-                    img_elem = card.find('img')
-                    raw_image_url = None
-                    if img_elem:
-                        raw_image_url = img_elem.get('data-src') or img_elem.get('src')
-                    
-                    image_url = urljoin("https://www.unihomes.co.uk", raw_image_url) if raw_image_url else None
-
-                    # Address
+                    # Address detection
                     addr_elem = card.find(['h2', 'h3', 'h4', 'strong', 'p'], class_=lambda x: x and ('address' in x.lower() or 'title' in x.lower()))
                     if not addr_elem:
                         addr_elem = card.find(['h2', 'h3', 'h4', 'strong'])
@@ -103,13 +86,27 @@ def main():
                     address = addr_elem.text.strip()
                     if len(address) < 5: continue
 
-                    # 2. LOCATION CHECK: verify 'address' contains "Exeter"
-                    if "exeter" not in address.lower():
-                        print(f"[Watcher] Location mismatch found ('{address}'). STOPPING IMMEDIATELY.")
-                        stop_entire_scrape = True
-                        break
+                    # IMPLEMENTATION: "Exeter Anchor"
+                    # Check for Exeter or EX postcode
+                    is_anchor_match = "exeter" in address.lower() or "devon" in address.lower() or re.search(r'EX\d', address.upper())
+                    
+                    if not is_anchor_match:
+                        consecutive_non_exeter += 1
+                        if consecutive_non_exeter >= MAX_CONSECUTIVE_NON_EXETER:
+                            print(f"[Watcher] Found {MAX_CONSECUTIVE_NON_EXETER} consecutive non-Exeter properties. Anchor lost. Stopping.")
+                            break
+                        continue
+                    else:
+                        consecutive_non_exeter = 0 # Reset anchor counter on match
 
-                    # Price
+                    # Image URL
+                    img_elem = card.find('img')
+                    raw_image_url = None
+                    if img_elem:
+                        raw_image_url = img_elem.get('data-src') or img_elem.get('src')
+                    image_url = urljoin("https://www.unihomes.co.uk", raw_image_url) if raw_image_url else None
+
+                    # Price Detection
                     price = 0
                     full_text = card.get_text(separator=' ')
                     price_match = re.search(r'£\s?(\d{2,3})', full_text)
@@ -145,7 +142,7 @@ def main():
                     if baths_match: baths = int(baths_match.group(1))
 
                     all_listings.append({
-                        "id": external_url, # Using URL as unique ID
+                        "id": external_url,
                         "address": address,
                         "price_pppw": price,
                         "beds": beds,
@@ -160,18 +157,24 @@ def main():
                 except:
                     continue
             
-            print(f"[Watcher] Page {page} processed. Found {page_found_count} valid properties.")
+            if consecutive_non_exeter >= MAX_CONSECUTIVE_NON_EXETER:
+                break
+
+            print(f"[Watcher] Page {page} processed. Found {page_found_count} properties.")
             page += 1
-            time.sleep(1)
+            # Polite delay removed to maximize speed per requirements, 
+            # but using 0.5s to avoid being IP banned immediately
+            time.sleep(0.5)
 
         except Exception as e:
             print(f"[Watcher] Error on page {page}: {e}")
             break
 
-    print(f"Step 5: Total Valid Listings Extracted: {len(all_listings)}")
+    print(f"Step 4: Total Valid Listings Extracted: {len(all_listings)}")
 
+    # IMPLEMENTATION: Upsert & 48h Cleanup
     if all_listings:
-        print(f"Step 6: Pushing data to Supabase...")
+        print(f"Step 5: Pushing data to Supabase (Upsert logic)...")
         success_count = 0
         now_iso = datetime.now(timezone.utc).isoformat()
         
@@ -189,15 +192,26 @@ def main():
                     "external_url": listing["external_url"],
                     "image_url": listing["image_url"],
                     "last_scraped": now_iso,
-                    "notes": f"High-Quality Scrape from {listing['source']}"
+                    "notes": f"Max Volume Scrape from {listing['source']}"
                 }).execute()
                 success_count += 1
             except Exception as e:
-                print(f"Step 6 Error for {listing['address']}: {e}")
+                print(f"Step 5 Error for {listing['address']}: {e}")
         
-        print(f"--- Step 7: Process Complete. Successfully pushed {success_count} listings. ---")
+        print(f"[Watcher] Successfully pushed {success_count} listings.")
+
+        # CLEANUP: Only delete records not seen in last 48 hours
+        print("Step 6: Cleaning up stale data (older than 48 hours)...")
+        try:
+            cutoff = (datetime.now(timezone.utc) - timedelta(hours=48)).isoformat()
+            supabase.table("properties").delete().lt("last_scraped", cutoff).execute()
+            print("Step 6 Success: Stale data cleared.")
+        except Exception as e:
+            print(f"Step 6 Warning: Cleanup failed: {e}")
+            
+        print(f"--- Step 7: Process Complete. ---")
     else:
-        print("Step 6 Error: No listings found to push.")
+        print("Step 5 Error: No listings found to push.")
 
 if __name__ == "__main__":
     main()

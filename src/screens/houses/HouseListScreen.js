@@ -141,6 +141,10 @@ export default function HouseListScreen({ navigation, route }) {
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
           contentContainerStyle={styles.list}
+          windowSize={5}
+          maxToRenderPerBatch={10}
+          initialNumToRender={10}
+          removeClippedSubviews={true}
           ListHeaderComponent={
             <View style={styles.listHeader}>
               <View>
