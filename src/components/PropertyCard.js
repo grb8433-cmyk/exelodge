@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, Linking, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Badge from './Badge';
 import { colors, radii, shadows, spacing, typography } from '../utils/theme';
@@ -22,6 +22,15 @@ export default function PropertyCard({ property, landlordName, onPress, onLandlo
     currency: 'GBP',
     maximumFractionDigits: 0,
   }).format(diff);
+
+  const handleExternalLink = () => {
+    const url = property.externalUrl || property.directUrl;
+    if (url) {
+      Linking.openURL(url).catch(() => Alert.alert('Error', 'Could not open listing.'));
+    } else {
+      Alert.alert('Not available', 'Original listing link not found.');
+    }
+  };
 
   const accessibilityLabel = `${property.address}, ${property.beds} bedrooms, ${formattedPrice} per week. ${isGoodValue ? 'Good value.' : ''}`;
 
@@ -76,6 +85,12 @@ export default function PropertyCard({ property, landlordName, onPress, onLandlo
           </View>
         )}
       </View>
+
+      {/* View Listing Button */}
+      <TouchableOpacity style={styles.listingBtn} onPress={handleExternalLink}>
+        <Text style={styles.listingBtnText}>View Listing</Text>
+        <Ionicons name="open-outline" size={14} color={colors.primary} />
+      </TouchableOpacity>
 
       {/* Campus distances */}
       <View style={styles.distanceRow}>
@@ -153,7 +168,7 @@ const styles = StyleSheet.create({
   statsRow: {
     flexDirection: 'row',
     gap: 14,
-    marginBottom: 8,
+    marginBottom: 12,
   },
   stat: {
     flexDirection: 'row',
@@ -163,6 +178,22 @@ const styles = StyleSheet.create({
   statText: {
     ...typography.bodySmall,
     fontWeight: '500',
+  },
+  listingBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+    borderRadius: radii.sm,
+    paddingVertical: 8,
+    marginBottom: 14,
+  },
+  listingBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.primary,
   },
   distanceRow: {
     flexDirection: 'row',

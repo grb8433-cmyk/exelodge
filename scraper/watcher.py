@@ -9,7 +9,6 @@ from datetime import datetime, timezone, timedelta
 from supabase import create_client, Client
 
 # --- SCRAPING CONFIGURATION ---
-# Updated URLs to be even more Exeter-specific
 SOURCES = [
     {"name": "UniHomes", "url": "https://www.unihomes.co.uk/student-accommodation/exeter", "base": "https://www.unihomes.co.uk"},
     {"name": "StuRents", "url": "https://sturents.com/student-accommodation/exeter/listings", "base": "https://sturents.com"},
@@ -30,7 +29,6 @@ def scrape_source(source, supabase, landlord_id):
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
     }
 
-    # Target 10 pages per source to ensure volume without infinite loops
     while page <= 10:
         url = f"{source['url']}?page={page}" if page > 1 else source['url']
         print(f"[{source['name']}] Fetching Page {page}: {url}")
@@ -51,31 +49,26 @@ def scrape_source(source, supabase, landlord_id):
             page_found_count = 0
             for card in cards:
                 try:
-                    # Link / ID
                     link_elem = card.find('a', href=True)
                     if not link_elem: continue
                     external_url = urljoin(source['base'], link_elem['href'])
                     
-                    # Address / Anchor Check
                     addr_elem = card.find(['h2', 'h3', 'h4', 'strong', 'p'], class_=lambda x: x and any(k in x.lower() for k in ['address', 'title', 'location']))
                     if not addr_elem: addr_elem = card.find(['h2', 'h3', 'h4', 'strong'])
                     if not addr_elem: continue
                     address = addr_elem.text.strip()
                     if len(address) < 5: continue
 
-                    # FIX: Simple Anchor Check (Never break the loop)
-                    is_exeter = "exeter" in address.lower() or "ex4" in address.lower() or "ex1" in address.lower() or "ex2" in address.lower() or "exeter" in external_url.lower()
+                    is_exeter = any(k in address.lower() for k in ["exeter", "ex4", "ex1", "ex2"]) or "exeter" in external_url.lower()
                     if not is_exeter:
-                        continue # Just skip this property
+                        continue
 
-                    # Image
                     img_elem = card.find('img')
                     raw_image_url = None
                     if img_elem:
                         raw_image_url = img_elem.get('data-src') or img_elem.get('src')
                     image_url = urljoin(source['base'], raw_image_url) if raw_image_url else DEFAULT_FALLBACK_IMAGE
 
-                    # Price
                     price = 0
                     full_text = card.get_text(separator=' ')
                     price_match = re.search(r'£\s?(\d{2,3})', full_text)
@@ -88,16 +81,19 @@ def scrape_source(source, supabase, landlord_id):
                     if price < 70 or price > 1000:
                         continue
 
-                    # Beds
                     beds = 1
                     beds_match = re.search(r'(\d+)\s?bed', full_text.lower())
                     if beds_match: beds = int(beds_match.group(1))
 
+                    baths = 1
+                    baths_match = re.search(r'(\d+)\s?bath', full_text.lower())
+                    if baths_match: baths = int(baths_match.group(1))
+
                     all_listings.append({
-                        "id": external_url,
                         "address": address,
                         "price_pppw": price,
                         "beds": beds,
+                        "baths": baths,
                         "source": source['name'],
                         "area": "Exeter",
                         "external_url": external_url,
@@ -155,35 +151,35 @@ def main():
     print(f"Step 3: Total Extracted: {len(total_listings)}")
 
     if total_listings:
-        print(f"Step 4: Pushing to Supabase (Robust logic)...")
+        print(f"Step 4: Pushing to Supabase (Clean Slate Logic)...")
         success_count = 0
         now_iso = datetime.now(timezone.utc).isoformat()
         
         for listing in total_listings:
-            # STEP 2: ROBUST PUSH LOGIC WITH RETRIES
             print(f"DEBUG: Attempting to push to column external_url with value: {listing['external_url']}")
             
-            max_retries = 3
-            for attempt in range(max_retries):
-                try:
-                    supabase.table("properties").upsert({
-                        "id": listing["id"],
-                        "address": listing["address"],
-                        "price_pppw": listing["price_pppw"],
-                        "beds": listing["beds"],
-                        "area": listing["area"],
-                        "landlord_id": TEST_LANDLORD_ID,
-                        "external_url": listing["external_url"],
-                        "image_url": listing["image_url"],
-                        "last_scraped": now_iso,
-                        "notes": f"Scraped from {listing['source']}"
-                    }).execute()
-                    success_count += 1
-                    break # Success!
-                except Exception as e:
-                    print(f"Step 4 Error (Attempt {attempt+1}/{max_retries}) for {listing['address']}: {e}")
-                    if attempt < max_retries - 1:
-                        time.sleep(1) # Wait before retry
+            # TASK 1: Upsert logic targeting external_url as unique constraint
+            # Verified Payload: address, price_pppw, beds, baths, area, image_url, external_url
+            try:
+                supabase.table("properties").upsert({
+                    "id": listing["external_url"], # ID matches external_url for unique constraint
+                    "address": listing["address"],
+                    "price_pppw": listing["price_pppw"],
+                    "beds": listing["beds"],
+                    "baths": listing["baths"],
+                    "area": listing["area"],
+                    "image_url": listing["image_url"],
+                    "external_url": listing["external_url"],
+                    "landlord_id": TEST_LANDLORD_ID,
+                    "last_scraped": now_iso,
+                    "notes": f"Scraped from {listing['source']}"
+                }, on_conflict="external_url").execute()
+                success_count += 1
+                
+                # TASK 1: Small sleep to prevent API overwhelming
+                time.sleep(0.1)
+            except Exception as e:
+                print(f"Step 4 Error for {listing['address']}: {e}")
         
         print(f"[Watcher] Successfully pushed {success_count} listings.")
 
