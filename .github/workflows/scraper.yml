@@ -27,7 +27,7 @@ jobs:
         if [ -f scraper/requirements.txt ]; then pip install -r scraper/requirements.txt; else pip install requests beautifulsoup4 supabase; fi
 
     - name: Run Scraper
+      run: python scraper/watcher.py
       env:
         SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
         SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-      run: python scraper/watcher.py
