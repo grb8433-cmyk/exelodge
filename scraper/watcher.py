@@ -9,12 +9,13 @@ from datetime import datetime, timezone, timedelta
 from supabase import create_client, Client
 
 # --- SCRAPING CONFIGURATION ---
+# Updated URLs to be even more Exeter-specific
 SOURCES = [
     {"name": "UniHomes", "url": "https://www.unihomes.co.uk/student-accommodation/exeter", "base": "https://www.unihomes.co.uk"},
-    {"name": "StuRents", "url": "https://sturents.com/student-accommodation/exeter", "base": "https://sturents.com"},
+    {"name": "StuRents", "url": "https://sturents.com/student-accommodation/exeter/listings", "base": "https://sturents.com"},
     {"name": "AccommodationForStudents", "url": "https://www.accommodationforstudents.com/exeter", "base": "https://www.accommodationforstudents.com"},
     {"name": "Cardens", "url": "https://cardensestateagents.co.uk/properties-to-rent/student-properties-to-rent", "base": "https://cardensestateagents.co.uk"},
-    {"name": "Rightmove", "url": "https://www.rightmove.co.uk/student-accommodation/Exeter.html", "base": "https://www.rightmove.co.uk"},
+    {"name": "Rightmove", "url": "https://www.rightmove.co.uk/property-to-rent/Exeter.html", "base": "https://www.rightmove.co.uk"},
 ]
 
 DEFAULT_FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1518780664697-55e3ad937233'
@@ -23,15 +24,14 @@ def scrape_source(source, supabase, landlord_id):
     print(f"--- Scraping Source: {source['name']} ---")
     all_listings = []
     page = 1
-    consecutive_non_exeter = 0
-    MAX_CONSECUTIVE_NON_EXETER = 20 # Relaxed anchor
 
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
     }
 
-    while True:
+    # Target 10 pages per source to ensure volume without infinite loops
+    while page <= 10:
         url = f"{source['url']}?page={page}" if page > 1 else source['url']
         print(f"[{source['name']}] Fetching Page {page}: {url}")
         
@@ -42,11 +42,10 @@ def scrape_source(source, supabase, landlord_id):
                 break
             
             soup = BeautifulSoup(response.text, 'html.parser')
-            # Generic card finding logic - may need refinement per site in the future
             cards = soup.find_all(['div', 'article', 'section'], class_=lambda x: x and any(k in x.lower() for k in ['property', 'card', 'listing', 'result']))
             
             if not cards:
-                print(f"[{source['name']}] No cards found. Moving to next source.")
+                print(f"[{source['name']}] No cards found on page {page}. Moving to next source.")
                 break
 
             page_found_count = 0
@@ -58,22 +57,16 @@ def scrape_source(source, supabase, landlord_id):
                     external_url = urljoin(source['base'], link_elem['href'])
                     
                     # Address / Anchor Check
-                    addr_elem = card.find(['h2', 'h3', 'h4', 'strong', 'p'], class_=lambda x: x and any(k in x.lower() for k in ['address', 'title']))
+                    addr_elem = card.find(['h2', 'h3', 'h4', 'strong', 'p'], class_=lambda x: x and any(k in x.lower() for k in ['address', 'title', 'location']))
                     if not addr_elem: addr_elem = card.find(['h2', 'h3', 'h4', 'strong'])
                     if not addr_elem: continue
                     address = addr_elem.text.strip()
                     if len(address) < 5: continue
 
-                    # Relaxed Exeter Anchor
-                    is_anchor_match = any(k in address.lower() for k in ["exeter", "devon"]) or re.search(r'EX\d', address.upper())
-                    if not is_anchor_match:
-                        consecutive_non_exeter += 1
-                        if consecutive_non_exeter >= MAX_CONSECUTIVE_NON_EXETER:
-                            print(f"[{source['name']}] Lost anchor ({MAX_CONSECUTIVE_NON_EXETER} non-Exeter). Stopping source.")
-                            return all_listings
-                        continue
-                    else:
-                        consecutive_non_exeter = 0
+                    # FIX: Simple Anchor Check (Never break the loop)
+                    is_exeter = "exeter" in address.lower() or "ex4" in address.lower() or "ex1" in address.lower() or "ex2" in address.lower() or "exeter" in external_url.lower()
+                    if not is_exeter:
+                        continue # Just skip this property
 
                     # Image
                     img_elem = card.find('img')
@@ -122,7 +115,7 @@ def scrape_source(source, supabase, landlord_id):
             time.sleep(0.5)
 
         except Exception as e:
-            print(f"[{source['name']}] Error: {e}")
+            print(f"[{source['name']}] Error on page {page}: {e}")
             break
             
     return all_listings
@@ -162,28 +155,35 @@ def main():
     print(f"Step 3: Total Extracted: {len(total_listings)}")
 
     if total_listings:
-        print(f"Step 4: Pushing to Supabase (Upsert logic)...")
+        print(f"Step 4: Pushing to Supabase (Robust logic)...")
         success_count = 0
         now_iso = datetime.now(timezone.utc).isoformat()
         
         for listing in total_listings:
-            try:
-                # payload with external_url and last_scraped
-                supabase.table("properties").upsert({
-                    "id": listing["id"],
-                    "address": listing["address"],
-                    "price_pppw": listing["price_pppw"],
-                    "beds": listing["beds"],
-                    "area": listing["area"],
-                    "landlord_id": TEST_LANDLORD_ID,
-                    "external_url": listing["external_url"],
-                    "image_url": listing["image_url"],
-                    "last_scraped": now_iso,
-                    "notes": f"Scraped from {listing['source']}"
-                }).execute()
-                success_count += 1
-            except Exception as e:
-                print(f"Step 4 Error for {listing['address']}: {e}")
+            # STEP 2: ROBUST PUSH LOGIC WITH RETRIES
+            print(f"DEBUG: Attempting to push to column external_url with value: {listing['external_url']}")
+            
+            max_retries = 3
+            for attempt in range(max_retries):
+                try:
+                    supabase.table("properties").upsert({
+                        "id": listing["id"],
+                        "address": listing["address"],
+                        "price_pppw": listing["price_pppw"],
+                        "beds": listing["beds"],
+                        "area": listing["area"],
+                        "landlord_id": TEST_LANDLORD_ID,
+                        "external_url": listing["external_url"],
+                        "image_url": listing["image_url"],
+                        "last_scraped": now_iso,
+                        "notes": f"Scraped from {listing['source']}"
+                    }).execute()
+                    success_count += 1
+                    break # Success!
+                except Exception as e:
+                    print(f"Step 4 Error (Attempt {attempt+1}/{max_retries}) for {listing['address']}: {e}")
+                    if attempt < max_retries - 1:
+                        time.sleep(1) # Wait before retry
         
         print(f"[Watcher] Successfully pushed {success_count} listings.")
 
