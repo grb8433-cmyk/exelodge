@@ -36,10 +36,14 @@ function mapProperty(p) {
     ...p,
     pricePppw: p.price_pppw,
     landlordId: p.landlord_id,
+    landlordName: p.landlords?.name, // Joined from landlords table
     streathamMins: p.streatham_mins,
     stLukesMins: p.st_lukes_mins,
     billsIncluded: p.bills_included,
     directUrl: p.direct_url,
+    externalUrl: p.external_url || p.direct_url,
+    imageUrl: p.image_url,
+    lastScraped: p.last_scraped,
   };
 }
 
@@ -53,20 +57,6 @@ function mapReview(r) {
     propertyAddress: r.property_address,
     academicYear: r.academic_year,
     date: r.created_at?.split('T')[0],
-  };
-}
-
-function mapProfile(p) {
-  if (!p) return null;
-  return {
-    ...p,
-    displayName: p.display_name,
-    areaPreferences: p.area_preferences,
-    socialStyle: p.social_style,
-    sleepSchedule: p.sleep_schedule,
-    lookingFor: p.looking_for,
-    budgetMin: p.budget_min,
-    budgetMax: p.budget_max,
   };
 }
 
@@ -92,12 +82,10 @@ export async function getLandlords() {
       .select('*')
       .order('name');
     if (error) {
-      console.error('[Supabase] getLandlords error:', error);
       return [];
     }
     return data;
   } catch (e) {
-    console.error('[Supabase] getLandlords crash:', e);
     return [];
   }
 }
@@ -191,7 +179,6 @@ export async function getPropertyById(id) {
     if (error) return null;
     return mapProperty(data);
   } catch (e) {
-    console.error('[Supabase] getPropertyById crash:', e);
     return null;
   }
 }
@@ -256,7 +243,6 @@ export async function submitReview(review) {
     }]);
     
     if (error) {
-      console.error('[Supabase] submitReview error:', error);
       return false;
     }
     return true;
@@ -274,183 +260,4 @@ export function computeRatingBreakdown(reviews) {
     totals[k] = sum / reviews.length;
   });
   return totals;
-}
-
-// ─── Housemate Profiles ───────────────────────────────────────────────────────
-
-export async function getHousemateProfiles() {
-  if (!supabase) return [];
-  try {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .order('created_at', { ascending: false });
-    if (error) return [];
-    return data.map(mapProfile);
-  } catch (e) {
-    return [];
-  }
-}
-
-export async function getInterests() {
-  if (!supabase) return [];
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return [];
-
-    const { data, error } = await supabase
-      .from('interests')
-      .select('profile_id')
-      .eq('user_id', user.id);
-    if (error) return [];
-    return data.map(i => i.profile_id);
-  } catch (e) {
-    return [];
-  }
-}
-
-export async function addInterest(profileId) {
-  if (!supabase) return false;
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return false;
-
-    const { error } = await supabase.from('interests').upsert({
-      user_id: user.id,
-      profile_id: profileId,
-    });
-    return !error;
-  } catch (e) {
-    return false;
-  }
-}
-
-export async function getMatches() {
-  const profiles = await getHousemateProfiles();
-  const interests = await getInterests();
-  
-  // Logical match: User liked them AND they are marked as pre-interested
-  // In production, you would check for a reciprocal record in the 'interests' table.
-  return profiles.filter((p) => interests.includes(p.id) && p.pre_interested);
-}
-
-// ─── Messaging ────────────────────────────────────────────────────────────────
-
-export async function getMessages(profileId) {
-  if (!supabase) return [];
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return [];
-
-    const { data, error } = await supabase
-      .from('messages')
-      .select('*')
-      .or(`and(sender_id.eq.${user.id},receiver_profile_id.eq.${profileId}),and(sender_id.eq.${profileId},receiver_profile_id.eq.${user.id})`)
-      .order('created_at', { ascending: true });
-    
-    if (error) return [];
-    return data.map(m => ({
-      id: m.id,
-      text: m.text,
-      sender: m.sender_id === user.id ? 'me' : 'them',
-      timestamp: m.created_at,
-    }));
-  } catch (e) {
-    return [];
-  }
-}
-
-export async function sendMessage(profileId, text) {
-  if (!supabase) return false;
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return false;
-
-    const { error } = await supabase.from('messages').insert([{
-      sender_id: user.id,
-      receiver_profile_id: profileId,
-      text: sanitizeText(text),
-    }]);
-    return !error;
-  } catch (e) {
-    return false;
-  }
-}
-
-// ─── My Profile ───────────────────────────────────────────────────────────────
-
-export async function getMyProfile() {
-  if (!supabase) return null;
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return null;
-
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('user_id', user.id)
-      .maybeSingle();
-    
-    if (error) return null;
-    return mapProfile(data);
-  } catch (e) {
-    return null;
-  }
-}
-
-export async function saveMyProfile(profile) {
-  if (!supabase) return false;
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      console.error('[Supabase] Must be authenticated to save profile.');
-      return false;
-    }
-
-    const payload = {
-      user_id: user.id,
-      display_name: profile.displayName,
-      age: profile.age,
-      gender: profile.gender,
-      course: profile.course,
-      year: profile.year,
-      budget_min: profile.budgetMin,
-      budget_max: profile.budgetMax,
-      area_preferences: profile.areaPreferences,
-      social_style: profile.socialStyle,
-      cleanliness: profile.cleanliness,
-      sleep_schedule: profile.sleepSchedule,
-      languages: profile.languages,
-      smoking: profile.smoking,
-      drinking: profile.drinking,
-      pets: profile.pets,
-      looking_for: profile.lookingFor,
-      notes: sanitizeText(profile.notes),
-    };
-
-    const { error } = await supabase
-      .from('profiles')
-      .upsert(payload, { onConflict: 'user_id' });
-    
-    if (error) {
-      console.error('[Supabase] saveMyProfile error:', error);
-      return false;
-    }
-    return true;
-  } catch (e) {
-    return false;
-  }
-}
-    .from('profiles')
-      .upsert(payload, { onConflict: 'user_id' });
-    
-    if (error) {
-      console.error('[Supabase] saveMyProfile error:', error);
-      return false;
-    }
-    return true;
-  } catch (e) {
-    return false;
-  }
-}
 }
