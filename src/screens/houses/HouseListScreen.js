@@ -44,16 +44,6 @@ export default function HouseListScreen({ navigation, route }) {
   const load = useCallback(async () => {
     setLoading(true);
     const props = await getProperties({ ...filters, search });
-
-    const landlordMap = {};
-    for (const p of props) {
-      if (!landlordMap[p.landlordId]) {
-        const l = await getLandlordById(p.landlordId);
-        if (l) landlordMap[p.landlordId] = l.name;
-      }
-    }
-
-    setLandlords(landlordMap);
     setAllProperties(props);
     setLoading(false);
   }, [filters, search]);
@@ -75,7 +65,7 @@ export default function HouseListScreen({ navigation, route }) {
     <View style={{ flex: 1 / numColumns, padding: spacing.xs }}>
       <PropertyCard
         property={item}
-        landlordName={landlords[item.landlordId]}
+        landlordName={item.landlordName}
         onPress={() => navigation.navigate('HouseDetail', { propertyId: item.id })}
         onLandlordPress={() => handleLandlordPress(item.landlordId)}
       />

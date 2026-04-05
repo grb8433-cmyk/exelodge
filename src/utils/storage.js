@@ -120,7 +120,7 @@ export async function getLandlordsWithStats() {
 // ─── Properties ───────────────────────────────────────────────────────────────
 
 export async function getProperties(filters = {}) {
-  let query = supabase.from('properties').select('*');
+  let query = supabase.from('properties').select('*, landlords(name)');
 
   if (filters.search) {
     query = query.or(`address.ilike.%${filters.search}%,postcode.ilike.%${filters.search}%,area.ilike.%${filters.search}%`);
@@ -356,6 +356,11 @@ export async function saveMyProfile(profile) {
   
   if (error) {
     console.error('[Supabase] saveMyProfile error:', error);
+    return false;
+  }
+  return true;
+}
+:', error);
     return false;
   }
   return true;
