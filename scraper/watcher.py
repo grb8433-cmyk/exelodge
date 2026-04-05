@@ -19,6 +19,18 @@ SOURCES = [
 
 DEFAULT_FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1518780664697-55e3ad937233'
 
+def clean_price(price_str):
+    """Removes currency symbols and commas, returns a float."""
+    if not price_str:
+        return 0.0
+    if isinstance(price_str, (int, float)):
+        return float(price_str)
+    # Remove £ and ,
+    cleaned = re.sub(r'[£,]', '', str(price_str))
+    # Extract numeric part
+    match = re.search(r'(\d+\.?\d*)', cleaned)
+    return float(match.group(1)) if match else 0.0
+
 def scrape_source(source, supabase, landlord_id):
     print(f"--- Scraping Source: {source['name']} ---")
     all_listings = []
@@ -69,40 +81,33 @@ def scrape_source(source, supabase, landlord_id):
                         raw_image_url = img_elem.get('data-src') or img_elem.get('src')
                     image_url = urljoin(source['base'], raw_image_url) if raw_image_url else DEFAULT_FALLBACK_IMAGE
 
-                    price = 0
+                    price_raw = 0
                     full_text = card.get_text(separator=' ')
                     price_match = re.search(r'£\s?(\d{2,3})', full_text)
                     if not price_match:
                         price_match = re.search(r'(\d{2,3})\s?pppw', full_text.lower())
                     
                     if price_match:
-                        price = int(price_match.group(1))
+                        price_raw = price_match.group(1)
                     
-                    if price < 70 or price > 1000:
-                        continue
-
                     beds = 1
                     beds_match = re.search(r'(\d+)\s?bed', full_text.lower())
-                    if beds_match: beds = int(beds_match.group(1))
+                    if beds_match: beds = beds_match.group(1)
 
                     baths = 1
                     baths_match = re.search(r'(\d+)\s?bath', full_text.lower())
-                    if baths_match: baths = int(baths_match.group(1))
+                    if baths_match: baths = baths_match.group(1)
 
-                    # Attempt to find landlord/agency name in text
-                    detected_landlord = source['name']
-                    # Simple heuristic: if ' StuRents ' or similar is in text, but it's usually the source
-                    
                     all_listings.append({
                         "address": address,
-                        "price_pppw": price,
+                        "price_pppw": price_raw,
                         "beds": beds,
                         "baths": baths,
                         "source": source['name'],
                         "area": "Exeter",
                         "external_url": external_url,
                         "image_url": image_url,
-                        "landlord_id": detected_landlord # Setting landlord_id to the source name as a default
+                        "landlord_id": source['name']
                     })
                     page_found_count += 1
                 except:
@@ -138,7 +143,6 @@ def main():
         print(f"Step 2 Failed: {e}")
         return
 
-    # Ensure a 'general' landlord exists for fallback, but we'll try to use source names
     try:
         supabase.table("landlords").upsert({"id": "general", "name": "General Landlord", "type": "Scraped Source"}).execute()
     except:
@@ -147,7 +151,6 @@ def main():
     total_listings = []
     for source in SOURCES:
         try:
-            # Ensure source name exists as a landlord for FK constraints
             try:
                 supabase.table("landlords").upsert({"id": source['name'], "name": source['name'], "type": "Agency"}).execute()
             except:
@@ -162,33 +165,36 @@ def main():
     print(f"Step 3: Total Extracted: {len(total_listings)}")
 
     if total_listings:
-        print(f"Step 4: Pushing to Supabase (Clean Slate Logic)...")
+        print(f"Step 4: Pushing to Supabase (Type-Safe Upsert)...")
         success_count = 0
-        now_iso = datetime.now(timezone.utc).isoformat()
         
-        for listing in total_listings:
-            print(f"DEBUG: Attempting to push to column external_url with value: {listing['external_url']}")
-            
-            # TASK 1: Exactly match columns: address, price_pppw, beds, baths, area, image_url, external_url, landlord_id, last_scraped
+        for item in total_listings:
             try:
-                supabase.table("properties").upsert({
-                    "id": listing["external_url"], # ID matches external_url for unique constraint
-                    "address": listing["address"],
-                    "price_pppw": listing["price_pppw"],
-                    "beds": listing["beds"],
-                    "baths": listing["baths"],
-                    "area": listing["area"],
-                    "image_url": listing["image_url"],
-                    "external_url": listing["external_url"],
-                    "landlord_id": listing["landlord_id"],
-                    "last_scraped": now_iso
-                }, on_conflict="external_url").execute()
+                # TASK 1: Explicitly define payload with type casting and cleaning
+                payload = {
+                    "id": str(item['external_url']),
+                    "address": str(item['address']),
+                    "price_pppw": clean_price(item['price_pppw']),
+                    "beds": int(item['beds']) if item['beds'] else 1,
+                    "baths": int(item['baths']) if item['baths'] else 1,
+                    "area": str(item['area']),
+                    "image_url": str(item['image_url']),
+                    "external_url": str(item['external_url']),
+                    "landlord_id": str(item['landlord_id']),
+                    "last_scraped": datetime.now(timezone.utc).isoformat()
+                }
+
+                if payload['price_pppw'] < 70 or payload['price_pppw'] > 1000:
+                    continue
+
+                print(f"DEBUG: Upserting: {payload['address']} ({payload['price_pppw']})")
+                
+                supabase.table("properties").upsert(payload, on_conflict="external_url").execute()
                 success_count += 1
                 
-                # TASK 1: Small sleep to prevent API overwhelming
                 time.sleep(0.1)
             except Exception as e:
-                print(f"Step 4 Error for {listing['address']}: {e}")
+                print(f"Step 4 Error for {item['address']}: {e}")
         
         print(f"[Watcher] Successfully pushed {success_count} listings.")
 
