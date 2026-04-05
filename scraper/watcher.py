@@ -45,19 +45,19 @@ def main():
     BASE_URL = "https://www.unihomes.co.uk/student-accommodation/exeter"
     all_listings = []
     page = 1
-    consecutive_zero_pages = 0
-    max_consecutive_zeros = 5
+    # 1. HARD LIMIT: Max 10 pages
+    max_pages = 10
 
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
     }
 
-    print(f"Step 4: Starting Recursive Multi-Page Scrape...")
+    print(f"Step 4: Starting Recursive Multi-Page Scrape (Hard Limit: {max_pages} pages)...")
 
-    while True:
-        if consecutive_zero_pages >= max_consecutive_zeros:
-            print(f"[Watcher] Reached {max_consecutive_zeros} consecutive pages with 0 results. Stopping.")
+    stop_entire_scrape = False
+    while page <= max_pages:
+        if stop_entire_scrape:
             break
 
         url = f"{BASE_URL}?page={page}" if page > 1 else BASE_URL
@@ -72,27 +72,22 @@ def main():
             soup = BeautifulSoup(response.text, 'html.parser')
             cards = soup.find_all(['div', 'article', 'section'], class_=lambda x: x and ('property' in x.lower() or 'card' in x.lower() or 'listing' in x.lower()))
             
+            # 3. EMPTY PAGE CHECK: If a page returns 0 properties, exit the loop.
             if not cards:
-                next_btn = soup.find(['a', 'button'], string=lambda x: x and 'next' in x.lower())
-                if not next_btn:
-                    print(f"[Watcher] No more properties and no 'Next' button found on page {page}. Stopping.")
-                    break
-                print(f"[Watcher] No properties on page {page}, but continuing...")
-                consecutive_zero_pages += 1
-                page += 1
-                continue
+                print(f"[Watcher] No properties found on page {page}. Exiting loop.")
+                break
 
             page_found_count = 0
             for card in cards:
                 try:
-                    # External URL
+                    # 4. DUPLICATE CHECK: Use property URL as a unique ID
                     link_elem = card.find('a', href=True)
                     external_url = urljoin("https://www.unihomes.co.uk", link_elem['href']) if link_elem else None
                     
                     if not external_url:
                         continue
 
-                    # Image URL - Capture src or data-src, ensure full URL
+                    # Image URL
                     img_elem = card.find('img')
                     raw_image_url = None
                     if img_elem:
@@ -107,6 +102,12 @@ def main():
                     if not addr_elem: continue
                     address = addr_elem.text.strip()
                     if len(address) < 5: continue
+
+                    # 2. LOCATION CHECK: verify 'address' contains "Exeter"
+                    if "exeter" not in address.lower():
+                        print(f"[Watcher] Location mismatch found ('{address}'). STOPPING IMMEDIATELY.")
+                        stop_entire_scrape = True
+                        break
 
                     # Price
                     price = 0
@@ -144,7 +145,7 @@ def main():
                     if baths_match: baths = int(baths_match.group(1))
 
                     all_listings.append({
-                        "id": f"scraped-{hash(address + str(price))}",
+                        "id": external_url, # Using URL as unique ID
                         "address": address,
                         "price_pppw": price,
                         "beds": beds,
@@ -160,11 +161,6 @@ def main():
                     continue
             
             print(f"[Watcher] Page {page} processed. Found {page_found_count} valid properties.")
-            if page_found_count == 0:
-                consecutive_zero_pages += 1
-            else:
-                consecutive_zero_pages = 0
-                
             page += 1
             time.sleep(1)
 
