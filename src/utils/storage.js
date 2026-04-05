@@ -360,8 +360,3 @@ export async function saveMyProfile(profile) {
   }
   return true;
 }
-:', error);
-    return false;
-  }
-  return true;
-}
