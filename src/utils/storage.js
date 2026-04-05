@@ -79,7 +79,7 @@ function mapProfile(p) {
  */
 export async function initializeData() {
   if (!SUPABASE_URL || !SUPABASE_KEY) {
-    throw new Error('Supabase environment variables (EXPO_PUBLIC_SUPABASE_URL, EXPO_PUBLIC_SUPABASE_ANON_KEY) are not set. Check your .env file or deployment settings.');
+    throw new Error('Supabase environment variables are not set. Ensure you have EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY defined in your Netlify Environment Variables or .env file.');
   }
   console.log('[ExeLodge] Connected to Supabase Cloud Bridge.');
 }
