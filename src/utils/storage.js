@@ -129,7 +129,8 @@ export async function getProperties(filters = {}) {
   if (!supabase) return [];
   try {
     // We join landlords(name) to get the landlord name in the same query
-    let query = supabase.from('properties').select('*, landlords(name)');
+    // Selecting all necessary columns explicitly
+    let query = supabase.from('properties').select('id, address, price_pppw, beds, baths, area, image_url, external_url, landlord_id, last_scraped, landlords(name)');
 
     if (filters.search) {
       query = query.or(`address.ilike.%${filters.search}%,postcode.ilike.%${filters.search}%,area.ilike.%${filters.search}%`);

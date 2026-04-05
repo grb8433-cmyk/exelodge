@@ -25,9 +25,7 @@ def clean_price(price_str):
         return 0.0
     if isinstance(price_str, (int, float)):
         return float(price_str)
-    # Remove £ and ,
     cleaned = re.sub(r'[£,]', '', str(price_str))
-    # Extract numeric part
     match = re.search(r'(\d+\.?\d*)', cleaned)
     return float(match.group(1)) if match else 0.0
 
@@ -170,11 +168,11 @@ def main():
         
         for item in total_listings:
             try:
-                # TASK 1: Explicitly define payload with type casting and cleaning
+                # TASK 1: Explicitly define payload with STRICT NAMED KEYS and casting
                 payload = {
                     "id": str(item['external_url']),
                     "address": str(item['address']),
-                    "price_pppw": clean_price(item['price_pppw']),
+                    "price_pppw": float(clean_price(item['price_pppw'])),
                     "beds": int(item['beds']) if item['beds'] else 1,
                     "baths": int(item['baths']) if item['baths'] else 1,
                     "area": str(item['area']),
@@ -187,11 +185,16 @@ def main():
                 if payload['price_pppw'] < 70 or payload['price_pppw'] > 1000:
                     continue
 
-                print(f"DEBUG: Upserting: {payload['address']} ({payload['price_pppw']})")
+                # TASK 1: Add detailed payload debug
+                print(f"PAYLOAD DEBUG: {payload}")
                 
-                supabase.table("properties").upsert(payload, on_conflict="external_url").execute()
+                # TASK 1: Explicit upsert with on_conflict
+                supabase.table("properties").upsert(
+                    payload, 
+                    on_conflict="external_url"
+                ).execute()
+                
                 success_count += 1
-                
                 time.sleep(0.1)
             except Exception as e:
                 print(f"Step 4 Error for {item['address']}: {e}")
