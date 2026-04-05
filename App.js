@@ -18,15 +18,12 @@ export default function App() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    console.log('[App] Mounting...');
     // Seed AsyncStorage on first launch
     initializeData()
       .then(() => {
-        console.log('[App] Data initialized');
         setReady(true);
       })
       .catch(err => {
-        console.error('[App] Initialization failed:', err);
         setError(err.message || 'Failed to initialize application.');
         setReady(true);
       });

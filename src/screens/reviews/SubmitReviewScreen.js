@@ -115,16 +115,13 @@ export default function SubmitReviewScreen({ navigation, route }) {
   };
 
   const handleSubmit = async () => {
-    console.log('[SubmitReview] Starting validation...');
     const err = validate();
     if (err) {
-      console.log('[SubmitReview] Validation failed:', err);
       showAlert('Missing information', err);
       return;
     }
 
     setSubmitting(true);
-    console.log('[SubmitReview] Submitting to storage...');
     
     const reviewData = {
       landlordId: selectedLandlord.id,
@@ -140,7 +137,6 @@ export default function SubmitReviewScreen({ navigation, route }) {
     if (isMounted.current) {
       setSubmitting(false);
       if (result) {
-        console.log('[SubmitReview] Success!');
         showAlert(
           'Review submitted!',
           'Thank you for helping fellow Exeter students.',
@@ -161,9 +157,8 @@ export default function SubmitReviewScreen({ navigation, route }) {
     );
   }
 
-  if (!user) {
-    return <AuthPrompt message="Sign in with your university email to leave a review." />;
-  }
+  // TASK 1: Remove Auth Barrier. We now allow anonymous posts.
+  // email defaults to empty if not logged in.
 
   return (
     <KeyboardAvoidingView
@@ -171,6 +166,13 @@ export default function SubmitReviewScreen({ navigation, route }) {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+
+        <View style={styles.anonBanner}>
+          <Ionicons name="eye-off-outline" size={20} color={colors.primary} />
+          <Text style={styles.anonText}>
+            {user ? `Posting as ${user.email}` : "Posting Anonymously. No login required."}
+          </Text>
+        </View>
 
         {/* Landlord selection */}
         <FormSection title="Landlord or Agency *">
@@ -390,23 +392,21 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.background,
   },
-  privacyBanner: {
+  anonBanner: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     gap: 10,
     backgroundColor: colors.primaryLight,
-    borderRadius: radii.sm,
-    padding: spacing.sm,
+    padding: spacing.md,
+    borderRadius: radii.md,
     marginBottom: spacing.lg,
     borderWidth: 1,
-    borderColor: colors.primary + '40',
+    borderColor: colors.primary + '30',
   },
-  privacyText: {
-    flex: 1,
-    fontSize: 13,
+  anonText: {
+    ...typography.bodySmall,
     color: colors.primaryDark,
-    fontWeight: '500',
-    lineHeight: 18,
+    fontWeight: '600',
   },
   inputLabel: {
     fontSize: 12,

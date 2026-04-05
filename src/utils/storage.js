@@ -4,7 +4,6 @@ import { createClient } from '@supabase/supabase-js';
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const SUPABASE_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
-console.log('[Supabase] Initializing with URL:', SUPABASE_URL);
 if (!SUPABASE_URL || !SUPABASE_KEY) {
   console.error('[ExeLodge] Supabase credentials missing from environment variables.');
 }
@@ -81,7 +80,6 @@ export async function initializeData() {
   if (!SUPABASE_URL || !SUPABASE_KEY) {
     throw new Error('Supabase environment variables are not set. Ensure you have EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY defined in your Netlify Environment Variables or .env file.');
   }
-  console.log('[ExeLodge] Connected to Supabase Cloud Bridge.');
 }
 
 // ─── Landlords ────────────────────────────────────────────────────────────────
@@ -173,13 +171,11 @@ export async function getProperties(filters = {}) {
 
     const { data, error } = await query;
     if (error) {
-      console.error('[Supabase] getProperties error:', error);
       return [];
     }
 
     return data.map(mapProperty);
   } catch (e) {
-    console.error('[Supabase] getProperties crash:', e);
     return [];
   }
 }
@@ -240,10 +236,12 @@ export { supabase };
 export async function submitReview(review) {
   if (!supabase) return false;
   try {
-    const { data: { user } } = await supabase.auth.getUser();
+    // Attempt to get user if they are logged in, but don't require it for 'Post Anonymously'
+    const { data: authData } = await supabase.auth.getUser();
+    const user = authData?.user;
     
     const { error } = await supabase.from('reviews').insert([{
-      user_id: user?.id,
+      user_id: user?.id || null, // Allow null for anonymous posts
       landlord_id: review.landlordId,
       overall_rating: review.overallRating,
       maintenance: review.maintenance,
@@ -442,4 +440,17 @@ export async function saveMyProfile(profile) {
   } catch (e) {
     return false;
   }
+}
+    .from('profiles')
+      .upsert(payload, { onConflict: 'user_id' });
+    
+    if (error) {
+      console.error('[Supabase] saveMyProfile error:', error);
+      return false;
+    }
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
 }

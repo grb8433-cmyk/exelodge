@@ -17,7 +17,7 @@ import { getPropertyById, getLandlordById, getReviewsByLandlord } from '../../ut
 import { colors, radii, shadows, spacing, typography } from '../../utils/theme';
 import { EXETER_AVG_PPPW } from '../../data/seeds';
 
-const PLACEHOLDER_IMAGE = 'https://images.unsplash.com/photo-1555854817-5b2260d50c47?auto=format&fit=crop&w=800&q=80'; // High-quality housing placeholder
+const PLACEHOLDER_IMAGE = 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80'; // High-quality Exeter-style house
 
 export default function HouseDetailScreen({ navigation, route }) {
   const { propertyId } = route.params;
@@ -106,17 +106,25 @@ export default function HouseDetailScreen({ navigation, route }) {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* Header Image with Back Button Overlay */}
-      <View style={styles.imageContainer}>
-        <Image 
-          source={{ uri: property.imageUrl || PLACEHOLDER_IMAGE }} 
-          style={styles.heroImage}
-          resizeMode="cover"
-        />
-        <TouchableOpacity style={styles.overlayBack} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={colors.white} />
-        </TouchableOpacity>
-      </View>
+      {/* Header Image - Only render if valid URL exists */}
+      {property.imageUrl ? (
+        <View style={styles.imageContainer}>
+          <Image 
+            source={{ uri: property.imageUrl }} 
+            style={styles.heroImage}
+            resizeMode="cover"
+          />
+          <TouchableOpacity style={styles.overlayBack} onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={24} color={colors.white} />
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <View style={styles.simpleHeader}>
+          <TouchableOpacity style={styles.backBtnSimple} onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={24} color={colors.primary} />
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Price hero */}
       <View style={styles.priceCard}>
@@ -232,10 +240,10 @@ export default function HouseDetailScreen({ navigation, route }) {
       )}
 
       {/* Primary Action: View on Website */}
-      {property.directUrl && (
+      {(property.externalUrl || property.directUrl) && (
         <TouchableOpacity 
           style={styles.directBtn} 
-          onPress={() => Linking.openURL(property.directUrl).catch(() => Alert.alert('Error', 'Could not open website.'))}
+          onPress={() => Linking.openURL(property.externalUrl || property.directUrl).catch(() => Alert.alert('Error', 'Could not open website.'))}
         >
           <Ionicons name="open-outline" size={20} color={colors.white} />
           <Text style={styles.directBtnText}>View on Landlord Website</Text>
@@ -306,6 +314,19 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.4)',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  simpleHeader: {
+    padding: spacing.md,
+    backgroundColor: colors.background,
+  },
+  backBtnSimple: {
+    width: 40,
+    height: 40,
+    borderRadius: radii.full,
+    backgroundColor: colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...shadows.sm,
   },
   priceCard: {
     backgroundColor: colors.primaryLight,

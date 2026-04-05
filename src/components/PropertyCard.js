@@ -5,7 +5,7 @@ import Badge from './Badge';
 import { colors, radii, shadows, spacing, typography } from '../utils/theme';
 import { EXETER_AVG_PPPW } from '../data/seeds';
 
-const PLACEHOLDER_IMAGE = 'https://images.unsplash.com/photo-1555854817-5b2260d50c47?auto=format&fit=crop&w=800&q=80';
+const PLACEHOLDER_IMAGE = 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80'; // High-quality Exeter-style house
 
 export default function PropertyCard({ property, landlordName, onPress, onLandlordPress }) {
   const isGoodValue = property.pricePppw < EXETER_AVG_PPPW;
@@ -121,7 +121,7 @@ const styles = StyleSheet.create({
   },
   thumbnail: {
     width: '100%',
-    height: 160,
+    aspectRatio: 16 / 9,
     marginHorizontal: -spacing.md,
     marginTop: -spacing.md,
     marginBottom: spacing.md,

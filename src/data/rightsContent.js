@@ -137,25 +137,24 @@ export const RIGHTS_TOPICS = [
     id: 'entry',
     title: 'Landlord Entry',
     icon: 'key-outline',
-    summary: 'Your home is yours. Your landlord cannot enter without proper notice.',
+    summary: 'Your home is yours. Your landlord must give at least 24 hours\' notice.',
     sections: [
       {
         heading: 'The 24-hour rule',
-        body: 'Your landlord must give you at least 24 hours\' written notice before entering the property for any non-emergency reason. Entering without notice is a breach of your right to quiet enjoyment.',
+        body: 'Under the Landlord and Tenant Act 1985, your landlord must give you at least 24 hours\' written notice before entering the property for repairs or inspections. The entry must also be at a reasonable time of day.',
       },
       {
-        heading: 'What to do if they enter without notice',
-        body: '1. Document the incident with dates and details.\n2. Write to your landlord formally stating that 24 hours\' written notice is legally required.\n3. If it continues, contact the Guild Advice team or Citizens Advice.',
-        isSteps: true,
+        heading: 'Right to Quiet Enjoyment',
+        body: 'You have a legal right to "quiet enjoyment" of your home. This means living there without unnecessary interruption from the landlord. You can refuse entry if the time is inconvenient, unless it is an emergency.',
       },
       {
         heading: 'Genuine emergencies',
-        body: 'The only exception is a genuine emergency — for example, a gas leak or serious flood. In this case a landlord may enter immediately to prevent danger.',
+        body: 'A landlord can only enter without notice in a genuine emergency, such as a fire, a gas leak, or a flood that is damaging the property.',
       },
     ],
     contacts: [
       { label: 'Guild Advice Team', type: 'email', value: 'mailto:advice@exeterguild.com' },
-      { label: 'Citizens Advice', type: 'web', value: 'https://www.citizensadvice.org.uk' },
+      { label: 'Citizens Advice: Landlord entry', type: 'web', value: 'https://www.citizensadvice.org.uk/housing/renting-privately/during-your-tenancy/your-landlord-needs-to-come-into-your-home/' },
     ],
   },
   {
@@ -204,14 +203,18 @@ export const RIGHTS_TOPICS = [
         heading: 'National resources',
         body: 'Shelter offers free national housing advice online and by phone. Citizens Advice can help with letters, legal rights, and next steps.',
       },
+      {
+        heading: 'Official Resources',
+        body: 'For authoritative legal guidance, refer to these official bodies:',
+        isListHeader: true,
+      },
     ],
     contacts: [
+      { label: 'GOV.UK: Private renting rights', type: 'web', value: 'https://www.gov.uk/private-renting' },
+      { label: 'Citizens Advice: Renting privately', type: 'web', value: 'https://www.citizensadvice.org.uk/housing/renting-privately/' },
+      { label: 'Shelter England: Private renting advice', type: 'web', value: 'https://england.shelter.org.uk/housing_advice/private_renting' },
       { label: "Guild Advice Team: advice@exeterguild.com", type: 'email', value: 'mailto:advice@exeterguild.com' },
       { label: 'Exeter City Council Housing: 01392 277888', type: 'phone', value: 'tel:01392277888' },
-      { label: 'Email Exeter City Council', type: 'email', value: 'mailto:environmental.health@exeter.gov.uk' },
-      { label: 'Shelter: free housing advice', type: 'web', value: 'https://www.shelter.org.uk' },
-      { label: 'Citizens Advice', type: 'web', value: 'https://www.citizensadvice.org.uk' },
-      { label: 'First-tier Tribunal', type: 'web', value: 'https://www.gov.uk/housing-tribunal' },
     ],
   },
 ];
