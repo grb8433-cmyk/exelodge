@@ -4,11 +4,17 @@ import { createClient } from '@supabase/supabase-js';
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const SUPABASE_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
+console.log('[Supabase] Initializing with URL:', SUPABASE_URL);
 if (!SUPABASE_URL || !SUPABASE_KEY) {
-  console.warn('[ExeLodge] Supabase credentials missing from environment variables.');
+  console.error('[ExeLodge] Supabase credentials missing from environment variables.');
 }
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+let supabase;
+try {
+  supabase = createClient(SUPABASE_URL || 'https://placeholder.supabase.co', SUPABASE_KEY || 'placeholder');
+} catch (e) {
+  console.error('[Supabase] createClient failed:', e);
+}
 
 import { AREA_COORDS } from '../data/seeds';
 
@@ -72,31 +78,45 @@ function mapProfile(p) {
  * Data management is handled via the Supabase Dashboard.
  */
 export async function initializeData() {
+  if (!SUPABASE_URL || !SUPABASE_KEY) {
+    throw new Error('Supabase environment variables (EXPO_PUBLIC_SUPABASE_URL, EXPO_PUBLIC_SUPABASE_ANON_KEY) are not set. Check your .env file or deployment settings.');
+  }
   console.log('[ExeLodge] Connected to Supabase Cloud Bridge.');
 }
 
 // ─── Landlords ────────────────────────────────────────────────────────────────
 
 export async function getLandlords() {
-  const { data, error } = await supabase
-    .from('landlords')
-    .select('*')
-    .order('name');
-  if (error) {
-    console.error('[Supabase] getLandlords error:', error);
+  if (!supabase) return [];
+  try {
+    const { data, error } = await supabase
+      .from('landlords')
+      .select('*')
+      .order('name');
+    if (error) {
+      console.error('[Supabase] getLandlords error:', error);
+      return [];
+    }
+    return data;
+  } catch (e) {
+    console.error('[Supabase] getLandlords crash:', e);
     return [];
   }
-  return data;
 }
 
 export async function getLandlordById(id) {
-  const { data, error } = await supabase
-    .from('landlords')
-    .select('*')
-    .eq('id', id)
-    .single();
-  if (error) return null;
-  return data;
+  if (!supabase) return null;
+  try {
+    const { data, error } = await supabase
+      .from('landlords')
+      .select('*')
+      .eq('id', id)
+      .single();
+    if (error) return null;
+    return data;
+  } catch (e) {
+    return null;
+  }
 }
 
 export async function getLandlordsWithStats() {
@@ -120,71 +140,94 @@ export async function getLandlordsWithStats() {
 // ─── Properties ───────────────────────────────────────────────────────────────
 
 export async function getProperties(filters = {}) {
-  let query = supabase.from('properties').select('*, landlords(name)');
+  if (!supabase) return [];
+  try {
+    // We join landlords(name) to get the landlord name in the same query
+    let query = supabase.from('properties').select('*, landlords(name)');
 
-  if (filters.search) {
-    query = query.or(`address.ilike.%${filters.search}%,postcode.ilike.%${filters.search}%,area.ilike.%${filters.search}%`);
-  }
+    if (filters.search) {
+      query = query.or(`address.ilike.%${filters.search}%,postcode.ilike.%${filters.search}%,area.ilike.%${filters.search}%`);
+    }
 
-  if (filters.areas && filters.areas.length > 0 && !filters.areas.includes('All')) {
-    query = query.in('area', filters.areas);
-  }
+    if (filters.areas && filters.areas.length > 0 && !filters.areas.includes('All')) {
+      query = query.in('area', filters.areas);
+    }
 
-  if (filters.minBeds) {
-    query = query.gte('beds', filters.minBeds);
-  }
+    if (filters.minBeds) {
+      query = query.gte('beds', filters.minBeds);
+    }
 
-  if (filters.maxPrice) {
-    query = query.lte('price_pppw', filters.maxPrice);
-  }
+    if (filters.maxPrice) {
+      query = query.lte('price_pppw', filters.maxPrice);
+    }
 
-  if (filters.billsIncluded !== null && filters.billsIncluded !== undefined) {
-    query = query.eq('bills_included', filters.billsIncluded);
-  }
+    if (filters.billsIncluded !== null && filters.billsIncluded !== undefined) {
+      query = query.eq('bills_included', filters.billsIncluded);
+    }
 
-  if (filters.campus === 'Streatham') {
-    query = query.order('streatham_mins', { ascending: true });
-  } else if (filters.campus === "St Luke's") {
-    query = query.order('st_lukes_mins', { ascending: true });
-  }
+    if (filters.campus === 'Streatham') {
+      query = query.order('streatham_mins', { ascending: true });
+    } else if (filters.campus === "St Luke's") {
+      query = query.order('st_lukes_mins', { ascending: true });
+    }
 
-  const { data, error } = await query;
-  if (error) {
-    console.error('[Supabase] getProperties error:', error);
+    const { data, error } = await query;
+    if (error) {
+      console.error('[Supabase] getProperties error:', error);
+      return [];
+    }
+
+    return data.map(mapProperty);
+  } catch (e) {
+    console.error('[Supabase] getProperties crash:', e);
     return [];
   }
-
-  return data.map(mapProperty);
 }
 
 export async function getPropertyById(id) {
-  const { data, error } = await supabase
-    .from('properties')
-    .select('*')
-    .eq('id', id)
-    .single();
-  if (error) return null;
-  return mapProperty(data);
+  if (!supabase) return null;
+  try {
+    const { data, error } = await supabase
+      .from('properties')
+      .select('*')
+      .eq('id', id)
+      .single();
+    if (error) return null;
+    return mapProperty(data);
+  } catch (e) {
+    console.error('[Supabase] getPropertyById crash:', e);
+    return null;
+  }
 }
 
 export async function getPropertiesByLandlord(landlordId) {
-  const { data, error } = await supabase
-    .from('properties')
-    .select('*')
-    .eq('landlord_id', landlordId);
-  if (error) return [];
-  return data.map(mapProperty);
+  if (!supabase) return [];
+  try {
+    const { data, error } = await supabase
+      .from('properties')
+      .select('*')
+      .eq('landlord_id', landlordId);
+    if (error) return [];
+    return data.map(mapProperty);
+  } catch (e) {
+    return [];
+  }
 }
 
 // ─── Reviews ──────────────────────────────────────────────────────────────────
 
 export async function getReviews() {
-  const { data, error } = await supabase
-    .from('reviews')
-    .select('*')
-    .order('created_at', { ascending: false });
-  if (error) return [];
-  return data.map(mapReview);
+  if (!supabase) return [];
+  try {
+    const { data, error } = await supabase
+      .from('reviews')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) return [];
+    return data.map(mapReview);
+  } catch (e) {
+    return [];
+  }
 }
 
 export async function getReviewsByLandlord(landlordId) {
@@ -195,28 +238,33 @@ export async function getReviewsByLandlord(landlordId) {
 export { supabase };
 
 export async function submitReview(review) {
-  const { data: { user } } = await supabase.auth.getUser();
-  
-  const { error } = await supabase.from('reviews').insert([{
-    user_id: user?.id,
-    landlord_id: review.landlordId,
-    overall_rating: review.overallRating,
-    maintenance: review.maintenance,
-    deposit: review.deposit,
-    condition: review.condition,
-    communication: review.communication,
-    would_rent_again: review.wouldRentAgain,
-    review: sanitizeText(review.review),
-    verified: review.verified,
-    property_address: sanitizeText(review.propertyAddress),
-    academic_year: review.academicYear,
-  }]);
-  
-  if (error) {
-    console.error('[Supabase] submitReview error:', error);
+  if (!supabase) return false;
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    const { error } = await supabase.from('reviews').insert([{
+      user_id: user?.id,
+      landlord_id: review.landlordId,
+      overall_rating: review.overallRating,
+      maintenance: review.maintenance,
+      deposit: review.deposit,
+      condition: review.condition,
+      communication: review.communication,
+      would_rent_again: review.wouldRentAgain,
+      review: sanitizeText(review.review),
+      verified: review.verified,
+      property_address: sanitizeText(review.propertyAddress),
+      academic_year: review.academicYear,
+    }]);
+    
+    if (error) {
+      console.error('[Supabase] submitReview error:', error);
+      return false;
+    }
+    return true;
+  } catch (e) {
     return false;
   }
-  return true;
 }
 
 export function computeRatingBreakdown(reviews) {
@@ -233,35 +281,50 @@ export function computeRatingBreakdown(reviews) {
 // ─── Housemate Profiles ───────────────────────────────────────────────────────
 
 export async function getHousemateProfiles() {
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('*')
-    .order('created_at', { ascending: false });
-  if (error) return [];
-  return data.map(mapProfile);
+  if (!supabase) return [];
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) return [];
+    return data.map(mapProfile);
+  } catch (e) {
+    return [];
+  }
 }
 
 export async function getInterests() {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return [];
+  if (!supabase) return [];
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return [];
 
-  const { data, error } = await supabase
-    .from('interests')
-    .select('profile_id')
-    .eq('user_id', user.id);
-  if (error) return [];
-  return data.map(i => i.profile_id);
+    const { data, error } = await supabase
+      .from('interests')
+      .select('profile_id')
+      .eq('user_id', user.id);
+    if (error) return [];
+    return data.map(i => i.profile_id);
+  } catch (e) {
+    return [];
+  }
 }
 
 export async function addInterest(profileId) {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return false;
+  if (!supabase) return false;
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return false;
 
-  const { error } = await supabase.from('interests').upsert({
-    user_id: user.id,
-    profile_id: profileId,
-  });
-  return !error;
+    const { error } = await supabase.from('interests').upsert({
+      user_id: user.id,
+      profile_id: profileId,
+    });
+    return !error;
+  } catch (e) {
+    return false;
+  }
 }
 
 export async function getMatches() {
@@ -276,87 +339,107 @@ export async function getMatches() {
 // ─── Messaging ────────────────────────────────────────────────────────────────
 
 export async function getMessages(profileId) {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return [];
+  if (!supabase) return [];
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return [];
 
-  const { data, error } = await supabase
-    .from('messages')
-    .select('*')
-    .or(`and(sender_id.eq.${user.id},receiver_profile_id.eq.${profileId}),and(sender_id.eq.${profileId},receiver_profile_id.eq.${user.id})`)
-    .order('created_at', { ascending: true });
-  
-  if (error) return [];
-  return data.map(m => ({
-    id: m.id,
-    text: m.text,
-    sender: m.sender_id === user.id ? 'me' : 'them',
-    timestamp: m.created_at,
-  }));
+    const { data, error } = await supabase
+      .from('messages')
+      .select('*')
+      .or(`and(sender_id.eq.${user.id},receiver_profile_id.eq.${profileId}),and(sender_id.eq.${profileId},receiver_profile_id.eq.${user.id})`)
+      .order('created_at', { ascending: true });
+    
+    if (error) return [];
+    return data.map(m => ({
+      id: m.id,
+      text: m.text,
+      sender: m.sender_id === user.id ? 'me' : 'them',
+      timestamp: m.created_at,
+    }));
+  } catch (e) {
+    return [];
+  }
 }
 
 export async function sendMessage(profileId, text) {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return false;
+  if (!supabase) return false;
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return false;
 
-  const { error } = await supabase.from('messages').insert([{
-    sender_id: user.id,
-    receiver_profile_id: profileId,
-    text: sanitizeText(text),
-  }]);
-  return !error;
+    const { error } = await supabase.from('messages').insert([{
+      sender_id: user.id,
+      receiver_profile_id: profileId,
+      text: sanitizeText(text),
+    }]);
+    return !error;
+  } catch (e) {
+    return false;
+  }
 }
 
 // ─── My Profile ───────────────────────────────────────────────────────────────
 
 export async function getMyProfile() {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
+  if (!supabase) return null;
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
 
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('user_id', user.id)
-    .maybeSingle();
-  
-  if (error) return null;
-  return mapProfile(data);
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('user_id', user.id)
+      .maybeSingle();
+    
+    if (error) return null;
+    return mapProfile(data);
+  } catch (e) {
+    return null;
+  }
 }
 
 export async function saveMyProfile(profile) {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    console.error('[Supabase] Must be authenticated to save profile.');
+  if (!supabase) return false;
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      console.error('[Supabase] Must be authenticated to save profile.');
+      return false;
+    }
+
+    const payload = {
+      user_id: user.id,
+      display_name: profile.displayName,
+      age: profile.age,
+      gender: profile.gender,
+      course: profile.course,
+      year: profile.year,
+      budget_min: profile.budgetMin,
+      budget_max: profile.budgetMax,
+      area_preferences: profile.areaPreferences,
+      social_style: profile.socialStyle,
+      cleanliness: profile.cleanliness,
+      sleep_schedule: profile.sleepSchedule,
+      languages: profile.languages,
+      smoking: profile.smoking,
+      drinking: profile.drinking,
+      pets: profile.pets,
+      looking_for: profile.lookingFor,
+      notes: sanitizeText(profile.notes),
+    };
+
+    const { error } = await supabase
+      .from('profiles')
+      .upsert(payload, { onConflict: 'user_id' });
+    
+    if (error) {
+      console.error('[Supabase] saveMyProfile error:', error);
+      return false;
+    }
+    return true;
+  } catch (e) {
     return false;
   }
-
-  const payload = {
-    user_id: user.id,
-    display_name: profile.displayName,
-    age: profile.age,
-    gender: profile.gender,
-    course: profile.course,
-    year: profile.year,
-    budget_min: profile.budgetMin,
-    budget_max: profile.budgetMax,
-    area_preferences: profile.areaPreferences,
-    social_style: profile.socialStyle,
-    cleanliness: profile.cleanliness,
-    sleep_schedule: profile.sleepSchedule,
-    languages: profile.languages,
-    smoking: profile.smoking,
-    drinking: profile.drinking,
-    pets: profile.pets,
-    looking_for: profile.lookingFor,
-    notes: sanitizeText(profile.notes),
-  };
-
-  const { error } = await supabase
-    .from('profiles')
-    .upsert(payload, { onConflict: 'user_id' });
-  
-  if (error) {
-    console.error('[Supabase] saveMyProfile error:', error);
-    return false;
-  }
-  return true;
 }

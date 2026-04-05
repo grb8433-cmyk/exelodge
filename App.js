@@ -15,6 +15,7 @@ LogBox.ignoreLogs(['runtime not ready']);
 
 export default function App() {
   const [ready, setReady] = useState(false);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     console.log('[App] Mounting...');
@@ -26,7 +27,7 @@ export default function App() {
       })
       .catch(err => {
         console.error('[App] Initialization failed:', err);
-        // Still set ready true so we can show an error or the app shell
+        setError(err.message || 'Failed to initialize application.');
         setReady(true);
       });
   }, []);
@@ -39,6 +40,17 @@ export default function App() {
         <Text style={styles.splashTagline}>Student Housing · Exeter</Text>
         <ActivityIndicator style={styles.splashSpinner} color={colors.primary} size="small" />
         <Text style={styles.syncText}>Syncing latest Exeter listings...</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.splash}>
+        <StatusBar style="dark" />
+        <Text style={[styles.splashWordmark, { color: colors.error }]}>Error</Text>
+        <Text style={styles.splashTagline}>{error}</Text>
+        <Text style={styles.syncText}>Please check your connection and refresh.</Text>
       </View>
     );
   }
