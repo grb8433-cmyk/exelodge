@@ -13,10 +13,13 @@ def main():
     SUPABASE_URL = os.environ.get("SUPABASE_URL")
     SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
 
-    if not SUPABASE_URL:
-        print("[Watcher] CRITICAL: SUPABASE_URL is missing.")
-    if not SUPABASE_SERVICE_ROLE_KEY:
-        print("[Watcher] CRITICAL: SUPABASE_SERVICE_ROLE_KEY is missing.")
+    if SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY:
+        print("[Watcher] Variables detected!")
+    else:
+        if not SUPABASE_URL:
+            print("[Watcher] CRITICAL: SUPABASE_URL is missing.")
+        if not SUPABASE_SERVICE_ROLE_KEY:
+            print("[Watcher] CRITICAL: SUPABASE_SERVICE_ROLE_KEY is missing.")
 
     if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
         print("[Watcher] Step 2 Failed: Connection info missing. Exiting.")
