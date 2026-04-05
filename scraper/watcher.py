@@ -6,6 +6,8 @@ import re
 from supabase import create_client, Client
 
 def main():
+    print(f"DEBUG: URL found? {bool(os.environ.get('SUPABASE_URL'))}")
+    print(f"DEBUG: KEY found? {bool(os.environ.get('SUPABASE_SERVICE_ROLE_KEY'))}")
     print("--- Step 1: ExeLodge Watcher Starting Deep Debug ---")
     
     # --- CLOUD CONFIGURATION ---
@@ -16,6 +18,7 @@ def main():
     if SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY:
         print("[Watcher] Variables detected!")
     else:
+        print("CRITICAL FAIL: KEY NOT PASSED FROM GITHUB")
         if not SUPABASE_URL:
             print("[Watcher] CRITICAL: SUPABASE_URL is missing.")
         if not SUPABASE_SERVICE_ROLE_KEY:

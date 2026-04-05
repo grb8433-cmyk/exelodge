@@ -2,10 +2,12 @@ name: ExeLodge Daily Scraper
 
 on:
   schedule:
-    # Runs at 02:00 UTC (approx 02:00 or 03:00 UK time depending on BST)
     - cron: '0 2 * * *'
   workflow_dispatch:
-    # Allows manual trigger via the GitHub Actions tab
+
+env:
+  SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+  SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
 
 jobs:
   scrape:
@@ -27,7 +29,4 @@ jobs:
         if [ -f scraper/requirements.txt ]; then pip install -r scraper/requirements.txt; else pip install requests beautifulsoup4 supabase; fi
 
     - name: Run scraper
-      env:
-        SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-        SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
       run: python scraper/watcher.py
