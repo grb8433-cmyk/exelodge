@@ -89,6 +89,10 @@ def scrape_source(source, supabase, landlord_id):
                     baths_match = re.search(r'(\d+)\s?bath', full_text.lower())
                     if baths_match: baths = int(baths_match.group(1))
 
+                    # Attempt to find landlord/agency name in text
+                    detected_landlord = source['name']
+                    # Simple heuristic: if ' StuRents ' or similar is in text, but it's usually the source
+                    
                     all_listings.append({
                         "address": address,
                         "price_pppw": price,
@@ -97,7 +101,8 @@ def scrape_source(source, supabase, landlord_id):
                         "source": source['name'],
                         "area": "Exeter",
                         "external_url": external_url,
-                        "image_url": image_url
+                        "image_url": image_url,
+                        "landlord_id": detected_landlord # Setting landlord_id to the source name as a default
                     })
                     page_found_count += 1
                 except:
@@ -133,16 +138,22 @@ def main():
         print(f"Step 2 Failed: {e}")
         return
 
-    TEST_LANDLORD_ID = 'general'
+    # Ensure a 'general' landlord exists for fallback, but we'll try to use source names
     try:
-        supabase.table("landlords").upsert({"id": TEST_LANDLORD_ID, "name": "General Landlord", "type": "Scraped Source"}).execute()
+        supabase.table("landlords").upsert({"id": "general", "name": "General Landlord", "type": "Scraped Source"}).execute()
     except:
         pass
 
     total_listings = []
     for source in SOURCES:
         try:
-            source_listings = scrape_source(source, supabase, TEST_LANDLORD_ID)
+            # Ensure source name exists as a landlord for FK constraints
+            try:
+                supabase.table("landlords").upsert({"id": source['name'], "name": source['name'], "type": "Agency"}).execute()
+            except:
+                pass
+                
+            source_listings = scrape_source(source, supabase, source['name'])
             total_listings.extend(source_listings)
             print(f"[Watcher] Source {source['name']} yielded {len(source_listings)} listings.")
         except Exception as e:
@@ -158,8 +169,7 @@ def main():
         for listing in total_listings:
             print(f"DEBUG: Attempting to push to column external_url with value: {listing['external_url']}")
             
-            # TASK 1: Upsert logic targeting external_url as unique constraint
-            # Verified Payload: address, price_pppw, beds, baths, area, image_url, external_url
+            # TASK 1: Exactly match columns: address, price_pppw, beds, baths, area, image_url, external_url, landlord_id, last_scraped
             try:
                 supabase.table("properties").upsert({
                     "id": listing["external_url"], # ID matches external_url for unique constraint
@@ -170,9 +180,8 @@ def main():
                     "area": listing["area"],
                     "image_url": listing["image_url"],
                     "external_url": listing["external_url"],
-                    "landlord_id": TEST_LANDLORD_ID,
-                    "last_scraped": now_iso,
-                    "notes": f"Scraped from {listing['source']}"
+                    "landlord_id": listing["landlord_id"],
+                    "last_scraped": now_iso
                 }, on_conflict="external_url").execute()
                 success_count += 1
                 

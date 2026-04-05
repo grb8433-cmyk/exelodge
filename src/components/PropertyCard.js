@@ -66,17 +66,17 @@ export default function PropertyCard({ property, landlordName, onPress, onLandlo
       <Text style={styles.address} numberOfLines={1}>
         {property.address}, {property.postcode}
       </Text>
-      <Badge label={property.area} variant="gray" style={styles.areaBadge} />
+      <Badge label={property.area || 'Exeter'} variant="gray" style={styles.areaBadge} />
 
       {/* Beds / Baths */}
       <View style={styles.statsRow}>
         <View style={styles.stat}>
           <Ionicons name="bed-outline" size={15} color={colors.textSecondary} />
-          <Text style={styles.statText}>{property.beds} bed</Text>
+          <Text style={styles.statText}>{(property.beds || 1)} bed</Text>
         </View>
         <View style={styles.stat}>
           <Ionicons name="water-outline" size={15} color={colors.textSecondary} />
-          <Text style={styles.statText}>{property.baths} bath</Text>
+          <Text style={styles.statText}>{(property.baths || 1)} bath</Text>
         </View>
         {property.billsIncluded && (
           <View style={styles.stat}>
