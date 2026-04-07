@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Linking, Platform } from 'react-native';
-import { colors, spacing, radii, typography, shadows } from '../utils/theme';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Linking, Platform, useWindowDimensions } from 'react-native';
+import { colors, spacing, radii, typography, shadows, isDesktop } from '../utils/theme';
 
 const OFFICIAL_LINKS = [
   { label: 'Private Renting (GOV.UK)', url: 'https://www.gov.uk/private-renting' },
@@ -64,6 +64,8 @@ const FAQ = [
 
 export default function RightsScreen() {
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
+  const { width } = useWindowDimensions();
+  const desktopMode = isDesktop(width);
 
   const openLink = (url: string) => {
     if (Platform.OS === 'web') window.open(url, '_blank');
@@ -71,16 +73,16 @@ export default function RightsScreen() {
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Your Rights as a Student Renter</Text>
-        <Text style={styles.subHeader}>A comprehensive guide to UK legislation and student-specific advice for the Exeter market.</Text>
+    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
+      <View style={[styles.header, !desktopMode && styles.headerMobile]}>
+        <Text style={[styles.headerTitle, !desktopMode && styles.headerTitleMobile]}>Your Rights as a Student Renter</Text>
+        <Text style={[styles.subHeader, !desktopMode && styles.subHeaderMobile]}>A comprehensive guide to UK legislation and student-specific advice for the Exeter market.</Text>
       </View>
 
-      <View style={styles.content}>
-        <View style={styles.mainGrid}>
+      <View style={[styles.content, !desktopMode && styles.contentMobile]}>
+        <View style={[styles.mainGrid, !desktopMode && styles.mainGridMobile]}>
           {/* Column 1: Essentials */}
-          <View style={styles.column}>
+          <View style={[styles.column, !desktopMode && styles.columnMobile]}>
             <Text style={styles.sectionTitle}>The Legal Essentials</Text>
             
             <View style={styles.card}>
@@ -121,7 +123,7 @@ export default function RightsScreen() {
           </View>
 
           {/* Column 2: FAQ */}
-          <View style={styles.column}>
+          <View style={[styles.column, !desktopMode && styles.columnMobile]}>
             <Text style={styles.sectionTitle}>What do I do if?</Text>
             <View style={styles.card}>
               {FAQ.map((item, i) => (
@@ -148,7 +150,7 @@ export default function RightsScreen() {
           </View>
         </View>
 
-        <View style={styles.footerInfo}>
+        <View style={[styles.footerInfo, !desktopMode && styles.footerInfoMobile]}>
           <Text style={{ fontSize: 24 }}>ℹ️</Text>
           <Text style={styles.footerText}>
             Disclaimer: This information is for guidance only and does not constitute legal advice. For specific cases, contact Exeter Guild Advice or Citizens Advice.
@@ -161,12 +163,19 @@ export default function RightsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f9fafb' },
+  scrollContent: { paddingBottom: spacing.xl },
   header: { padding: 40, backgroundColor: '#fff', borderBottomWidth: 1, borderColor: '#e5e7eb' },
+  headerMobile: { padding: spacing.lg, paddingTop: spacing.xl },
   headerTitle: { fontSize: 28, fontWeight: '700', color: '#111827' },
+  headerTitleMobile: { fontSize: 22 },
   subHeader: { fontSize: 16, color: '#6b7280', marginTop: 8, maxWidth: 800 },
+  subHeaderMobile: { fontSize: 14, marginTop: 12 },
   content: { padding: 40 },
-  mainGrid: { flexDirection: Platform.OS === 'web' ? 'row' : 'column' },
-  column: { flex: 1, marginRight: Platform.OS === 'web' ? 24 : 0 },
+  contentMobile: { padding: spacing.md },
+  mainGrid: { flexDirection: 'row' },
+  mainGridMobile: { flexDirection: 'column' },
+  column: { flex: 1, marginRight: 24 },
+  columnMobile: { marginRight: 0, marginBottom: spacing.xl },
   sectionTitle: { fontSize: 18, fontWeight: '700', color: '#374151', marginBottom: 16, textTransform: 'uppercase', letterSpacing: 1 },
   card: { backgroundColor: '#fff', borderRadius: 16, padding: 24, borderWidth: 1, borderColor: '#e5e7eb', marginBottom: 24 },
   rightPoint: { flexDirection: 'row', marginBottom: 24 },
@@ -182,5 +191,6 @@ const styles = StyleSheet.create({
   aText: { fontSize: 14, color: '#4b5563', lineHeight: 22 },
   aLink: { fontSize: 14, color: '#006633', fontWeight: '700', marginTop: 12 },
   footerInfo: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f0fdf4', padding: 24, borderRadius: 16, marginTop: 20 },
+  footerInfoMobile: { padding: spacing.md },
   footerText: { marginLeft: 16, fontSize: 14, color: '#166534', flex: 1, lineHeight: 20 },
 });

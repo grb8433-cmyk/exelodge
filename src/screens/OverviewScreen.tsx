@@ -71,8 +71,8 @@ export default function OverviewScreen({ onNavigateToHouses }: { onNavigateToHou
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
       
-      {/* 1. Hero Section with Fixed Background Image */}
-      <View style={styles.heroContainer}>
+      {/* 1. Hero Section */}
+      <View style={[styles.heroContainer, !desktopMode && styles.heroContainerMobile]}>
         <Image 
           source={{ uri: 'https://images.unsplash.com/photo-1569329007721-f00490129200?q=80&w=2070&auto=format&fit=crop' }} 
           style={styles.heroBackgroundImage}
@@ -80,37 +80,37 @@ export default function OverviewScreen({ onNavigateToHouses }: { onNavigateToHou
         />
         <View style={styles.heroOverlay}>
           <Text style={[styles.heroGreeting, styles.textShadow]}>{getGreeting()}</Text>
-          <Text style={[styles.heroTitle, styles.textShadow]}>ExeLodge — Exeter Student Housing Platform</Text>
-          <Text style={[styles.heroSubtitle, styles.textShadow]}>Your Guide to Fair and Verified Student Homes</Text>
+          <Text style={[styles.heroTitle, !desktopMode && styles.heroTitleMobile, styles.textShadow]}>ExeLodge — Exeter Student Housing Platform</Text>
+          <Text style={[styles.heroSubtitle, !desktopMode && styles.heroSubtitleMobile, styles.textShadow]}>Your Guide to Fair and Verified Student Homes</Text>
           
-          <TouchableOpacity style={styles.heroCTA} onPress={onNavigateToHouses}>
-            <Text style={styles.heroCTAText}>Start Searching Verified Listings</Text>
+          <TouchableOpacity style={[styles.heroCTA, !desktopMode && styles.heroCTAMobile]} onPress={onNavigateToHouses}>
+            <Text style={[styles.heroCTAText, !desktopMode && { fontSize: 16 }]}>Start Searching Verified Listings</Text>
             <Text style={{ fontSize: 20, marginLeft: 12 }}>→</Text>
           </TouchableOpacity>
         </View>
       </View>
 
       {/* 2. The Trust Bar */}
-      <View style={styles.trustBar}>
-        <View style={styles.trustItem}>
+      <View style={[styles.trustBar, !desktopMode && styles.trustBarMobile]}>
+        <View style={[styles.trustItem, !desktopMode && styles.trustItemMobile]}>
           <Text style={{ fontSize: 20 }}>⭐</Text>
           <Text style={styles.trustText}>Verified Landlords & Reviews</Text>
         </View>
-        <View style={styles.trustItem}>
+        <View style={[styles.trustItem, !desktopMode && styles.trustItemMobile]}>
           <Text style={{ fontSize: 20 }}>📈</Text>
           <Text style={styles.trustText}>Market Average Comparison</Text>
         </View>
-        <View style={styles.trustItem}>
+        <View style={[styles.trustItem, !desktopMode && styles.trustItemMobile]}>
           <Text style={{ fontSize: 20 }}>🛡️</Text>
           <Text style={styles.trustText}>Tenant Rights Guide</Text>
         </View>
-        <View style={styles.trustItem}>
+        <View style={[styles.trustItem, !desktopMode && styles.trustItemMobile]}>
           <Text style={{ fontSize: 20 }}>📊</Text>
           <Text style={styles.trustText}>Verified Data</Text>
         </View>
       </View>
 
-      <View style={styles.mainContent}>
+      <View style={[styles.mainContent, !desktopMode && styles.mainContentMobile]}>
         
         {/* 3. Guild Advice Highlight */}
         <View style={styles.guildCard}>
@@ -141,9 +141,9 @@ export default function OverviewScreen({ onNavigateToHouses }: { onNavigateToHou
           </View>
         </View>
 
-        <View style={styles.featuresGrid}>
+        <View style={[styles.featuresGrid, !desktopMode && styles.featuresGridMobile]}>
           {/* Stat Card 1: Market Average */}
-          <View style={styles.featureCard}>
+          <View style={[styles.featureCard, !desktopMode && styles.featureCardMobile]}>
             <View style={styles.statIconCircle}>
               <Text style={{ fontSize: 24 }}>📈</Text>
             </View>
@@ -153,7 +153,7 @@ export default function OverviewScreen({ onNavigateToHouses }: { onNavigateToHou
           </View>
 
           {/* Stat Card 2: Listing Count */}
-          <View style={styles.featureCard}>
+          <View style={[styles.featureCard, !desktopMode && styles.featureCardMobile]}>
             <View style={styles.statIconCircle}>
               <Text style={{ fontSize: 24 }}>📋</Text>
             </View>
@@ -163,7 +163,7 @@ export default function OverviewScreen({ onNavigateToHouses }: { onNavigateToHou
           </View>
 
           {/* Feature Card 3: Comparison */}
-          <View style={styles.featureCard}>
+          <View style={[styles.featureCard, !desktopMode && styles.featureCardMobile]}>
             <View style={styles.statIconCircle}>
               <Text style={{ fontSize: 24 }}>⚖️</Text>
             </View>
@@ -172,7 +172,7 @@ export default function OverviewScreen({ onNavigateToHouses }: { onNavigateToHou
           </View>
 
           {/* Feature Card 4: Reviews */}
-          <View style={styles.featureCard}>
+          <View style={[styles.featureCard, !desktopMode && styles.featureCardMobile]}>
             <View style={styles.statIconCircle}>
               <Text style={{ fontSize: 24 }}>💬</Text>
             </View>
@@ -181,7 +181,7 @@ export default function OverviewScreen({ onNavigateToHouses }: { onNavigateToHou
           </View>
 
           {/* Feature Card 5: Rights */}
-          <View style={styles.featureCard}>
+          <View style={[styles.featureCard, !desktopMode && styles.featureCardMobile]}>
             <View style={styles.statIconCircle}>
               <Text style={{ fontSize: 24 }}>📜</Text>
             </View>
@@ -190,7 +190,7 @@ export default function OverviewScreen({ onNavigateToHouses }: { onNavigateToHou
           </View>
 
           {/* Feature Card 6: Coverage */}
-          <View style={styles.featureCard}>
+          <View style={[styles.featureCard, !desktopMode && styles.featureCardMobile]}>
             <View style={styles.statIconCircle}>
               <Text style={{ fontSize: 24 }}>📍</Text>
             </View>
@@ -215,6 +215,9 @@ const styles = StyleSheet.create({
     height: 500,
     position: 'relative',
     overflow: 'hidden',
+  },
+  heroContainerMobile: {
+    height: 400,
   },
   heroBackgroundImage: {
     position: 'absolute',
@@ -248,9 +251,13 @@ const styles = StyleSheet.create({
   heroTitle: {
     ...typography.logo,
     color: colors.white,
-    fontSize: Platform.OS === 'web' ? 48 : 36,
+    fontSize: 48,
     textAlign: 'center',
-    lineHeight: Platform.OS === 'web' ? 56 : 42,
+    lineHeight: 56,
+  },
+  heroTitleMobile: {
+    fontSize: 28,
+    lineHeight: 34,
   },
   heroSubtitle: {
     ...typography.h3,
@@ -259,6 +266,10 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontWeight: '400',
     opacity: 0.9,
+  },
+  heroSubtitleMobile: {
+    fontSize: 16,
+    marginTop: 12,
   },
   heroCTA: {
     backgroundColor: colors.primary,
@@ -269,6 +280,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     ...shadows.medium,
+  },
+  heroCTAMobile: {
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    marginTop: 24,
   },
   heroCTAText: {
     color: colors.white,
@@ -285,14 +301,24 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.lg,
     paddingHorizontal: spacing.xl,
   },
+  trustBarMobile: {
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
+  },
   trustItem: {
     flex: 1,
-    minWidth: Platform.OS === 'web' ? 200 : '50%',
+    minWidth: 200,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 12,
     paddingVertical: spacing.sm,
+  },
+  trustItemMobile: {
+    minWidth: '45%',
+    marginVertical: 4,
+    justifyContent: 'flex-start',
+    paddingHorizontal: 8,
   },
   trustText: {
     color: colors.white,
@@ -302,18 +328,22 @@ const styles = StyleSheet.create({
   },
 
   mainContent: {
-    paddingHorizontal: Platform.OS === 'web' ? 60 : spacing.md,
+    paddingHorizontal: 60,
     paddingTop: spacing.xl,
     maxWidth: 1200,
     alignSelf: 'center',
     width: '100%',
+  },
+  mainContentMobile: {
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.lg,
   },
 
   // Guild Card
   guildCard: {
     backgroundColor: colors.white,
     borderRadius: radii.lg,
-    flexDirection: Platform.OS === 'web' ? 'row' : 'column',
+    flexDirection: 'row',
     overflow: 'hidden',
     ...shadows.soft,
     marginBottom: spacing.xl,
@@ -321,7 +351,7 @@ const styles = StyleSheet.create({
   guildLeft: {
     backgroundColor: colors.primary,
     padding: spacing.xl,
-    width: Platform.OS === 'web' ? '40%' : '100%',
+    width: '40%',
     justifyContent: 'center',
   },
   guildTitle: {
@@ -399,15 +429,23 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     justifyContent: 'space-between',
   },
+  featuresGridMobile: {
+    gap: spacing.sm,
+  },
   featureCard: {
     backgroundColor: colors.white,
     borderRadius: radii.md,
     padding: spacing.lg,
-    width: Platform.OS === 'web' ? '31.5%' : '100%',
+    width: '31.5%',
     minHeight: 180,
     ...shadows.soft,
     borderWidth: 1,
     borderColor: colors.border,
+  },
+  featureCardMobile: {
+    width: '100%',
+    minHeight: 140,
+    padding: spacing.md,
   },
   statIconCircle: {
     width: 48,
