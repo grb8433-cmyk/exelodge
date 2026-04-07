@@ -1,6 +1,5 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, radii, typography, shadows } from '../utils/theme';
 
 interface SidebarProps {
@@ -10,10 +9,10 @@ interface SidebarProps {
 
 export default function Sidebar({ activeTab, onTabPress }: SidebarProps) {
   const navItems = [
-    { id: 'Home', label: 'Overview', icon: 'grid-outline' },
-    { id: 'Houses', label: 'Find a House', icon: 'business-outline' },
-    { id: 'Reviews', label: 'Reviews', icon: 'star-outline' },
-    { id: 'Rights', label: 'Your Rights', icon: 'shield-checkmark-outline' },
+    { id: 'Home', label: 'Overview', emoji: '📊' },
+    { id: 'Houses', label: 'Find a House', emoji: '🏠' },
+    { id: 'Reviews', label: 'Reviews', emoji: '⭐' },
+    { id: 'Rights', label: 'Your Rights', emoji: '🛡️' },
   ];
 
   return (
@@ -36,11 +35,7 @@ export default function Sidebar({ activeTab, onTabPress }: SidebarProps) {
               onPress={() => onTabPress(item.id)}
               activeOpacity={0.7}
             >
-              <Ionicons 
-                name={(isActive ? item.icon.replace('-outline', '') : item.icon) as any} 
-                size={20} 
-                color={isActive ? colors.white : colors.textSecondary} 
-              />
+              <Text style={{ fontSize: 20, marginRight: 12 }}>{item.emoji}</Text>
               <Text style={[
                 styles.navLabel, 
                 isActive && styles.activeNavLabel
@@ -104,7 +99,7 @@ const styles = StyleSheet.create({
     ...typography.bodySmall,
     fontWeight: '600',
     color: colors.textSecondary,
-    marginLeft: 12,
+    marginLeft: 0,
   },
   activeNavLabel: {
     color: colors.white,

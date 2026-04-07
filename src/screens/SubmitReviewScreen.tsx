@@ -1,20 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Platform } from 'react-native';
 import { supabase } from '../lib/supabase';
-import { Ionicons } from '@expo/vector-icons';
+import { colors, spacing, radii, typography, shadows } from '../utils/theme';
 
-export default function SubmitReviewScreen({ landlordId, onCancel, onSuccess }: { landlordId: string, onCancel: () => void, onSuccess: () => void }) {
+interface SubmitReviewScreenProps {
+  landlordId: string;
+  onCancel: () => void;
+  onSuccess: () => void;
+}
+
+export default function SubmitReviewScreen({ landlordId, onCancel, onSuccess }: SubmitReviewScreenProps) {
   const [landlord, setLandlord] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-
-  // Form State
+  
+  // Rating states
   const [maintenance, setMaintenance] = useState(0);
   const [communication, setCommunication] = useState(0);
   const [value, setValue] = useState(0);
   const [deposit, setDeposit] = useState(0);
-  const [comment, setComment] = useState('');
-  const [otherName, setOtherName] = useState('');
+  
+  const [reviewText, setReviewText] = useState('');
+  const [landlordName, setLandlordName] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -38,13 +45,28 @@ export default function SubmitReviewScreen({ landlordId, onCancel, onSuccess }: 
     }
   };
 
+  const RatingInput = ({ label, value, onChange }: { label: string, value: number, onChange: (v: number) => void }) => (
+    <View style={styles.ratingInputGroup}>
+      <Text style={styles.ratingLabel}>{label}</Text>
+      <View style={styles.starsRow}>
+        {[1, 2, 3, 4, 5].map((star) => (
+          <TouchableOpacity key={star} onPress={() => onChange(star)}>
+            <Text style={{ fontSize: 32, marginRight: 8, color: star <= value ? "#fbbf24" : "#d1d5db" }}>
+              ⭐
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    </View>
+  );
+
   const handleSubmit = async () => {
-    if (landlordId === 'other' && !otherName.trim()) {
+    if (landlordId === 'other' && !landlordName.trim()) {
       setError('Please provide the name of the landlord.');
       return;
     }
     
-    if (maintenance === 0 || communication === 0 || value === 0 || deposit === 0 || !comment.trim()) {
+    if (maintenance === 0 || communication === 0 || value === 0 || deposit === 0 || !reviewText.trim()) {
       setError('Please fill in all mandatory fields and provide a comment.');
       return;
     }
@@ -52,24 +74,23 @@ export default function SubmitReviewScreen({ landlordId, onCancel, onSuccess }: 
     setSubmitting(true);
     setError(null);
 
-    const finalComment = landlordId === 'other' ? `[LANDLORD: ${otherName.trim()}] ${comment.trim()}` : comment.trim();
-    const overall_rating = Math.round((maintenance + communication + value + deposit) / 4);
+    const finalReviewText = landlordId === 'other' 
+      ? `[LANDLORD: ${landlordName.trim()}] ${reviewText.trim()}`
+      : reviewText.trim();
     
-    // Fallback to 'general' if id is 'other' to satisfy DB foreign key constraints
+    const overallRating = Math.round((maintenance + communication + value + deposit) / 4);
     const targetId = landlordId === 'other' ? 'general' : landlordId;
 
     try {
-      const { error } = await supabase.from('reviews').insert([
-        {
-          landlord_id: targetId,
-          maintenance,
-          communication,
-          deposit,
-          review: finalComment,
-          overall_rating,
-          created_at: new Date().toISOString(),
-        }
-      ]);
+      const { error } = await supabase.from('reviews').insert([{
+        landlord_id: targetId,
+        maintenance,
+        communication,
+        deposit,
+        review: finalReviewText,
+        overall_rating: overallRating,
+        created_at: new Date().toISOString()
+      }]);
 
       if (error) throw error;
       onSuccess();
@@ -80,32 +101,20 @@ export default function SubmitReviewScreen({ landlordId, onCancel, onSuccess }: 
     }
   };
 
-  const RatingInput = ({ label, value, onChange }: { label: string, value: number, onChange: (v: number) => void }) => (
-    <View style={styles.ratingInputGroup}>
-      <Text style={styles.ratingLabel}>{label}</Text>
-      <View style={styles.starsRow}>
-        {[1, 2, 3, 4, 5].map((s) => (
-          <TouchableOpacity key={s} onPress={() => onChange(s)}>
-            <Ionicons 
-              name={s <= value ? "star" : "star-outline"} 
-              size={32} 
-              color={s <= value ? "#fbbf24" : "#d1d5db"} 
-              style={{ marginRight: 8 }}
-            />
-          </TouchableOpacity>
-        ))}
+  if (loading) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator color="#006633" />
       </View>
-    </View>
-  );
-
-  if (loading) return <View style={styles.center}><ActivityIndicator color="#006633" /></View>;
+    );
+  }
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.formCard}>
         <View style={styles.formHeader}>
           <TouchableOpacity onPress={onCancel} style={styles.backBtn}>
-            <Ionicons name="arrow-back" size={24} color="#374151" />
+            <Text style={{ fontSize: 24, color: "#374151" }}>←</Text>
           </TouchableOpacity>
           <Text style={styles.title}>Review: {landlord?.name}</Text>
         </View>
@@ -121,11 +130,11 @@ export default function SubmitReviewScreen({ landlordId, onCancel, onSuccess }: 
         {landlordId === 'other' && (
           <View style={styles.commentSection}>
             <Text style={styles.ratingLabel}>Landlord Name</Text>
-            <TextInput
+            <TextInput 
               style={[styles.textArea, { minHeight: 50 }]}
               placeholder="Enter the name of the landlord or agency"
-              value={otherName}
-              onChangeText={setOtherName}
+              value={landlordName}
+              onChangeText={setLandlordName}
             />
           </View>
         )}
@@ -139,13 +148,13 @@ export default function SubmitReviewScreen({ landlordId, onCancel, onSuccess }: 
 
         <View style={styles.commentSection}>
           <Text style={styles.ratingLabel}>Your Experience</Text>
-          <TextInput
+          <TextInput 
             style={styles.textArea}
             placeholder="Tell us about your time with this landlord. What went well? What could be improved?"
             multiline
             numberOfLines={6}
-            value={comment}
-            onChangeText={setComment}
+            value={reviewText}
+            onChangeText={setReviewText}
             textAlignVertical="top"
           />
         </View>
@@ -170,7 +179,14 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f9fafb' },
   content: { padding: 40, alignItems: 'center' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  formCard: { width: '100%', maxWidth: 600, backgroundColor: '#fff', borderRadius: 24, padding: 40, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 15, elevation: 5 },
+  formCard: { 
+    width: '100%', 
+    maxWidth: 600, 
+    backgroundColor: '#fff', 
+    borderRadius: 24, 
+    padding: 40,
+    ...shadows.medium,
+  },
   formHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
   backBtn: { marginRight: 16 },
   title: { fontSize: 24, fontWeight: '700', color: '#111827' },
@@ -180,7 +196,17 @@ const styles = StyleSheet.create({
   ratingLabel: { fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 12 },
   starsRow: { flexDirection: 'row' },
   commentSection: { marginBottom: 40 },
-  textArea: { backgroundColor: '#f3f4f6', borderRadius: 12, padding: 16, fontSize: 15, color: '#111827', minHeight: 150, ...Platform.select({ web: { outlineStyle: 'none' } }) } as any,
+  textArea: { 
+    backgroundColor: '#f3f4f6', 
+    borderRadius: 12, 
+    padding: 16, 
+    fontSize: 15, 
+    color: '#111827', 
+    minHeight: 150,
+    ...Platform.select({
+      web: { outlineStyle: 'none' } as any
+    })
+  },
   submitBtn: { backgroundColor: '#006633', paddingVertical: 16, borderRadius: 12, alignItems: 'center' },
   disabledBtn: { opacity: 0.7 },
   submitBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },

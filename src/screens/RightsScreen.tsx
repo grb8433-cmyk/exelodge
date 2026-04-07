@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Linking, Platform } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { colors, spacing, radii, typography, shadows } from '../utils/theme';
 
-const GOV_LINKS = [
+const OFFICIAL_LINKS = [
   { label: 'Private Renting (GOV.UK)', url: 'https://www.gov.uk/private-renting' },
   { label: 'Tenancy Deposit Protection', url: 'https://www.gov.uk/tenancy-deposit-protection' },
   { label: 'Shelter England - Student Housing', url: 'https://england.shelter.org.uk/housing_advice/private_renting/student_housing' },
   { label: 'Citizens Advice - Renting', url: 'https://www.citizensadvice.org.uk/housing/renting-privately/' },
 ];
 
-const COMMON_QUESTIONS = [
+const FAQ = [
   {
     q: "What do I do if my landlord won't fix the heating?",
     a: "Landlords are legally required to keep the supply of water, gas, electricity, and space heating in good repair. First, notify them in writing. If they don't respond, contact Exeter City Council's Environmental Health team.",
@@ -63,7 +63,7 @@ const COMMON_QUESTIONS = [
 ];
 
 export default function RightsScreen() {
-  const [expandedQ, setExpandedQ] = useState<number | null>(null);
+  const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
 
   const openLink = (url: string) => {
     if (Platform.OS === 'web') window.open(url, '_blank');
@@ -79,26 +79,29 @@ export default function RightsScreen() {
 
       <View style={styles.content}>
         <View style={styles.mainGrid}>
-          {/* Left Column: Core Rights */}
+          {/* Column 1: Essentials */}
           <View style={styles.column}>
             <Text style={styles.sectionTitle}>The Legal Essentials</Text>
+            
             <View style={styles.card}>
               <View style={styles.rightPoint}>
-                <Ionicons name="shield-outline" size={24} color="#006633" />
+                <Text style={{ fontSize: 24 }}>🛡️</Text>
                 <View style={styles.pointText}>
                   <Text style={styles.pointTitle}>The Right to a Safe Home</Text>
                   <Text style={styles.pointDesc}>Your home must be fit for human habitation. This includes structural safety, lack of damp, and working utilities.</Text>
                 </View>
               </View>
+
               <View style={styles.rightPoint}>
-                <Ionicons name="lock-closed-outline" size={24} color="#006633" />
+                <Text style={{ fontSize: 24 }}>🔒</Text>
                 <View style={styles.pointText}>
                   <Text style={styles.pointTitle}>Tenancy Deposit Protection</Text>
                   <Text style={styles.pointDesc}>Your deposit must be protected in a scheme like TDS, DPS, or MyDeposits. You must receive protection details within 30 days.</Text>
                 </View>
               </View>
+
               <View style={styles.rightPoint}>
-                <Ionicons name="document-text-outline" size={24} color="#006633" />
+                <Text style={{ fontSize: 24 }}>📄</Text>
                 <View style={styles.pointText}>
                   <Text style={styles.pointTitle}>The Tenant Fees Act 2019</Text>
                   <Text style={styles.pointDesc}>Landlords cannot charge for references, credit checks, or admin. Permitted fees are limited to rent, deposits, and contract changes (£50 cap).</Text>
@@ -108,29 +111,30 @@ export default function RightsScreen() {
 
             <Text style={[styles.sectionTitle, { marginTop: 32 }]}>Official References</Text>
             <View style={styles.card}>
-              {GOV_LINKS.map((link, i) => (
+              {OFFICIAL_LINKS.map((link, i) => (
                 <TouchableOpacity key={i} style={styles.linkRow} onPress={() => openLink(link.url)}>
                   <Text style={styles.linkText}>{link.label}</Text>
-                  <Ionicons name="open-outline" size={16} color="#006633" />
+                  <Text style={{ fontSize: 16 }}>↗️</Text>
                 </TouchableOpacity>
               ))}
             </View>
           </View>
 
-          {/* Right Column: What do I do if? */}
+          {/* Column 2: FAQ */}
           <View style={styles.column}>
             <Text style={styles.sectionTitle}>What do I do if?</Text>
             <View style={styles.card}>
-              {COMMON_QUESTIONS.map((item, i) => (
+              {FAQ.map((item, i) => (
                 <View key={i} style={styles.qaItem}>
                   <TouchableOpacity 
                     style={styles.qButton} 
-                    onPress={() => setExpandedQ(expandedQ === i ? null : i)}
+                    onPress={() => setExpandedIndex(expandedIndex === i ? null : i)}
                   >
                     <Text style={styles.qText}>{item.q}</Text>
-                    <Ionicons name={expandedQ === i ? "chevron-up" : "chevron-down"} size={20} color="#6b7280" />
+                    <Text style={{ fontSize: 16 }}>{expandedIndex === i ? '▲' : '▼'}</Text>
                   </TouchableOpacity>
-                  {expandedQ === i && (
+                  
+                  {expandedIndex === i && (
                     <View style={styles.aContainer}>
                       <Text style={styles.aText}>{item.a}</Text>
                       <TouchableOpacity onPress={() => openLink(item.link)}>
@@ -145,7 +149,7 @@ export default function RightsScreen() {
         </View>
 
         <View style={styles.footerInfo}>
-          <Ionicons name="information-circle" size={24} color="#006633" />
+          <Text style={{ fontSize: 24 }}>ℹ️</Text>
           <Text style={styles.footerText}>
             Disclaimer: This information is for guidance only and does not constitute legal advice. For specific cases, contact Exeter Guild Advice or Citizens Advice.
           </Text>
@@ -178,5 +182,5 @@ const styles = StyleSheet.create({
   aText: { fontSize: 14, color: '#4b5563', lineHeight: 22 },
   aLink: { fontSize: 14, color: '#006633', fontWeight: '700', marginTop: 12 },
   footerInfo: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f0fdf4', padding: 24, borderRadius: 16, marginTop: 20 },
-  footerText: { marginLeft: 16, fontSize: 14, color: '#166534', flex: 1, lineHeight: 20 }
+  footerText: { marginLeft: 16, fontSize: 14, color: '#166534', flex: 1, lineHeight: 20 },
 });

@@ -1,225 +1,184 @@
-import React, { useState } from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity, Platform } from 'react-native';
-import { colors, shadows, radii, spacing, typography } from '../utils/theme';
-import { Ionicons } from '@expo/vector-icons';
+import React from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Image, Platform } from 'react-native';
+import { colors, spacing, radii, typography, shadows } from '../utils/theme';
 
-const FALLBACK_IMG = 'https://images.unsplash.com/photo-1518780664697-55e3ad937233';
+interface PropertyCardProps {
+  item: any;
+  onPress: () => void;
+  marketAverage: number;
+}
 
-export default function PropertyCard({ item, marketAverage, onPress }: { item: any, marketAverage: number, onPress: () => void }) {
-  const [imgError, setImgError] = useState(false);
-  const [isHovered, setIsHovered] = useState(false);
-
-  if (!item) return null;
-
-  const price = parseFloat(item.price_pppw) || 0;
-  const bedrooms = item.beds || 1;
-  const bathrooms = item.baths || 1;
-
-  const imageUrl = item.image_url;
-  const isSvg = imageUrl && typeof imageUrl === 'string' && imageUrl.toLowerCase().includes('.svg');
-  const hasValidUrl = imageUrl && 
-                      typeof imageUrl === 'string' && 
-                      imageUrl.length > 5 && 
-                      imageUrl !== 'None' && 
-                      !isSvg;
+export default function PropertyCard({ item, onPress, marketAverage }: PropertyCardProps) {
+  const isGoodValue = parseFloat(item.price_pppw) <= marketAverage;
+  
+  // Fallback image if source is broken or 'None'
+  const fallbackImage = 'https://images.unsplash.com/photo-1518780664697-55e3ad937233';
+  const imageUrl = item.image_url && item.image_url !== 'None' ? item.image_url : fallbackImage;
 
   return (
-    <View 
-      style={[
-        styles.card, 
-        isHovered && Platform.OS === 'web' && styles.cardHovered
-      ]}
-      onPointerEnter={() => setIsHovered(true)}
-      onPointerLeave={() => setIsHovered(false)}
+    <TouchableOpacity 
+      style={styles.card} 
+      onPress={onPress}
+      activeOpacity={0.9}
     >
-      <TouchableOpacity activeOpacity={0.9} style={styles.imageContainer} onPress={onPress}>
-        <Image
-          source={{ uri: (hasValidUrl && !imgError) ? imageUrl : FALLBACK_IMG }}
+      <View style={styles.imageContainer}>
+        <Image 
+          source={{ uri: imageUrl }} 
           style={styles.image}
-          onError={() => setImgError(true)}
           resizeMode="cover"
         />
-        
-        {/* Floating Badges */}
-        <View style={styles.badgeContainer}>
-          <View style={styles.pillBadge}>
-            <Text style={styles.pillBadgeText}>{item.source || 'Listing'}</Text>
+        <View style={styles.areaBadge}>
+          <Text style={styles.areaText}>{item.area || 'Exeter'}</Text>
+        </View>
+        {isGoodValue && (
+          <View style={styles.valueBadge}>
+            <Text style={styles.valueEmoji}>💎</Text>
+            <Text style={styles.valueText}>GREAT VALUE</Text>
           </View>
-          
+        )}
+      </View>
+
+      <View style={styles.content}>
+        <Text style={styles.address} numberOfLines={1}>{item.address}</Text>
+        
+        <View style={styles.detailsRow}>
+          <View style={styles.detailItem}>
+            <Text style={styles.detailEmoji}>🛏️</Text>
+            <Text style={styles.detailText}>{item.beds} Beds</Text>
+          </View>
+          <View style={styles.detailItem}>
+            <Text style={styles.detailEmoji}>🚿</Text>
+            <Text style={styles.detailText}>{item.baths} Baths</Text>
+          </View>
           {item.bills_included && (
-            <View style={styles.pillBadge}>
-              <Ionicons name="flash" size={12} color={colors.textPrimary} style={{ marginRight: 4 }} />
-              <Text style={styles.pillBadgeText}>Bills Included</Text>
+            <View style={styles.detailItem}>
+              <Text style={styles.detailEmoji}>⚡</Text>
+              <Text style={styles.detailText}>Bills</Text>
             </View>
           )}
         </View>
 
-        {price < (marketAverage - 10) && (
-          <View style={styles.valueBadge}>
-            <Text style={styles.valueBadgeText}>Best Value</Text>
+        <View style={styles.footer}>
+          <View>
+            <Text style={styles.priceLabel}>PRICE PP/PW</Text>
+            <Text style={styles.price}>£{item.price_pppw}</Text>
           </View>
-        )}
-      </TouchableOpacity>
-      
-      <View style={styles.infoContent}>
-        <View style={styles.detailsRow}>
-          <View style={styles.leftInfo}>
-            <Text style={styles.address} numberOfLines={1}>{item.address || 'Exeter'}</Text>
-            <Text style={styles.area}>{item.area || 'Exeter'}</Text>
-            
-            <View style={styles.iconRow}>
-              <View style={styles.feature}>
-                <Ionicons name="bed-outline" size={16} color={colors.textSecondary} />
-                <Text style={styles.featureText}>{bedrooms}</Text>
-              </View>
-              <View style={styles.feature}>
-                <Ionicons name="water-outline" size={16} color={colors.textSecondary} />
-                <Text style={styles.featureText}>{bathrooms}</Text>
-              </View>
-            </View>
-          </View>
-
-          <View style={styles.rightInfo}>
-            <Text style={styles.price}>£{price}<Text style={styles.pppw}>/pw</Text></Text>
-          </View>
+          <TouchableOpacity style={styles.btn} onPress={onPress}>
+            <Text style={styles.btnText}>View</Text>
+          </TouchableOpacity>
         </View>
-
-        <TouchableOpacity 
-          style={styles.actionButton} 
-          onPress={onPress}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.actionButtonText}>View Listing</Text>
-          <Ionicons name="chevron-forward" size={16} color={colors.white} />
-        </TouchableOpacity>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
-  card: { 
+  card: {
     flex: 1,
-    backgroundColor: colors.cardBg, 
-    borderRadius: radii.lg, 
+    backgroundColor: colors.white,
+    borderRadius: radii.lg,
     margin: spacing.sm,
-    ...shadows.soft,
     overflow: 'hidden',
+    ...shadows.soft,
     borderWidth: 1,
     borderColor: colors.border,
   },
-  cardHovered: {
-    ...shadows.medium,
-    transform: [{ translateY: -4 }],
-  },
   imageContainer: {
+    height: 180,
+    position: 'relative',
+    backgroundColor: colors.background,
+  },
+  image: {
     width: '100%',
-    height: 200,
-    backgroundColor: '#f1f5f9',
+    height: '100%',
   },
-  image: { 
-    width: '100%', 
-    height: '100%', 
-  },
-  badgeContainer: {
+  areaBadge: {
     position: 'absolute',
     top: 12,
     left: 12,
-    flexDirection: 'row',
-    gap: 8,
-  },
-  pillBadge: {
-    backgroundColor: colors.white,
+    backgroundColor: 'rgba(15, 23, 42, 0.7)',
     paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: radii.full,
-    flexDirection: 'row',
-    alignItems: 'center',
-    ...shadows.soft,
+    paddingVertical: 4,
+    borderRadius: radii.sm,
   },
-  pillBadgeText: {
-    color: colors.textPrimary,
+  areaText: {
+    color: colors.white,
     fontSize: 11,
     fontWeight: '700',
+    textTransform: 'uppercase',
   },
   valueBadge: {
     position: 'absolute',
-    bottom: 12,
+    top: 12,
     right: 12,
     backgroundColor: colors.primary,
     paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingVertical: 4,
     borderRadius: radii.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
-  valueBadgeText: {
+  valueEmoji: {
+    fontSize: 10,
+  },
+  valueText: {
     color: colors.white,
     fontSize: 10,
-    fontWeight: '800',
-    textTransform: 'uppercase',
+    fontWeight: '900',
+    letterSpacing: 0.5,
   },
-  infoContent: { 
+  content: {
     padding: spacing.md,
+  },
+  address: {
+    ...typography.h4,
+    marginBottom: spacing.sm,
   },
   detailsRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
+    gap: 12,
     marginBottom: spacing.md,
   },
-  leftInfo: {
-    flex: 1,
-    paddingRight: 8,
+  detailItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
-  rightInfo: {
+  detailEmoji: {
+    fontSize: 14,
+  },
+  detailText: {
+    ...typography.bodySmall,
+    color: colors.textSecondary,
+    fontSize: 13,
+  },
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'flex-end',
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    paddingTop: spacing.sm,
   },
-  address: { 
-    ...typography.h4,
-    color: colors.textPrimary,
+  priceLabel: {
+    ...typography.label,
+    fontSize: 9,
     marginBottom: 2,
   },
-  area: { 
-    ...typography.bodySmall,
-    color: colors.textMuted,
-    fontWeight: '500',
-    marginBottom: 8,
+  price: {
+    ...typography.h3,
+    color: colors.primary,
   },
-  iconRow: {
-    flexDirection: 'row',
-    gap: 12,
+  btn: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: radii.sm,
   },
-  feature: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  featureText: {
+  btnText: {
+    color: colors.white,
+    fontWeight: '700',
     fontSize: 13,
-    color: colors.textSecondary,
-    fontWeight: '600',
   },
-  price: { 
-    fontSize: 24, 
-    fontWeight: '800', 
-    color: colors.textPrimary,
-  },
-  pppw: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.textMuted,
-  },
-  actionButton: { 
-    backgroundColor: colors.primary, 
-    paddingVertical: 12, 
-    borderRadius: radii.md, 
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-  },
-  actionButtonText: { 
-    color: colors.white, 
-    fontWeight: '700', 
-    fontSize: 14,
-  }
 });

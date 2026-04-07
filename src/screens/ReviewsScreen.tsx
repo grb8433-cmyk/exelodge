@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, FlatList, useWindowDimensions } from 'react-native';
 import { supabase } from '../lib/supabase';
-import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, radii, typography, shadows, isDesktop } from '../utils/theme';
 
 export default function ReviewsScreen({ initialLandlordId, onAddReview }: { initialLandlordId?: string | null, onAddReview: (landlordId: string) => void }) {
@@ -116,7 +115,7 @@ export default function ReviewsScreen({ initialLandlordId, onAddReview }: { init
                 ]}>
                   {item.name}
                 </Text>
-                {desktopMode && <Ionicons name="chevron-forward" size={16} color={selectedLandlord?.id === item.id ? '#fff' : '#9ca3af'} />}
+                {desktopMode && <Text style={{ color: selectedLandlord?.id === item.id ? '#fff' : '#9ca3af', fontSize: 12 }}>→</Text>}
               </TouchableOpacity>
             )}
           />
@@ -135,7 +134,7 @@ export default function ReviewsScreen({ initialLandlordId, onAddReview }: { init
                   style={styles.addReviewBtn}
                   onPress={() => onAddReview(selectedLandlord.id)}
                 >
-                  <Ionicons name="add" size={20} color="#fff" />
+                  <Text style={{ color: '#fff', fontSize: 20 }}>+</Text>
                   <Text style={styles.addReviewText}>Write a Review</Text>
                 </TouchableOpacity>
               </View>
@@ -149,7 +148,7 @@ export default function ReviewsScreen({ initialLandlordId, onAddReview }: { init
                   contentContainerStyle={styles.reviewsList}
                   ListEmptyComponent={
                     <View style={styles.emptyReviews}>
-                      <Ionicons name="chatbubbles-outline" size={48} color="#d1d5db" />
+                      <Text style={{ fontSize: 48, color: '#d1d5db' }}>💬</Text>
                       <Text style={styles.emptyText}>No reviews yet for this landlord.</Text>
                       <Text style={styles.emptySubtext}>Be the first to share your experience.</Text>
                     </View>
@@ -171,25 +170,25 @@ export default function ReviewsScreen({ initialLandlordId, onAddReview }: { init
                         <View style={styles.metric}>
                           <Text style={styles.metricLabel}>Maintenance</Text>
                           <View style={styles.stars}>
-                            {[1,2,3,4,5].map(s => <Ionicons key={s} name={s <= (item.maintenance || 5) ? "star" : "star-outline"} size={12} color="#fbbf24" />)}
+                            {[1,2,3,4,5].map(s => <Text key={s} style={{ fontSize: 12, color: s <= (item.maintenance || 5) ? "#fbbf24" : "#d1d5db" }}>⭐</Text>)}
                           </View>
                         </View>
                         <View style={styles.metric}>
                           <Text style={styles.metricLabel}>Communication</Text>
                           <View style={styles.stars}>
-                            {[1,2,3,4,5].map(s => <Ionicons key={s} name={s <= (item.communication || 5) ? "star" : "star-outline"} size={12} color="#fbbf24" />)}
+                            {[1,2,3,4,5].map(s => <Text key={s} style={{ fontSize: 12, color: s <= (item.communication || 5) ? "#fbbf24" : "#d1d5db" }}>⭐</Text>)}
                           </View>
                         </View>
                         <View style={styles.metric}>
                           <Text style={styles.metricLabel}>Value</Text>
                           <View style={styles.stars}>
-                            {[1,2,3,4,5].map(s => <Ionicons key={s} name={s <= (item.value || 5) ? "star" : "star-outline"} size={12} color="#fbbf24" />)}
+                            {[1,2,3,4,5].map(s => <Text key={s} style={{ fontSize: 12, color: s <= (item.value || 5) ? "#fbbf24" : "#d1d5db" }}>⭐</Text>)}
                           </View>
                         </View>
                         <View style={styles.metric}>
                           <Text style={styles.metricLabel}>Deposit Safety</Text>
                           <View style={styles.stars}>
-                            {[1,2,3,4,5].map(s => <Ionicons key={s} name={s <= (item.deposit || 5) ? "star" : "star-outline"} size={12} color="#fbbf24" />)}
+                            {[1,2,3,4,5].map(s => <Text key={s} style={{ fontSize: 12, color: s <= (item.deposit || 5) ? "#fbbf24" : "#d1d5db" }}>⭐</Text>)}
                           </View>
                         </View>
                       </View>
@@ -212,7 +211,7 @@ export default function ReviewsScreen({ initialLandlordId, onAddReview }: { init
             </View>
           ) : (
             <View style={styles.placeholderView}>
-              <Ionicons name="business-outline" size={64} color="#d1d5db" />
+              <Text style={{ fontSize: 64, color: '#d1d5db' }}>🏢</Text>
               <Text style={styles.placeholderText}>Select a landlord from the list to see their reviews.</Text>
             </View>
           )}

@@ -3,7 +3,6 @@ import { View, Text, FlatList, ActivityIndicator, StyleSheet, TextInput, Touchab
 import { supabase } from '../lib/supabase';
 import PropertyCard from '../components/PropertyCard';
 import { colors, spacing, radii, typography, shadows, isDesktop } from '../utils/theme';
-import { Ionicons } from '@expo/vector-icons';
 
 const AREAS = ['Pennsylvania', 'St James', 'Heavitree', 'Newtown', 'Mount Pleasant', 'Haldon', 'City Centre'];
 const BED_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8];
@@ -13,6 +12,7 @@ export default function HomeScreen({ onSelectProperty }: { onSelectProperty: (id
   const [properties, setProperties] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [displayLimit, setDisplayLimit] = useState(24);
   const { width } = useWindowDimensions();
   
   // Advanced Filters State
@@ -32,8 +32,7 @@ export default function HomeScreen({ onSelectProperty }: { onSelectProperty: (id
       const { data, error } = await supabase
         .from('properties')
         .select('*')
-        .order('price_pppw', { ascending: true })
-        .limit(100);
+        .order('price_pppw', { ascending: true });
       
       if (error) throw error;
       setProperties(data || []);
@@ -74,6 +73,10 @@ export default function HomeScreen({ onSelectProperty }: { onSelectProperty: (id
     });
   }, [properties, search, selectedAreas, minBeds, maxPrice, billsIncluded]);
 
+  const displayedProperties = useMemo(() => {
+    return filteredProperties.slice(0, displayLimit);
+  }, [filteredProperties, displayLimit]);
+
   const activeFilterCount = (selectedAreas.length > 0 ? 1 : 0) + (minBeds ? 1 : 0) + (maxPrice ? 1 : 0) + (billsIncluded !== null ? 1 : 0);
 
   const toggleArea = (area: string) => {
@@ -88,6 +91,11 @@ export default function HomeScreen({ onSelectProperty }: { onSelectProperty: (id
     setMaxPrice(null);
     setBillsIncluded(null);
     setSearch('');
+    setDisplayLimit(24);
+  };
+
+  const loadMore = () => {
+    setDisplayLimit(prev => prev + 24);
   };
 
   const desktopMode = isDesktop(width);
@@ -118,7 +126,7 @@ export default function HomeScreen({ onSelectProperty }: { onSelectProperty: (id
       {/* Search & Filter Bar */}
       <View style={styles.topBar}>
         <View style={styles.searchWrapper}>
-          <Ionicons name="search-outline" size={20} color={colors.textMuted} style={styles.searchIcon} />
+          <Text style={{ fontSize: 18, marginRight: 8 }}>🔍</Text>
           <TextInput
             style={styles.searchInput}
             placeholder="Search street or area..."
@@ -132,7 +140,7 @@ export default function HomeScreen({ onSelectProperty }: { onSelectProperty: (id
           style={[styles.filterBtn, activeFilterCount > 0 && styles.filterBtnActive]} 
           onPress={() => setShowFilters(true)}
         >
-          <Ionicons name="options-outline" size={20} color={activeFilterCount > 0 ? colors.white : colors.textPrimary} />
+          <Text style={{ fontSize: 18, color: activeFilterCount > 0 ? colors.white : colors.textPrimary }}>⚙️</Text>
           <Text style={[styles.filterBtnText, activeFilterCount > 0 && styles.filterBtnTextActive]}>
             Filters {activeFilterCount > 0 ? `(${activeFilterCount})` : ''}
           </Text>
@@ -141,7 +149,7 @@ export default function HomeScreen({ onSelectProperty }: { onSelectProperty: (id
 
       {/* Results Grid */}
       <FlatList
-        data={filteredProperties}
+        data={displayedProperties}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
           <PropertyCard 
@@ -153,9 +161,16 @@ export default function HomeScreen({ onSelectProperty }: { onSelectProperty: (id
         numColumns={desktopMode ? 3 : 1}
         key={desktopMode ? 'desktop' : 'mobile'}
         contentContainerStyle={styles.listContent}
+        ListFooterComponent={() => (
+          displayLimit < filteredProperties.length ? (
+            <TouchableOpacity style={styles.loadMoreBtn} onPress={loadMore}>
+              <Text style={styles.loadMoreText}>Load More Properties ({filteredProperties.length - displayLimit} remaining)</Text>
+            </TouchableOpacity>
+          ) : null
+        )}
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Ionicons name="search-outline" size={48} color={colors.textMuted} />
+            <Text style={{ fontSize: 48, marginBottom: 16 }}>🔍</Text>
             <Text style={styles.emptyText}>No properties match your criteria.</Text>
             <TouchableOpacity style={styles.resetBtn} onPress={resetFilters}>
               <Text style={styles.resetBtnText}>Clear all filters</Text>
@@ -176,7 +191,7 @@ export default function HomeScreen({ onSelectProperty }: { onSelectProperty: (id
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Detailed Filters</Text>
               <TouchableOpacity onPress={() => setShowFilters(false)}>
-                <Ionicons name="close" size={24} color={colors.textPrimary} />
+                <Text style={{ fontSize: 24 }}>✕</Text>
               </TouchableOpacity>
             </View>
 
@@ -358,9 +373,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  searchIcon: {
-    marginRight: spacing.sm,
-  },
   searchInput: {
     flex: 1,
     ...typography.body,
@@ -392,6 +404,19 @@ const styles = StyleSheet.create({
   },
   listContent: {
     padding: spacing.md,
+  },
+  loadMoreBtn: {
+    backgroundColor: colors.primary,
+    paddingVertical: 16,
+    borderRadius: radii.md,
+    marginVertical: spacing.xl,
+    alignItems: 'center',
+    ...shadows.soft,
+  },
+  loadMoreText: {
+    color: colors.white,
+    fontWeight: '700',
+    fontSize: 16,
   },
   empty: {
     paddingVertical: 100,

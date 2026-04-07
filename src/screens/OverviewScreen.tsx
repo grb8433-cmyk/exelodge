@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity, Image, useWindowDimensions, Platform, Linking } from 'react-native';
 import { supabase } from '../lib/supabase';
-import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, radii, typography, shadows, isDesktop } from '../utils/theme';
 
 export default function OverviewScreen({ onNavigateToHouses }: { onNavigateToHouses: () => void }) {
@@ -86,7 +85,7 @@ export default function OverviewScreen({ onNavigateToHouses }: { onNavigateToHou
           
           <TouchableOpacity style={styles.heroCTA} onPress={onNavigateToHouses}>
             <Text style={styles.heroCTAText}>Start Searching Verified Listings</Text>
-            <Ionicons name="arrow-forward" size={20} color={colors.white} />
+            <Text style={{ fontSize: 20, marginLeft: 12 }}>→</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -94,19 +93,19 @@ export default function OverviewScreen({ onNavigateToHouses }: { onNavigateToHou
       {/* 2. The Trust Bar */}
       <View style={styles.trustBar}>
         <View style={styles.trustItem}>
-          <Ionicons name="star" size={24} color={colors.white} />
+          <Text style={{ fontSize: 20 }}>⭐</Text>
           <Text style={styles.trustText}>Verified Landlords & Reviews</Text>
         </View>
         <View style={styles.trustItem}>
-          <Ionicons name="trending-up" size={24} color={colors.white} />
+          <Text style={{ fontSize: 20 }}>📈</Text>
           <Text style={styles.trustText}>Market Average Comparison</Text>
         </View>
         <View style={styles.trustItem}>
-          <Ionicons name="shield-checkmark" size={24} color={colors.white} />
+          <Text style={{ fontSize: 20 }}>🛡️</Text>
           <Text style={styles.trustText}>Tenant Rights Guide</Text>
         </View>
         <View style={styles.trustItem}>
-          <Ionicons name="bar-chart" size={24} color={colors.white} />
+          <Text style={{ fontSize: 20 }}>📊</Text>
           <Text style={styles.trustText}>Verified Data</Text>
         </View>
       </View>
@@ -116,7 +115,7 @@ export default function OverviewScreen({ onNavigateToHouses }: { onNavigateToHou
         {/* 3. Guild Advice Highlight */}
         <View style={styles.guildCard}>
           <View style={[styles.guildLeft, !desktopMode && { width: '100%', borderTopRightRadius: radii.lg, borderBottomLeftRadius: 0 }]}>
-            <Ionicons name="home" size={40} color={colors.white} style={{ marginBottom: 12 }} />
+            <Text style={{ fontSize: 40, marginBottom: 12 }}>🏠</Text>
             <Text style={styles.guildTitle}>Exeter Guild: Here to help you find your home</Text>
             <TouchableOpacity style={styles.guildButton} onPress={handleBookAppointment}>
               <Text style={styles.guildButtonText}>Book an Appointment</Text>
@@ -146,7 +145,7 @@ export default function OverviewScreen({ onNavigateToHouses }: { onNavigateToHou
           {/* Stat Card 1: Market Average */}
           <View style={styles.featureCard}>
             <View style={styles.statIconCircle}>
-              <Ionicons name="trending-up" size={24} color={colors.primary} />
+              <Text style={{ fontSize: 24 }}>📈</Text>
             </View>
             <Text style={styles.statValue}>£{stats.avg}</Text>
             <Text style={styles.statLabel}>MARKET AVG PW</Text>
@@ -156,7 +155,7 @@ export default function OverviewScreen({ onNavigateToHouses }: { onNavigateToHou
           {/* Stat Card 2: Listing Count */}
           <View style={styles.featureCard}>
             <View style={styles.statIconCircle}>
-              <Ionicons name="list" size={24} color={colors.primary} />
+              <Text style={{ fontSize: 24 }}>📋</Text>
             </View>
             <Text style={styles.statValue}>{stats.count}</Text>
             <Text style={styles.statLabel}>TOTAL UNIQUE HOMES</Text>
@@ -166,7 +165,7 @@ export default function OverviewScreen({ onNavigateToHouses }: { onNavigateToHou
           {/* Feature Card 3: Comparison */}
           <View style={styles.featureCard}>
             <View style={styles.statIconCircle}>
-              <Ionicons name="git-compare" size={24} color={colors.primary} />
+              <Text style={{ fontSize: 24 }}>⚖️</Text>
             </View>
             <Text style={styles.featureCardTitle}>Price Comparison</Text>
             <Text style={styles.featureDesc}>Compare listings side-by-side to find hidden value and avoid overpaying.</Text>
@@ -175,7 +174,7 @@ export default function OverviewScreen({ onNavigateToHouses }: { onNavigateToHou
           {/* Feature Card 4: Reviews */}
           <View style={styles.featureCard}>
             <View style={styles.statIconCircle}>
-              <Ionicons name="chatbubbles" size={24} color={colors.primary} />
+              <Text style={{ fontSize: 24 }}>💬</Text>
             </View>
             <Text style={styles.featureCardTitle}>Landlord Reviews</Text>
             <Text style={styles.featureDesc}>Read authentic experiences from previous Exeter student tenants.</Text>
@@ -184,7 +183,7 @@ export default function OverviewScreen({ onNavigateToHouses }: { onNavigateToHou
           {/* Feature Card 5: Rights */}
           <View style={styles.featureCard}>
             <View style={styles.statIconCircle}>
-              <Ionicons name="document-lock" size={24} color={colors.primary} />
+              <Text style={{ fontSize: 24 }}>📜</Text>
             </View>
             <Text style={styles.featureCardTitle}>Legal Checklist</Text>
             <Text style={styles.featureDesc}>A plain-English guide to your rights under the 2025 Renters Act.</Text>
@@ -193,7 +192,7 @@ export default function OverviewScreen({ onNavigateToHouses }: { onNavigateToHou
           {/* Feature Card 6: Coverage */}
           <View style={styles.featureCard}>
             <View style={styles.statIconCircle}>
-              <Ionicons name="location" size={24} color={colors.primary} />
+              <Text style={{ fontSize: 24 }}>📍</Text>
             </View>
             <Text style={styles.featureCardTitle}>Full Coverage</Text>
             <Text style={styles.featureDesc}>Monitoring all 10 key student neighbourhoods in Exeter.</Text>
@@ -269,7 +268,6 @@ const styles = StyleSheet.create({
     marginTop: 32,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
     ...shadows.medium,
   },
   heroCTAText: {
