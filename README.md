@@ -1,6 +1,7 @@
-# ExeLodge — Student Housing Platform for University of Exeter
+# ExeLodge — Exeter Student Housing Platform
 
-ExeLodge is a comprehensive housing platform built specifically for University of Exeter students. It brings together everything a student needs: 150+ real-world property listings, verified landlord reviews, a housemate finder, and a plain-English guide to tenant rights.
+ExeLodge is a comprehensive housing platform built specifically for students in Exeter.
+ It brings together everything a student needs: 150+ real-world property listings, verified landlord reviews, and a plain-English guide to tenant rights.
 
 ---
 
@@ -18,9 +19,8 @@ Follow these steps to take ExeLodge live with an **Automatic Property Watcher**.
 3.  Go to **Project Settings → API** and copy your `Project URL` and `anon public` key.
 
 ### Step 2: Connect the App
-1.  Open `src/utils/storage.js`.
-2.  Change `const LIVE_MODE = true;`.
-3.  Paste your Supabase URL and Key into the configuration variables.
+1.  Open `src/utils/storage.tsx`.
+2.  Paste your Supabase URL and Key into the configuration variables.
 
 ### Step 3: Launch the Website
 1.  Run `npx expo export -p web` in your terminal. This creates a `dist` folder.
@@ -42,11 +42,11 @@ To keep houses updated automatically:
 
 | Feature | Status |
 |-----|-------------|
-| **150+ Listings** | Active - Scraped from 42 Exeter sources. |
+| **150+ Listings** | Active - Monitoring Exeter's Top 5 Property Portals. |
+| **Full TypeScript** | Rebuilt for stability using .tsx and .ts files. |
 | **Landlord League Table** | Active - Compare agencies by repairs and deposit return. |
 | **Direct Listing Links** | Active - "View on Website" button on every house. |
-| **Housemate Messaging** | Active - Chat with mutual matches. |
-| **Cloud Ready** | Active - Just toggle `LIVE_MODE` in storage.js. |
+| **Cloud Ready** | Connected to Supabase backend. |
 
 ---
 
@@ -61,6 +61,11 @@ npm install --legacy-peer-deps
 ```powershell
 # Website
 npm run web
+
+# Mobile
+npx expo start --clear
+```
+run web
 
 # Mobile
 npx expo start --clear

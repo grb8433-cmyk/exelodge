@@ -7,8 +7,7 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "build": "expo export -p web",
-    "postinstall": "chmod +x node_modules/.bin/expo"
+    "build": "expo export -p web"
   },
   "dependencies": {
     "@expo/metro-runtime": "~6.1.2",
@@ -32,7 +31,10 @@
     "react-native-web": "~0.21.0"
   },
   "devDependencies": {
-    "@babel/core": "^7.24.0"
+    "@babel/core": "^7.24.0",
+    "@expo/ngrok": "^4.1.3",
+    "@types/react": "~19.1.10",
+    "typescript": "~5.9.2"
   },
   "private": true
 }
