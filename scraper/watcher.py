@@ -91,7 +91,7 @@ def scrape_source(source, supabase):
     }
 
     page = 1
-    max_pages = 25
+    max_pages = 15 # Reduced for speed, but covers most Exeter results
     seen_urls_source = set()
     
     while page <= max_pages:
@@ -105,38 +105,81 @@ def scrape_source(source, supabase):
             response = requests.get(url, headers=headers, timeout=20)
             if response.status_code != 200: break
             soup = BeautifulSoup(response.text, 'html.parser')
-            potential_cards = soup.find_all(['div', 'article', 'section', 'a'], class_=lambda x: x and any(k in x.lower() for k in ['property', 'card', 'listing', 'result', 'item']))
+            
+            # Source-specific card selectors
+            cards = []
+            if source['name'] == 'UniHomes':
+                cards = soup.select('div.property-card')
+            elif source['name'] == 'StuRents':
+                cards = soup.select('div.listing-card, div.property-card')
+            elif source['name'] == 'AccommodationForStudents':
+                cards = soup.select('div.search-result-card, div.property-card')
+            elif source['name'] == 'Cardens':
+                cards = soup.select('div.property-item, div.property-card')
+            elif source['name'] == 'Rightmove':
+                cards = soup.select('div.propertyCard')
+            
+            # Fallback to generic if specific fails
+            if not cards:
+                cards = soup.find_all(['div', 'article', 'section', 'a'], class_=lambda x: x and any(k in x.lower() for k in ['property', 'card', 'listing', 'result', 'item']))
             
             found_on_page = 0
-            for card in potential_cards:
+            for card in cards:
                 full_text = card.get_text(separator=' ')
+                # Clean up multiple spaces and newlines
+                full_text = re.sub(r'\s+', ' ', full_text).strip()
+                
                 if '£' not in full_text and '&pound;' not in full_text: continue
                 try:
-                    addr_el = card.find(['h2', 'h3', 'h4', 'strong'])
-                    if not addr_el: addr_el = card.find('p', class_=lambda x: x and 'address' in x.lower())
+                    # 1. Address
+                    addr_el = card.select_one('h2, h3, h4, .address, .property-address, .propertyCard-address')
                     address = clean_address(addr_el.text.strip()) if addr_el else ""
-                    if not is_likely_address(address): continue
+                    if not address or not is_likely_address(address):
+                        # Try to find address in text if element not found
+                        addr_match = re.search(r'\d+\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*', full_text)
+                        if addr_match: address = addr_match.group(0)
+                        else: continue
                     
+                    # 2. Price
                     price_match = re.search(r'(?:£|&pound;)\s?(\d{2,4})', full_text)
                     price_pppw = float(price_match.group(1)) if price_match else 0.0
                     
+                    # 3. Bedrooms
                     beds = 1
                     beds_match = re.search(r'(\d+)\s?(?:bed|bedroom)', full_text.lower())
-                    if beds_match: beds = int(beds_match.group(1))
-                    elif 'studio' in full_text.lower(): beds = 1
+                    if beds_match: 
+                        beds = int(beds_match.group(1))
+                    elif 'studio' in full_text.lower(): 
+                        beds = 1
 
+                    # 4. Bathrooms - FIXED LOGIC
                     baths = 1
+                    # Look for explicit bathroom count first
                     baths_match = re.search(r'(\d+)\s?(?:bath|bathroom)', full_text.lower())
                     if baths_match: 
                         baths = int(baths_match.group(1))
                     elif 'en-suite' in full_text.lower() or 'ensuite' in full_text.lower():
-                        baths = beds
+                        # Only assume beds=baths if it mentions all rooms are ensuite
+                        if any(k in full_text.lower() for k in ['all ensuite', 'all en-suite', 'every room']):
+                            baths = beds
+                        else:
+                            # Otherwise, assume at least one or look for more clues
+                            baths = 1 
+                    
+                    # Special fix for AfS which often mixes these up in generic text
+                    if source['name'] == 'AccommodationForStudents':
+                        # AfS cards often have a specific features list
+                        features_el = card.select_one('.property-features, .features')
+                        if features_el:
+                            f_text = features_el.get_text().lower()
+                            b_match = re.search(r'(\d+)\s?bath', f_text)
+                            if b_match: baths = int(b_match.group(1))
 
+                    # 5. URL
                     link_el = card.find('a', href=True) if card.name != 'a' else card
                     external_url = urljoin(source['base'], link_el['href']) if link_el else source['url']
                     
-                    # Force unique URL per Listing to prevent de-duplication
-                    # We use address+price to ensure uniqueness across pages
+                    # De-duplicate and unique-ify
                     listing_key = f"{address}-{price_pppw}-{beds}".lower()
                     addr_hash = hashlib.md5(listing_key.encode()).hexdigest()[:8]
                     if '?' in external_url: external_url = f"{external_url}&lid={addr_hash}"
@@ -145,7 +188,10 @@ def scrape_source(source, supabase):
                     if external_url in seen_urls_source: continue
                     seen_urls_source.add(external_url)
 
+                    # 6. Area
                     area = detect_area(address, external_url, full_text)
+                    
+                    # 7. Image
                     image_url = extract_best_image(card, source['base'])
                     
                     all_listings.append({
@@ -159,12 +205,16 @@ def scrape_source(source, supabase):
                         "landlord_id": source['name']
                     })
                     found_on_page += 1
-                except: continue
+                except Exception as e:
+                    continue
+            
             print(f"[{source['name']}] Page {page}: Found {found_on_page} unique on source.")
             if found_on_page == 0: break
             page += 1
-            time.sleep(2)
-        except: break
+            time.sleep(1.5)
+        except Exception as e:
+            print(f"Error on {source['name']} page {page}: {e}")
+            break
     return all_listings
 
 def main():

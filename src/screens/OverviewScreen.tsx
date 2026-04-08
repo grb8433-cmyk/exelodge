@@ -113,7 +113,7 @@ export default function OverviewScreen({ onNavigateToHouses }: { onNavigateToHou
       <View style={[styles.mainContent, !desktopMode && styles.mainContentMobile]}>
         
         {/* 3. Guild Advice Highlight */}
-        <View style={styles.guildCard}>
+        <View style={[styles.guildCard, !desktopMode && styles.guildCardMobile]}>
           <View style={[styles.guildLeft, !desktopMode && { width: '100%', borderTopRightRadius: radii.lg, borderBottomLeftRadius: 0 }]}>
             <Text style={{ fontSize: 40, marginBottom: 12 }}>🏠</Text>
             <Text style={styles.guildTitle}>Exeter Guild: Here to help you find your home</Text>
@@ -121,7 +121,7 @@ export default function OverviewScreen({ onNavigateToHouses }: { onNavigateToHou
               <Text style={styles.guildButtonText}>Book an Appointment</Text>
             </TouchableOpacity>
           </View>
-          <View style={styles.guildRight}>
+          <View style={[styles.guildRight, !desktopMode && styles.guildRightMobile]}>
             <Text style={styles.guildDesc}>
               The Students' Guild offers free, independent advice on housing contracts, landlord disputes, and tenant legislation. 
               Our specialists ensure you're treated fairly by Exeter property providers.
@@ -348,18 +348,14 @@ const styles = StyleSheet.create({
     ...shadows.soft,
     marginBottom: spacing.xl,
   },
+  guildCardMobile: {
+    flexDirection: 'column',
+  },
   guildLeft: {
     backgroundColor: colors.primary,
     padding: spacing.xl,
     width: '40%',
     justifyContent: 'center',
-  },
-  guildTitle: {
-    color: colors.white,
-    fontSize: 22,
-    fontWeight: '800',
-    lineHeight: 28,
-    marginBottom: 20,
   },
   guildButton: {
     backgroundColor: colors.white,
@@ -377,6 +373,9 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: spacing.xl,
     justifyContent: 'center',
+  },
+  guildRightMobile: {
+    padding: spacing.lg,
   },
   guildDesc: {
     ...typography.body,
