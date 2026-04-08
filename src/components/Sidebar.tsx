@@ -1,45 +1,60 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { colors, spacing, radii, typography, shadows } from '../utils/theme';
+import { Feather } from '@expo/vector-icons';
+import { colors, spacing, radii, typography, shadows, fontFamily } from '../utils/theme';
 
 interface SidebarProps {
   activeTab: string;
   onTabPress: (tab: string) => void;
 }
 
-export default function Sidebar({ activeTab, onTabPress }: SidebarProps) {
-  const navItems = [
-    { id: 'Home', label: 'Overview', emoji: '📊' },
-    { id: 'Houses', label: 'Find a House', emoji: '🏠' },
-    { id: 'Reviews', label: 'Reviews', emoji: '⭐' },
-    { id: 'Rights', label: 'Your Rights', emoji: '🛡️' },
-  ];
+type FeatherIconName = React.ComponentProps<typeof Feather>['name'];
 
+const navItems: { id: string; label: string; icon: FeatherIconName }[] = [
+  { id: 'Home',    label: 'Overview',     icon: 'grid'       },
+  { id: 'Houses',  label: 'Find a House', icon: 'home'       },
+  { id: 'Reviews', label: 'Reviews',      icon: 'star'       },
+  { id: 'Rights',  label: 'Your Rights',  icon: 'shield'     },
+];
+
+export default function Sidebar({ activeTab, onTabPress }: SidebarProps) {
   return (
     <View style={styles.sidebar}>
-      <View style={styles.logoContainer}>
-        <Text style={styles.logoText}>ExeLodge</Text>
-        <Text style={styles.logoSubtext}>Exeter Student Housing</Text>
+      {/* Brand */}
+      <View style={styles.brand}>
+        <View style={styles.logoMark}>
+          <Feather name="home" size={14} color={colors.white} />
+        </View>
+        <View>
+          <Text style={styles.logoText}>ExeLodge</Text>
+          <Text style={styles.logoSub}>Exeter Student Housing</Text>
+        </View>
       </View>
 
-      <View style={styles.navContainer}>
+      <View style={styles.divider} />
+
+      {/* Nav */}
+      <View style={styles.nav}>
+        <Text style={styles.navSection}>NAVIGATION</Text>
         {navItems.map((item) => {
           const isActive = activeTab === item.id;
           return (
             <TouchableOpacity
               key={item.id}
-              style={[
-                styles.navItem, 
-                isActive && styles.activeNavItem
-              ]}
+              style={[styles.navItem, isActive && styles.navItemActive]}
               onPress={() => onTabPress(item.id)}
               activeOpacity={0.7}
             >
-              <Text style={{ fontSize: 20, marginRight: 12 }}>{item.emoji}</Text>
-              <Text style={[
-                styles.navLabel, 
-                isActive && styles.activeNavLabel
-              ]}>
+              {/* Left accent bar */}
+              <View style={[styles.accentBar, isActive && styles.accentBarActive]} />
+              <View style={[styles.iconWrap, isActive && styles.iconWrapActive]}>
+                <Feather
+                  name={item.icon}
+                  size={16}
+                  color={isActive ? colors.primary : colors.textMuted}
+                />
+              </View>
+              <Text style={[styles.navLabel, isActive && styles.navLabelActive]}>
                 {item.label}
               </Text>
             </TouchableOpacity>
@@ -47,8 +62,13 @@ export default function Sidebar({ activeTab, onTabPress }: SidebarProps) {
         })}
       </View>
 
+      {/* Footer */}
       <View style={styles.footer}>
-        <Text style={styles.footerText}>© 2026 ExeLodge</Text>
+        <View style={styles.footerBadge}>
+          <View style={styles.liveDot} />
+          <Text style={styles.footerText}>Live Data</Text>
+        </View>
+        <Text style={styles.footerCopy}>© 2026 ExeLodge</Text>
       </View>
     </View>
   );
@@ -56,60 +76,145 @@ export default function Sidebar({ activeTab, onTabPress }: SidebarProps) {
 
 const styles = StyleSheet.create({
   sidebar: {
-    width: 260,
+    width: 256,
     backgroundColor: colors.white,
     borderRightWidth: 1,
-    borderColor: colors.border,
+    borderRightColor: colors.border,
     height: '100%',
+    paddingTop: spacing.xl,
+    paddingBottom: spacing.lg,
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xl,
   },
-  logoContainer: {
-    marginBottom: spacing.xl,
+
+  // Brand block
+  brand: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
     paddingHorizontal: spacing.sm,
+    marginBottom: spacing.lg,
+  },
+  logoMark: {
+    width: 36,
+    height: 36,
+    borderRadius: radii.sm,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   logoText: {
-    ...typography.logo,
-    color: colors.primary,
+    fontFamily,
+    fontSize: 17,
+    fontWeight: '800' as any,
+    color: colors.textPrimary,
+    letterSpacing: -0.3,
   },
-  logoSubtext: {
-    fontSize: 11,
+  logoSub: {
+    fontFamily,
+    fontSize: 10,
+    fontWeight: '500' as any,
     color: colors.textMuted,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginTop: 4,
+    letterSpacing: 0.3,
+    marginTop: 1,
   },
-  navContainer: {
+
+  divider: {
+    height: 1,
+    backgroundColor: colors.border,
+    marginBottom: spacing.lg,
+    marginHorizontal: spacing.sm,
+  },
+
+  // Nav
+  nav: {
     flex: 1,
-    gap: 8,
+    gap: 2,
+  },
+  navSection: {
+    fontFamily,
+    fontSize: 10,
+    fontWeight: '700' as any,
+    color: colors.textMuted,
+    letterSpacing: 1,
+    paddingHorizontal: spacing.sm,
+    marginBottom: spacing.sm,
   },
   navItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: spacing.md,
-    borderRadius: radii.full, // Pill shape
+    paddingVertical: 11,
+    paddingRight: spacing.md,
+    borderRadius: radii.md,
+    overflow: 'hidden',
+    position: 'relative',
   },
-  activeNavItem: {
+  navItemActive: {
+    backgroundColor: colors.primaryLight,
+  },
+  accentBar: {
+    width: 3,
+    height: '100%',
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    borderRadius: 2,
+    backgroundColor: 'transparent',
+  },
+  accentBarActive: {
     backgroundColor: colors.primary,
-    ...shadows.soft,
+  },
+  iconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: radii.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: spacing.sm,
+    marginRight: spacing.sm,
+  },
+  iconWrapActive: {
+    backgroundColor: colors.primaryMedium,
   },
   navLabel: {
-    ...typography.bodySmall,
-    fontWeight: '600',
+    fontFamily,
+    fontSize: 14,
+    fontWeight: '500' as any,
     color: colors.textSecondary,
-    marginLeft: 0,
   },
-  activeNavLabel: {
-    color: colors.white,
-    fontWeight: '700',
+  navLabelActive: {
+    color: colors.primary,
+    fontWeight: '700' as any,
   },
+
+  // Footer
   footer: {
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: spacing.sm,
+    gap: 8,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    paddingTop: spacing.md,
+  },
+  footerBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  liveDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: colors.success,
   },
   footerText: {
-    ...typography.label,
+    fontFamily,
+    fontSize: 12,
+    fontWeight: '600' as any,
+    color: colors.textSecondary,
+  },
+  footerCopy: {
+    fontFamily,
     fontSize: 10,
+    color: colors.textMuted,
+    fontWeight: '400' as any,
   },
 });

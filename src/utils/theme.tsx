@@ -1,45 +1,79 @@
 import { Platform } from 'react-native';
 
+// Inject Inter font on web at module load time
+if (Platform.OS === 'web' && typeof document !== 'undefined') {
+  if (!document.head.querySelector('[data-exelodge-fonts]')) {
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap';
+    link.setAttribute('data-exelodge-fonts', 'true');
+    document.head.appendChild(link);
+  }
+}
+
+// Premium font stack — Inter on web, system on native
+export const fontFamily =
+  Platform.OS === 'web'
+    ? "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+    : undefined;
+
 export const colors = {
-  // Primary Exeter Green
-  primary: '#006633',
-  primaryDark: '#004d26',
-  primaryLight: '#f0fdf4',
-  primaryMedium: '#dcfce7',
-  
-  // UI Neutrals
+  // Deep Emerald — premium, not "startup green"
+  primary: '#0B6E4F',
+  primaryDark: '#085240',
+  primaryLight: '#EFF7F3',
+  primaryMedium: '#C8E6DA',
+
+  // Warm Off-White — feels expensive
   white: '#FFFFFF',
-  background: '#f8fafc',
+  background: '#FAFAF8',
   cardBg: '#FFFFFF',
-  
-  // Text (Modern Slate Palette)
-  textPrimary: '#0f172a',   // Slate 900
-  textSecondary: '#475569', // Slate 600
-  textMuted: '#94a3b8',    // Slate 400
-  
-  // Accents
-  accent: '#16a34a',
-  success: '#10b981',
-  error: '#ef4444',
-  warning: '#f59e0b',
-  border: '#f1f5f9',       // Slate 100
+
+  // Gold Accent — depth and premium signal
+  accent: '#C9A84C',
+  accentLight: '#FBF5EA',
+  accentDark: '#9B7A2F',
+
+  // Text — warm dark instead of cold slate
+  textPrimary: '#1C1917',   // warm-stone 900
+  textSecondary: '#57534E', // warm-stone 600
+  textMuted: '#A8A29E',     // warm-stone 400
+
+  // Status
+  success: '#0F9B6E',
+  error: '#DC2626',
+  warning: '#D97706',
+
+  // Borders — warm tinted grey-green
+  border: '#E8EDE9',
+  borderDark: '#C9D4CC',
+
+  // Surface tiers
+  surfaceSubtle: '#F4F7F5',
+  surfaceHover: '#EDF3EF',
 };
 
 export const shadows = {
-  // Soft, diffuse premium shadows
   soft: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.04,
-    shadowRadius: 12,
+    shadowColor: '#0B6E4F',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
     elevation: 2,
   },
   medium: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.06,
-    shadowRadius: 20,
+    shadowColor: '#1C1917',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 24,
     elevation: 5,
+  },
+  card: {
+    shadowColor: '#1C1917',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 16,
+    elevation: 3,
   },
 };
 
@@ -47,7 +81,8 @@ export const radii = {
   xs: 6,
   sm: 10,
   md: 14,
-  lg: 20, // Modern "App" card feel
+  lg: 20,
+  xl: 28,
   full: 9999,
 };
 
@@ -57,22 +92,40 @@ export const spacing = {
   md: 16,
   lg: 24,
   xl: 32,
+  xxl: 48,
 };
 
+const baseFont: any = { fontFamily };
+
 export const typography = {
-  logo: { 
-    fontSize: 28, 
-    fontWeight: '800' as any, 
-    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
-    letterSpacing: -0.5 
+  logo: {
+    ...baseFont,
+    fontSize: 24,
+    fontWeight: '800' as any,
+    letterSpacing: -0.5,
+    color: colors.primary,
   },
-  h1: { fontSize: 32, fontWeight: '800' as any, color: '#0f172a' },
-  h2: { fontSize: 24, fontWeight: '700' as any, color: '#0f172a' },
-  h3: { fontSize: 20, fontWeight: '700' as any, color: '#0f172a' },
-  h4: { fontSize: 17, fontWeight: '700' as any, color: '#0f172a' },
-  body: { fontSize: 16, color: '#475569', lineHeight: 24 },
-  bodySmall: { fontSize: 14, color: '#475569', lineHeight: 20 },
-  label: { fontSize: 12, fontWeight: '600' as any, color: '#94a3b8', textTransform: 'uppercase' as any, letterSpacing: 1 },
+  h1: { ...baseFont, fontSize: 36, fontWeight: '800' as any, color: colors.textPrimary, letterSpacing: -0.5 },
+  h2: { ...baseFont, fontSize: 26, fontWeight: '700' as any, color: colors.textPrimary, letterSpacing: -0.3 },
+  h3: { ...baseFont, fontSize: 20, fontWeight: '700' as any, color: colors.textPrimary },
+  h4: { ...baseFont, fontSize: 16, fontWeight: '700' as any, color: colors.textPrimary },
+  body: { ...baseFont, fontSize: 15, fontWeight: '400' as any, color: colors.textSecondary, lineHeight: 24 },
+  bodySmall: { ...baseFont, fontSize: 13, fontWeight: '400' as any, color: colors.textSecondary, lineHeight: 20 },
+  label: {
+    ...baseFont,
+    fontSize: 11,
+    fontWeight: '700' as any,
+    color: colors.textMuted,
+    textTransform: 'uppercase' as any,
+    letterSpacing: 0.8,
+  },
+  caption: {
+    ...baseFont,
+    fontSize: 11,
+    fontWeight: '600' as any,
+    color: colors.textMuted,
+    letterSpacing: 0.5,
+  },
 };
 
 export const BREAKPOINTS = {

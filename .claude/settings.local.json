@@ -6,7 +6,9 @@
       "WebFetch(domain:www.accommodationforstudents.com)",
       "WebFetch(domain:www.cardensestateagents.co.uk)",
       "WebFetch(domain:www.rightmove.co.uk)",
-      "Bash(npx expo:*)"
+      "Bash(npx expo:*)",
+      "Bash(claude mcp:*)",
+      "Bash(npx tsc:*)"
     ]
   }
 }
