@@ -4,7 +4,7 @@ import {
   TextInput, TouchableOpacity, ScrollView, useWindowDimensions,
   Platform, Modal, Switch,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Icon from '../components/Icon';
 import { supabase } from '../lib/supabase';
 import PropertyCard from '../components/PropertyCard';
 import { colors, spacing, radii, typography, shadows, fontFamily, isDesktop } from '../utils/theme';
@@ -50,10 +50,10 @@ export default function HomeScreen({ onSelectProperty }: { onSelectProperty: (id
   const filteredProperties = useMemo(() => {
     return properties.filter(p => {
       const matchesSearch = !search || p.address?.toLowerCase().includes(search.toLowerCase()) || p.area?.toLowerCase().includes(search.toLowerCase());
-      const matchesArea = !selectedAreas.length || selectedAreas.includes(p.area);
-      const matchesBeds = minBeds ? p.beds >= minBeds : true;
-      const matchesPrice = maxPrice ? parseFloat(p.price_pppw) <= maxPrice : true;
-      const matchesBills = billsIncluded === null ? true : p.bills_included === billsIncluded;
+      const matchesArea   = !selectedAreas.length || selectedAreas.includes(p.area);
+      const matchesBeds   = minBeds ? p.beds >= minBeds : true;
+      const matchesPrice  = maxPrice ? parseFloat(p.price_pppw) <= maxPrice : true;
+      const matchesBills  = billsIncluded === null ? true : p.bills_included === billsIncluded;
       return matchesSearch && matchesArea && matchesBeds && matchesPrice && matchesBills;
     });
   }, [properties, search, selectedAreas, minBeds, maxPrice, billsIncluded]);
@@ -81,7 +81,7 @@ export default function HomeScreen({ onSelectProperty }: { onSelectProperty: (id
 
   return (
     <View style={styles.container}>
-      {/* ── HEADER ── */}
+      {/* Header */}
       <View style={[styles.header, !desktop && styles.headerMobile]}>
         <View>
           <Text style={styles.headerEyebrow}>Exeter Student Housing</Text>
@@ -89,19 +89,17 @@ export default function HomeScreen({ onSelectProperty }: { onSelectProperty: (id
         </View>
         <View style={[styles.marketWidget, !desktop && styles.marketWidgetMobile]}>
           <View style={styles.marketWidgetInner}>
-            <Feather name="trending-up" size={13} color={colors.primary} />
+            <Icon name="trending-up" size={13} color={colors.primary} />
             <Text style={styles.marketLabel}>MARKET AVG</Text>
           </View>
-          <Text style={styles.marketValue}>
-            £{marketAverage}<Text style={styles.marketSub}> pw</Text>
-          </Text>
+          <Text style={styles.marketValue}>£{marketAverage}<Text style={styles.marketSub}> pw</Text></Text>
         </View>
       </View>
 
-      {/* ── SEARCH + FILTER BAR ── */}
+      {/* Search + filter */}
       <View style={styles.searchBar}>
         <View style={styles.searchWrap}>
-          <Feather name="search" size={16} color={colors.textMuted} style={{ marginRight: 8 }} />
+          <Icon name="search" size={16} color={colors.textMuted} />
           <TextInput
             style={styles.searchInput}
             placeholder="Search by street or area…"
@@ -110,8 +108,8 @@ export default function HomeScreen({ onSelectProperty }: { onSelectProperty: (id
             onChangeText={setSearch}
           />
           {!!search && (
-            <TouchableOpacity onPress={() => setSearch('')}>
-              <Feather name="x" size={14} color={colors.textMuted} />
+            <TouchableOpacity onPress={() => setSearch('')} style={styles.clearBtn}>
+              <Icon name="x" size={14} color={colors.textMuted} />
             </TouchableOpacity>
           )}
         </View>
@@ -121,7 +119,7 @@ export default function HomeScreen({ onSelectProperty }: { onSelectProperty: (id
           onPress={() => setShowFilters(true)}
           activeOpacity={0.8}
         >
-          <Feather name="sliders" size={15} color={activeFilterCount > 0 ? colors.white : colors.textSecondary} />
+          <Icon name="sliders" size={15} color={activeFilterCount > 0 ? colors.white : colors.textSecondary} />
           <Text style={[styles.filterBtnText, activeFilterCount > 0 && styles.filterBtnTextActive]}>
             Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
           </Text>
@@ -135,7 +133,7 @@ export default function HomeScreen({ onSelectProperty }: { onSelectProperty: (id
         </Text>
       </View>
 
-      {/* ── LISTING GRID ── */}
+      {/* Listing grid */}
       <FlatList
         data={displayedProperties}
         keyExtractor={(item) => item.id.toString()}
@@ -158,7 +156,7 @@ export default function HomeScreen({ onSelectProperty }: { onSelectProperty: (id
         ListEmptyComponent={
           <View style={styles.empty}>
             <View style={styles.emptyIcon}>
-              <Feather name="search" size={28} color={colors.textMuted} />
+              <Icon name="search" size={28} color={colors.textMuted} />
             </View>
             <Text style={styles.emptyTitle}>No properties found</Text>
             <Text style={styles.emptyDesc}>Try adjusting your search or clearing some filters.</Text>
@@ -169,22 +167,20 @@ export default function HomeScreen({ onSelectProperty }: { onSelectProperty: (id
         }
       />
 
-      {/* ── FILTERS MODAL ── */}
+      {/* Filters modal */}
       <Modal visible={showFilters} animationType="slide" transparent onRequestClose={() => setShowFilters(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalSheet}>
-            {/* Handle */}
             <View style={styles.modalHandle} />
 
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Filter Properties</Text>
               <TouchableOpacity onPress={() => setShowFilters(false)} style={styles.modalClose}>
-                <Feather name="x" size={18} color={colors.textSecondary} />
+                <Icon name="x" size={18} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
 
             <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
-              {/* Areas */}
               <View style={styles.filterGroup}>
                 <Text style={styles.filterGroupLabel}>Preferred Areas</Text>
                 <View style={styles.chipRow}>
@@ -200,7 +196,6 @@ export default function HomeScreen({ onSelectProperty }: { onSelectProperty: (id
                 </View>
               </View>
 
-              {/* Bedrooms */}
               <View style={styles.filterGroup}>
                 <Text style={styles.filterGroupLabel}>Minimum Bedrooms</Text>
                 <View style={styles.chipRow}>
@@ -215,7 +210,6 @@ export default function HomeScreen({ onSelectProperty }: { onSelectProperty: (id
                 </View>
               </View>
 
-              {/* Max Price */}
               <View style={styles.filterGroup}>
                 <Text style={styles.filterGroupLabel}>Max Price (per person / week)</Text>
                 <View style={styles.chipRow}>
@@ -230,7 +224,6 @@ export default function HomeScreen({ onSelectProperty }: { onSelectProperty: (id
                 </View>
               </View>
 
-              {/* Bills toggle */}
               <View style={styles.filterGroup}>
                 <View style={styles.switchRow}>
                   <View>
@@ -267,7 +260,6 @@ const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
   loadingText: { fontFamily, fontSize: 14, color: colors.textMuted },
 
-  // Header
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -301,7 +293,6 @@ const styles = StyleSheet.create({
   marketValue: { fontFamily, fontSize: 22, fontWeight: '800' as any, color: colors.primary, letterSpacing: -0.5 },
   marketSub: { fontFamily, fontSize: 13, fontWeight: '500' as any, color: colors.primary },
 
-  // Search bar
   searchBar: {
     flexDirection: 'row',
     padding: spacing.md,
@@ -310,6 +301,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
     gap: spacing.sm,
+    alignItems: 'center',
   },
   searchWrap: {
     flex: 1,
@@ -321,6 +313,7 @@ const styles = StyleSheet.create({
     height: 48,
     borderWidth: 1,
     borderColor: colors.border,
+    gap: 8,
   },
   searchInput: {
     flex: 1,
@@ -329,6 +322,7 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     height: '100%',
   },
+  clearBtn: { padding: 4 },
   filterBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -345,7 +339,6 @@ const styles = StyleSheet.create({
   filterBtnText: { fontFamily, fontSize: 13, fontWeight: '600' as any, color: colors.textSecondary },
   filterBtnTextActive: { color: colors.white },
 
-  // Results bar
   resultsBar: {
     paddingHorizontal: spacing.lg,
     paddingVertical: 10,
@@ -358,7 +351,6 @@ const styles = StyleSheet.create({
 
   listContent: { padding: spacing.sm },
 
-  // Load more
   loadMoreBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -382,28 +374,21 @@ const styles = StyleSheet.create({
   },
   loadMoreBadgeText: { fontFamily, fontSize: 12, fontWeight: '700' as any, color: colors.primary },
 
-  // Empty state
   empty: { paddingVertical: 80, alignItems: 'center', gap: 12 },
   emptyIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 64, height: 64, borderRadius: 32,
     backgroundColor: colors.surfaceSubtle,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: 'center', justifyContent: 'center',
   },
   emptyTitle: { fontFamily, fontSize: 17, fontWeight: '700' as any, color: colors.textPrimary },
   emptyDesc: { fontFamily, fontSize: 14, color: colors.textMuted, textAlign: 'center', maxWidth: 260, lineHeight: 20 },
   emptyBtn: {
     backgroundColor: colors.primaryLight,
-    paddingVertical: 11,
-    paddingHorizontal: 20,
-    borderRadius: radii.md,
-    marginTop: 4,
+    paddingVertical: 11, paddingHorizontal: 20,
+    borderRadius: radii.md, marginTop: 4,
   },
   emptyBtnText: { fontFamily, fontSize: 14, color: colors.primary, fontWeight: '700' as any },
 
-  // Modal
   modalOverlay: { flex: 1, backgroundColor: 'rgba(28,25,23,0.45)', justifyContent: 'flex-end' },
   modalSheet: {
     backgroundColor: colors.white,
@@ -413,13 +398,10 @@ const styles = StyleSheet.create({
     ...shadows.medium,
   },
   modalHandle: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
+    width: 40, height: 4, borderRadius: 2,
     backgroundColor: colors.borderDark,
     alignSelf: 'center',
-    marginTop: 12,
-    marginBottom: 4,
+    marginTop: 12, marginBottom: 4,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -432,12 +414,9 @@ const styles = StyleSheet.create({
   },
   modalTitle: { fontFamily, fontSize: 18, fontWeight: '700' as any, color: colors.textPrimary },
   modalClose: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 32, height: 32, borderRadius: 16,
     backgroundColor: colors.surfaceSubtle,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: 'center', justifyContent: 'center',
   },
   modalBody: { paddingHorizontal: spacing.xl, paddingTop: spacing.lg },
   filterGroup: { marginBottom: spacing.xl },
@@ -445,12 +424,10 @@ const styles = StyleSheet.create({
   filterGroupSub: { fontFamily, fontSize: 12, color: colors.textMuted, marginBottom: spacing.sm },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: spacing.sm },
   chip: {
-    paddingHorizontal: 16,
-    paddingVertical: 9,
+    paddingHorizontal: 16, paddingVertical: 9,
     borderRadius: radii.full,
     backgroundColor: colors.background,
-    borderWidth: 1,
-    borderColor: colors.border,
+    borderWidth: 1, borderColor: colors.border,
   },
   chipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
   chipText: { fontFamily, fontSize: 13, fontWeight: '600' as any, color: colors.textSecondary },
@@ -466,21 +443,15 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
   },
   modalResetBtn: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: radii.md,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.border,
+    flex: 1, paddingVertical: 14,
+    borderRadius: radii.md, alignItems: 'center',
+    borderWidth: 1, borderColor: colors.border,
   },
   modalResetText: { fontFamily, fontWeight: '700' as any, color: colors.textSecondary, fontSize: 14 },
   modalApplyBtn: {
-    flex: 2,
-    backgroundColor: colors.primary,
-    paddingVertical: 14,
-    borderRadius: radii.md,
-    alignItems: 'center',
-    ...shadows.soft,
+    flex: 2, backgroundColor: colors.primary,
+    paddingVertical: 14, borderRadius: radii.md,
+    alignItems: 'center', ...shadows.soft,
   },
   modalApplyText: { fontFamily, fontWeight: '700' as any, color: colors.white, fontSize: 14 },
 });

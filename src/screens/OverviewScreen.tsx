@@ -3,7 +3,7 @@ import {
   View, Text, StyleSheet, ScrollView, ActivityIndicator,
   TouchableOpacity, Image, useWindowDimensions, Platform, Linking,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Icon from '../components/Icon';
 import { supabase } from '../lib/supabase';
 import { colors, spacing, radii, typography, shadows, fontFamily, isDesktop } from '../utils/theme';
 
@@ -36,7 +36,7 @@ export default function OverviewScreen({ onNavigateToHouses }: { onNavigateToHou
       try { return p.external_url.split('/')[2].replace('www.', ''); }
       catch { return 'Other'; }
     })).size;
-    return { count: properties.length, avg: Math.round(avg), min: Math.min(...prices), max: Math.max(...prices), sources: Math.max(sources, 4) };
+    return { count: properties.length, avg: Math.round(avg), sources: Math.max(sources, 4) };
   }, [properties]);
 
   const getGreeting = () => {
@@ -61,6 +61,13 @@ export default function OverviewScreen({ onNavigateToHouses }: { onNavigateToHou
     );
   }
 
+  const trustItems = [
+    { icon: 'check-circle', label: 'Verified Landlords & Reviews' },
+    { icon: 'bar-chart-2',  label: 'Live Market Average'          },
+    { icon: 'shield',       label: 'Tenant Rights Guide'          },
+    { icon: 'database',     label: 'Multi-Source Data'            },
+  ] as const;
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
 
@@ -71,7 +78,6 @@ export default function OverviewScreen({ onNavigateToHouses }: { onNavigateToHou
           style={styles.heroImage}
           resizeMode="cover"
         />
-        {/* Layered gradient overlay — dark top + emerald tint at bottom */}
         <View style={styles.heroOverlayDark} />
         <View style={styles.heroOverlayGreen} />
 
@@ -90,28 +96,38 @@ export default function OverviewScreen({ onNavigateToHouses }: { onNavigateToHou
 
           <TouchableOpacity style={[styles.heroCTA, !desktop && styles.heroCTAMobile]} onPress={onNavigateToHouses} activeOpacity={0.88}>
             <Text style={styles.heroCTAText}>Search Verified Listings</Text>
-            <Feather name="arrow-right" size={18} color={colors.primary} />
+            <Icon name="arrow-right" size={18} color={colors.primary} />
           </TouchableOpacity>
         </View>
       </View>
 
       {/* ── TRUST BAR ── */}
-      <View style={[styles.trustBar, !desktop && styles.trustBarMobile]}>
-        {[
-          { icon: 'check-circle' as const, label: 'Verified Landlords & Reviews' },
-          { icon: 'bar-chart-2' as const, label: 'Live Market Average' },
-          { icon: 'shield' as const, label: 'Tenant Rights Guide' },
-          { icon: 'database' as const, label: 'Multi-Source Data' },
-        ].map((item, i) => (
-          <View key={i} style={[styles.trustItem, !desktop && styles.trustItemMobile]}>
-            <View style={styles.trustIconWrap}>
-              <Feather name={item.icon} size={14} color={colors.primary} />
+      {desktop ? (
+        // Desktop: single horizontal row with dividers
+        <View style={styles.trustBarDesktop}>
+          {trustItems.map((item, i) => (
+            <View key={i} style={styles.trustItemDesktop}>
+              <View style={styles.trustIconWrap}>
+                <Icon name={item.icon} size={14} color={colors.primary} />
+              </View>
+              <Text style={styles.trustText}>{item.label}</Text>
+              {i < trustItems.length - 1 && <View style={styles.trustDivider} />}
             </View>
-            <Text style={styles.trustText}>{item.label}</Text>
-            {desktop && i < 3 && <View style={styles.trustDivider} />}
-          </View>
-        ))}
-      </View>
+          ))}
+        </View>
+      ) : (
+        // Mobile: clean 2×2 grid — each item is self-contained
+        <View style={styles.trustGridMobile}>
+          {trustItems.map((item, i) => (
+            <View key={i} style={styles.trustCardMobile}>
+              <View style={styles.trustIconWrap}>
+                <Icon name={item.icon} size={14} color={colors.primary} />
+              </View>
+              <Text style={styles.trustTextMobile} numberOfLines={2}>{item.label}</Text>
+            </View>
+          ))}
+        </View>
+      )}
 
       <View style={[styles.main, !desktop && styles.mainMobile]}>
 
@@ -119,13 +135,13 @@ export default function OverviewScreen({ onNavigateToHouses }: { onNavigateToHou
         <View style={[styles.guildCard, !desktop && styles.guildCardMobile]}>
           <View style={[styles.guildLeft, !desktop && styles.guildLeftMobile]}>
             <View style={styles.guildIconWrap}>
-              <Feather name="users" size={22} color={colors.white} />
+              <Icon name="users" size={22} color={colors.white} />
             </View>
             <Text style={styles.guildTitle}>Exeter Students' Guild Housing Advice</Text>
             <Text style={styles.guildSub}>Free, independent guidance for every student.</Text>
             <TouchableOpacity style={styles.guildBtn} onPress={openGuild} activeOpacity={0.85}>
               <Text style={styles.guildBtnText}>Book an Appointment</Text>
-              <Feather name="external-link" size={13} color={colors.primary} />
+              <Icon name="external-link" size={13} color={colors.primary} />
             </TouchableOpacity>
           </View>
           <View style={[styles.guildRight, !desktop && styles.guildRightMobile]}>
@@ -135,7 +151,7 @@ export default function OverviewScreen({ onNavigateToHouses }: { onNavigateToHou
             </Text>
             <TouchableOpacity onPress={openGuild} style={styles.guildLink}>
               <Text style={styles.guildLinkText}>Visit Guild Housing Advice</Text>
-              <Feather name="arrow-right" size={14} color={colors.primary} />
+              <Icon name="arrow-right" size={14} color={colors.primary} />
             </TouchableOpacity>
           </View>
         </View>
@@ -154,60 +170,54 @@ export default function OverviewScreen({ onNavigateToHouses }: { onNavigateToHou
 
         <View style={[styles.grid, !desktop && styles.gridMobile]}>
 
-          {/* Stat: Market Average */}
           <View style={[styles.statCard, !desktop && styles.cardFull]}>
             <View style={[styles.statIcon, { backgroundColor: colors.primaryLight }]}>
-              <Feather name="trending-up" size={18} color={colors.primary} />
+              <Icon name="trending-up" size={18} color={colors.primary} />
             </View>
             <Text style={styles.statValue}>£{stats.avg}</Text>
             <Text style={styles.statUnit}>per person / week</Text>
             <Text style={styles.cardDesc}>Current Exeter market average across {stats.sources} sources.</Text>
           </View>
 
-          {/* Stat: Total Homes */}
           <View style={[styles.statCard, !desktop && styles.cardFull]}>
             <View style={[styles.statIcon, { backgroundColor: colors.accentLight }]}>
-              <Feather name="home" size={18} color={colors.accent} />
+              <Icon name="home" size={18} color={colors.accent} />
             </View>
             <Text style={styles.statValue}>{stats.count}</Text>
             <Text style={styles.statUnit}>unique homes listed</Text>
             <Text style={styles.cardDesc}>Aggregated and deduplicated daily from all major portals.</Text>
           </View>
 
-          {/* Feature: Price Comparison */}
           <View style={[styles.featureCard, !desktop && styles.cardFull]}>
             <View style={[styles.statIcon, { backgroundColor: '#F0F4FF' }]}>
-              <Feather name="layers" size={18} color="#4B6CF5" />
+              <Icon name="layers" size={18} color="#4B6CF5" />
             </View>
             <Text style={styles.featureTitle}>Price Comparison</Text>
             <Text style={styles.cardDesc}>Compare listings side-by-side to find hidden value and avoid overpaying.</Text>
           </View>
 
-          {/* Feature: Landlord Reviews */}
           <View style={[styles.featureCard, !desktop && styles.cardFull]}>
             <View style={[styles.statIcon, { backgroundColor: '#FFF8F0' }]}>
-              <Feather name="message-circle" size={18} color="#E07B20" />
+              <Icon name="message-circle" size={18} color="#E07B20" />
             </View>
             <Text style={styles.featureTitle}>Landlord Reviews</Text>
             <Text style={styles.cardDesc}>Authentic tenant experiences from Exeter students across all providers.</Text>
           </View>
 
-          {/* Feature: Legal Checklist */}
           <View style={[styles.featureCard, !desktop && styles.cardFull]}>
             <View style={[styles.statIcon, { backgroundColor: '#F5F0FF' }]}>
-              <Feather name="file-text" size={18} color="#7C3AED" />
+              <Icon name="file-text" size={18} color="#7C3AED" />
             </View>
             <Text style={styles.featureTitle}>Legal Checklist</Text>
             <Text style={styles.cardDesc}>Plain-English guide to your rights under the 2025 Renters' Rights Act.</Text>
           </View>
 
-          {/* Feature: Full Coverage */}
           <View style={[styles.featureCard, !desktop && styles.cardFull]}>
             <View style={[styles.statIcon, { backgroundColor: colors.primaryLight }]}>
-              <Feather name="map-pin" size={18} color={colors.primary} />
+              <Icon name="map-pin" size={18} color={colors.primary} />
             </View>
             <Text style={styles.featureTitle}>Full Exeter Coverage</Text>
-            <Text style={styles.cardDesc}>All 10 key student neighbourhoods monitored including Pennsylvania & St James.</Text>
+            <Text style={styles.cardDesc}>All 10 key student neighbourhoods monitored including Pennsylvania and St James.</Text>
           </View>
 
         </View>
@@ -218,31 +228,24 @@ export default function OverviewScreen({ onNavigateToHouses }: { onNavigateToHou
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  scroll: { paddingBottom: spacing.xxl },
+  scroll: { paddingBottom: 48 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
   loadingText: { fontFamily, fontSize: 14, color: colors.textMuted },
 
-  // Hero
+  // ── Hero ────────────────────────────────────────────────────────────────────
   hero: { width: '100%', height: 520, position: 'relative', overflow: 'hidden' },
   heroMobile: { height: 420 },
   heroImage: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' },
-  heroOverlayDark: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(12, 10, 9, 0.55)',
-  },
+  heroOverlayDark: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(12,10,9,0.55)' },
   heroOverlayGreen: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 160,
-    backgroundColor: 'rgba(11, 110, 79, 0.25)',
+    position: 'absolute', bottom: 0, left: 0, right: 0, height: 160,
+    backgroundColor: 'rgba(11,110,79,0.25)',
   },
   heroContent: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: spacing.xxl,
+    paddingHorizontal: 48,
     paddingTop: spacing.xl,
   },
   heroContentMobile: { paddingHorizontal: spacing.lg },
@@ -298,8 +301,8 @@ const styles = StyleSheet.create({
   heroCTAMobile: { marginTop: 24, paddingVertical: 14, paddingHorizontal: 22 },
   heroCTAText: { fontFamily, color: colors.primary, fontSize: 16, fontWeight: '700' as any, letterSpacing: -0.1 },
 
-  // Trust bar
-  trustBar: {
+  // ── Trust bar — DESKTOP (horizontal row) ────────────────────────────────────
+  trustBarDesktop: {
     backgroundColor: colors.white,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
@@ -308,13 +311,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
     justifyContent: 'center',
   },
-  trustBarMobile: {
-    flexWrap: 'wrap',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    gap: 8,
-  },
-  trustItem: {
+  trustItemDesktop: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
@@ -322,14 +319,43 @@ const styles = StyleSheet.create({
     gap: 8,
     position: 'relative',
   },
-  trustItemMobile: {
-    flex: 0,
-    width: '47%',
-    justifyContent: 'flex-start',
-    backgroundColor: colors.surfaceSubtle,
-    padding: 10,
-    borderRadius: radii.md,
+  trustDivider: {
+    position: 'absolute', right: 0,
+    width: 1, height: 24,
+    backgroundColor: colors.border,
   },
+
+  // ── Trust bar — MOBILE (2×2 grid) ───────────────────────────────────────────
+  trustGridMobile: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    backgroundColor: colors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    padding: spacing.md,
+    gap: spacing.sm,
+  },
+  trustCardMobile: {
+    // Each card takes ~half the row minus gap
+    width: '47.5%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: colors.surfaceSubtle,
+    borderRadius: radii.md,
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+  },
+  trustTextMobile: {
+    fontFamily,
+    fontSize: 12,
+    fontWeight: '600' as any,
+    color: colors.textSecondary,
+    flex: 1,
+    lineHeight: 16,
+  },
+
+  // Shared trust icon (used in both desktop and mobile)
   trustIconWrap: {
     width: 30,
     height: 30,
@@ -337,11 +363,16 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
-  trustText: { fontFamily, fontSize: 13, fontWeight: '600' as any, color: colors.textSecondary },
-  trustDivider: { position: 'absolute', right: 0, width: 1, height: 24, backgroundColor: colors.border },
+  trustText: {
+    fontFamily,
+    fontSize: 13,
+    fontWeight: '600' as any,
+    color: colors.textSecondary,
+  },
 
-  // Main content
+  // ── Main content ────────────────────────────────────────────────────────────
   main: { paddingHorizontal: 52, paddingTop: spacing.xl, maxWidth: 1200, alignSelf: 'center', width: '100%' },
   mainMobile: { paddingHorizontal: spacing.md, paddingTop: spacing.lg },
 
@@ -436,14 +467,8 @@ const styles = StyleSheet.create({
   liveText: { fontFamily, fontSize: 10, fontWeight: '800' as any, color: colors.primary, letterSpacing: 0.5 },
 
   // Grid
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.md,
-  },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
   gridMobile: { gap: spacing.sm },
-
-  // Stat card (2 of 6)
   statCard: {
     backgroundColor: colors.white,
     borderRadius: radii.lg,
@@ -454,7 +479,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  // Feature card (4 of 6)
   featureCard: {
     backgroundColor: colors.white,
     borderRadius: radii.lg,
@@ -466,7 +490,6 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   cardFull: { width: '100%', minHeight: 'auto' as any },
-
   statIcon: {
     width: 44,
     height: 44,

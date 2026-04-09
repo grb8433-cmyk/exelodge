@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, useWindowDimensions, TouchableOpacity, SafeAreaView, Platform } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Icon from './src/components/Icon';
 import Sidebar from './src/components/Sidebar';
 import HomeScreen from './src/screens/HomeScreen';
 import OverviewScreen from './src/screens/OverviewScreen';
@@ -8,15 +8,13 @@ import ReviewsScreen from './src/screens/ReviewsScreen';
 import RightsScreen from './src/screens/RightsScreen';
 import PropertyDetailScreen from './src/screens/PropertyDetailScreen';
 import SubmitReviewScreen from './src/screens/SubmitReviewScreen';
-import { colors, typography, shadows, radii, fontFamily } from './src/utils/theme';
+import { colors, shadows, radii, fontFamily } from './src/utils/theme';
 
-type FeatherIconName = React.ComponentProps<typeof Feather>['name'];
-
-const TABS: { id: string; label: string; icon: FeatherIconName }[] = [
-  { id: 'Home',    label: 'Overview', icon: 'grid'    },
-  { id: 'Houses',  label: 'Houses',   icon: 'home'    },
-  { id: 'Reviews', label: 'Reviews',  icon: 'star'    },
-  { id: 'Rights',  label: 'Rights',   icon: 'shield'  },
+const TABS = [
+  { id: 'Home',    label: 'Overview', icon: 'grid'   },
+  { id: 'Houses',  label: 'Houses',   icon: 'home'   },
+  { id: 'Reviews', label: 'Reviews',  icon: 'star'   },
+  { id: 'Rights',  label: 'Rights',   icon: 'shield' },
 ];
 
 export default function App() {
@@ -78,7 +76,7 @@ export default function App() {
         {!isDesktop && (
           <View style={styles.mobileHeader}>
             <View style={styles.mobileLogoMark}>
-              <Feather name="home" size={12} color={colors.white} />
+              <Icon name="home" size={12} color={colors.white} />
             </View>
             <Text style={styles.mobileLogoText}>ExeLodge</Text>
           </View>
@@ -107,7 +105,7 @@ export default function App() {
                   activeOpacity={0.7}
                 >
                   <View style={[styles.tabIconWrap, isActive && styles.tabIconWrapActive]}>
-                    <Feather name={tab.icon} size={18} color={isActive ? colors.primary : colors.textMuted} />
+                    <Icon name={tab.icon} size={18} color={isActive ? colors.primary : colors.textMuted} />
                   </View>
                   <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>{tab.label}</Text>
                 </TouchableOpacity>
@@ -125,7 +123,6 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   main: { flex: 1, overflow: 'hidden' },
 
-  // Mobile header
   mobileHeader: {
     height: 56,
     backgroundColor: colors.white,
@@ -153,7 +150,6 @@ const styles = StyleSheet.create({
     letterSpacing: -0.3,
   },
 
-  // Bottom tabs
   bottomTabs: {
     flexDirection: 'row',
     height: Platform.OS === 'ios' ? 84 : 68,

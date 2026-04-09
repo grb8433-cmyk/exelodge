@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Linking, Platform, useWindowDimensions } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Icon from '../components/Icon';
 import { colors, spacing, radii, typography, shadows, fontFamily, isDesktop } from '../utils/theme';
 
 const OFFICIAL_LINKS = [
-  { label: 'Private Renting (GOV.UK)', url: 'https://www.gov.uk/private-renting', icon: 'external-link' as const },
-  { label: 'Tenancy Deposit Protection', url: 'https://www.gov.uk/tenancy-deposit-protection', icon: 'external-link' as const },
-  { label: 'Shelter England — Student Housing', url: 'https://england.shelter.org.uk/housing_advice/private_renting/student_housing', icon: 'external-link' as const },
-  { label: 'Citizens Advice — Renting', url: 'https://www.citizensadvice.org.uk/housing/renting-privately/', icon: 'external-link' as const },
+  { label: 'Private Renting (GOV.UK)',           url: 'https://www.gov.uk/private-renting' },
+  { label: 'Tenancy Deposit Protection',          url: 'https://www.gov.uk/tenancy-deposit-protection' },
+  { label: 'Shelter England — Student Housing',  url: 'https://england.shelter.org.uk/housing_advice/private_renting/student_housing' },
+  { label: 'Citizens Advice — Renting',          url: 'https://www.citizensadvice.org.uk/housing/renting-privately/' },
 ];
 
 const RIGHTS = [
@@ -60,10 +60,10 @@ export default function RightsScreen() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
 
-      {/* ── PAGE HEADER ── */}
+      {/* Page header */}
       <View style={[styles.pageHeader, !desktop && styles.pageHeaderMobile]}>
         <View style={styles.headerBadge}>
-          <Feather name="shield" size={14} color={colors.primary} />
+          <Icon name="shield" size={14} color={colors.primary} />
           <Text style={styles.headerBadgeText}>UK Tenant Law</Text>
         </View>
         <Text style={[styles.pageTitle, !desktop && { fontSize: 24 }]}>Your Rights as a Student Renter</Text>
@@ -75,16 +75,14 @@ export default function RightsScreen() {
       <View style={[styles.content, !desktop && styles.contentMobile]}>
         <View style={[styles.grid, !desktop && styles.gridMobile]}>
 
-          {/* ── COLUMN 1: Essentials + Links ── */}
+          {/* Column 1: Essentials + Links */}
           <View style={[styles.col, !desktop && styles.colMobile]}>
-
             <Text style={styles.sectionLabel}>THE LEGAL ESSENTIALS</Text>
-
             <View style={styles.card}>
               {RIGHTS.map((right, i) => (
                 <View key={i} style={[styles.rightItem, i < RIGHTS.length - 1 && styles.rightItemBorder]}>
                   <View style={[styles.rightIconWrap, { backgroundColor: right.bg }]}>
-                    <Feather name={right.icon} size={16} color={right.color} />
+                    <Icon name={right.icon} size={16} color={right.color} />
                   </View>
                   <View style={styles.rightText}>
                     <Text style={styles.rightTitle}>{right.title}</Text>
@@ -95,7 +93,6 @@ export default function RightsScreen() {
             </View>
 
             <Text style={[styles.sectionLabel, { marginTop: spacing.xl }]}>OFFICIAL REFERENCES</Text>
-
             <View style={styles.card}>
               {OFFICIAL_LINKS.map((link, i) => (
                 <TouchableOpacity
@@ -106,18 +103,16 @@ export default function RightsScreen() {
                 >
                   <Text style={styles.linkText}>{link.label}</Text>
                   <View style={styles.linkIcon}>
-                    <Feather name="arrow-up-right" size={13} color={colors.primary} />
+                    <Icon name="arrow-up-right" size={13} color={colors.primary} />
                   </View>
                 </TouchableOpacity>
               ))}
             </View>
           </View>
 
-          {/* ── COLUMN 2: FAQ Accordion ── */}
+          {/* Column 2: FAQ */}
           <View style={[styles.col, !desktop && styles.colMobile]}>
-
             <Text style={styles.sectionLabel}>COMMON QUESTIONS</Text>
-
             <View style={styles.card}>
               {FAQ.map((item, i) => {
                 const isOpen = expandedIndex === i;
@@ -129,7 +124,11 @@ export default function RightsScreen() {
                       activeOpacity={0.75}
                     >
                       <View style={[styles.qaChevronWrap, isOpen && styles.qaChevronWrapActive]}>
-                        <Feather name={isOpen ? 'chevron-up' : 'chevron-down'} size={14} color={isOpen ? colors.primary : colors.textMuted} />
+                        <Icon
+                          name={isOpen ? 'chevron-up' : 'chevron-down'}
+                          size={14}
+                          color={isOpen ? colors.primary : colors.textMuted}
+                        />
                       </View>
                       <Text style={[styles.qaQuestion, isOpen && styles.qaQuestionActive]}>{item.q}</Text>
                     </TouchableOpacity>
@@ -139,7 +138,7 @@ export default function RightsScreen() {
                         <Text style={styles.qaAnswerText}>{item.a}</Text>
                         <TouchableOpacity onPress={() => openLink(item.link)} style={styles.qaLink}>
                           <Text style={styles.qaLinkText}>Read official guidance</Text>
-                          <Feather name="arrow-up-right" size={12} color={colors.primary} />
+                          <Icon name="arrow-up-right" size={12} color={colors.primary} />
                         </TouchableOpacity>
                       </View>
                     )}
@@ -150,10 +149,10 @@ export default function RightsScreen() {
           </View>
         </View>
 
-        {/* ── DISCLAIMER ── */}
+        {/* Disclaimer */}
         <View style={[styles.disclaimer, !desktop && styles.disclaimerMobile]}>
           <View style={styles.disclaimerIcon}>
-            <Feather name="info" size={16} color={colors.primary} />
+            <Icon name="info" size={16} color={colors.primary} />
           </View>
           <Text style={styles.disclaimerText}>
             This information is for guidance only and does not constitute legal advice. For specific cases,
@@ -167,12 +166,11 @@ export default function RightsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  scroll: { paddingBottom: spacing.xxl },
+  scroll: { paddingBottom: 48 },
 
-  // Page header
   pageHeader: {
     padding: spacing.xl,
-    paddingTop: spacing.xxl,
+    paddingTop: 40,
     backgroundColor: colors.white,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
@@ -193,12 +191,10 @@ const styles = StyleSheet.create({
   pageTitle: { fontFamily, fontSize: 30, fontWeight: '800' as any, color: colors.textPrimary, letterSpacing: -0.5, marginBottom: 10 },
   pageDesc: { fontFamily, fontSize: 15, color: colors.textSecondary, lineHeight: 24, maxWidth: 780 },
 
-  // Content
   content: { padding: spacing.xl, maxWidth: 1200, alignSelf: 'center', width: '100%' },
   contentMobile: { padding: spacing.md },
   grid: { flexDirection: 'row', gap: spacing.xl },
   gridMobile: { flexDirection: 'column', gap: 0 },
-
   col: { flex: 1 },
   colMobile: { marginBottom: spacing.xl },
 
@@ -211,7 +207,6 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
     textTransform: 'uppercase' as any,
   },
-
   card: {
     backgroundColor: colors.white,
     borderRadius: radii.lg,
@@ -222,29 +217,17 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
 
-  // Rights items
-  rightItem: {
-    flexDirection: 'row',
-    gap: spacing.md,
-    padding: spacing.lg,
-  },
-  rightItemBorder: {
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
+  rightItem: { flexDirection: 'row', gap: spacing.md, padding: spacing.lg },
+  rightItemBorder: { borderBottomWidth: 1, borderBottomColor: colors.border },
   rightIconWrap: {
-    width: 38,
-    height: 38,
-    borderRadius: radii.sm,
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 38, height: 38, borderRadius: radii.sm,
+    alignItems: 'center', justifyContent: 'center',
     flexShrink: 0,
   },
   rightText: { flex: 1 },
   rightTitle: { fontFamily, fontSize: 15, fontWeight: '700' as any, color: colors.textPrimary, marginBottom: 5 },
   rightDesc: { fontFamily, fontSize: 13, color: colors.textSecondary, lineHeight: 20 },
 
-  // Official links
   linkRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -255,15 +238,11 @@ const styles = StyleSheet.create({
   linkRowBorder: { borderBottomWidth: 1, borderBottomColor: colors.border },
   linkText: { fontFamily, fontSize: 14, fontWeight: '600' as any, color: colors.primary, flex: 1, marginRight: spacing.sm },
   linkIcon: {
-    width: 28,
-    height: 28,
-    borderRadius: radii.sm,
+    width: 28, height: 28, borderRadius: radii.sm,
     backgroundColor: colors.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: 'center', justifyContent: 'center',
   },
 
-  // FAQ accordion
   qaItem: { overflow: 'hidden' },
   qaItemBorder: { borderBottomWidth: 1, borderBottomColor: colors.border },
   qaButton: {
@@ -274,35 +253,22 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
   },
   qaChevronWrap: {
-    width: 24,
-    height: 24,
-    borderRadius: radii.xs,
+    width: 24, height: 24, borderRadius: radii.xs,
     backgroundColor: colors.surfaceSubtle,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 1,
-    flexShrink: 0,
+    alignItems: 'center', justifyContent: 'center',
+    marginTop: 1, flexShrink: 0,
   },
   qaChevronWrapActive: { backgroundColor: colors.primaryLight },
   qaQuestion: {
-    fontFamily,
-    fontSize: 14,
-    fontWeight: '600' as any,
-    color: colors.textPrimary,
-    flex: 1,
-    lineHeight: 21,
+    fontFamily, fontSize: 14, fontWeight: '600' as any,
+    color: colors.textPrimary, flex: 1, lineHeight: 21,
   },
   qaQuestionActive: { color: colors.primary },
-  qaAnswer: {
-    paddingHorizontal: spacing.lg,
-    paddingBottom: 16,
-    paddingLeft: 52, // indent to align with question text
-  },
+  qaAnswer: { paddingHorizontal: spacing.lg, paddingBottom: 16, paddingLeft: 52 },
   qaAnswerText: { fontFamily, fontSize: 13, color: colors.textSecondary, lineHeight: 21, marginBottom: 12 },
   qaLink: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   qaLinkText: { fontFamily, fontSize: 13, fontWeight: '700' as any, color: colors.primary },
 
-  // Disclaimer
   disclaimer: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -316,20 +282,10 @@ const styles = StyleSheet.create({
   },
   disclaimerMobile: { padding: spacing.md },
   disclaimerIcon: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+    width: 30, height: 30, borderRadius: 15,
     backgroundColor: colors.primaryMedium,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-    marginTop: 1,
+    alignItems: 'center', justifyContent: 'center',
+    flexShrink: 0, marginTop: 1,
   },
-  disclaimerText: {
-    fontFamily,
-    fontSize: 13,
-    color: colors.primaryDark,
-    lineHeight: 21,
-    flex: 1,
-  },
+  disclaimerText: { fontFamily, fontSize: 13, color: colors.primaryDark, lineHeight: 21, flex: 1 },
 });

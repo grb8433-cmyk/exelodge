@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import Icon from './Icon';
 import { colors, spacing, radii, typography, shadows, fontFamily } from '../utils/theme';
 
 interface SidebarProps {
@@ -8,13 +8,11 @@ interface SidebarProps {
   onTabPress: (tab: string) => void;
 }
 
-type FeatherIconName = React.ComponentProps<typeof Feather>['name'];
-
-const navItems: { id: string; label: string; icon: FeatherIconName }[] = [
-  { id: 'Home',    label: 'Overview',     icon: 'grid'       },
-  { id: 'Houses',  label: 'Find a House', icon: 'home'       },
-  { id: 'Reviews', label: 'Reviews',      icon: 'star'       },
-  { id: 'Rights',  label: 'Your Rights',  icon: 'shield'     },
+const navItems = [
+  { id: 'Home',    label: 'Overview',     icon: 'grid'    },
+  { id: 'Houses',  label: 'Find a House', icon: 'home'    },
+  { id: 'Reviews', label: 'Reviews',      icon: 'star'    },
+  { id: 'Rights',  label: 'Your Rights',  icon: 'shield'  },
 ];
 
 export default function Sidebar({ activeTab, onTabPress }: SidebarProps) {
@@ -23,7 +21,7 @@ export default function Sidebar({ activeTab, onTabPress }: SidebarProps) {
       {/* Brand */}
       <View style={styles.brand}>
         <View style={styles.logoMark}>
-          <Feather name="home" size={14} color={colors.white} />
+          <Icon name="home" size={14} color={colors.white} />
         </View>
         <View>
           <Text style={styles.logoText}>ExeLodge</Text>
@@ -45,10 +43,9 @@ export default function Sidebar({ activeTab, onTabPress }: SidebarProps) {
               onPress={() => onTabPress(item.id)}
               activeOpacity={0.7}
             >
-              {/* Left accent bar */}
               <View style={[styles.accentBar, isActive && styles.accentBarActive]} />
               <View style={[styles.iconWrap, isActive && styles.iconWrapActive]}>
-                <Feather
+                <Icon
                   name={item.icon}
                   size={16}
                   color={isActive ? colors.primary : colors.textMuted}
@@ -85,8 +82,6 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.lg,
     paddingHorizontal: spacing.md,
   },
-
-  // Brand block
   brand: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -117,15 +112,12 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
     marginTop: 1,
   },
-
   divider: {
     height: 1,
     backgroundColor: colors.border,
     marginBottom: spacing.lg,
     marginHorizontal: spacing.sm,
   },
-
-  // Nav
   nav: {
     flex: 1,
     gap: 2,
@@ -185,8 +177,6 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontWeight: '700' as any,
   },
-
-  // Footer
   footer: {
     paddingHorizontal: spacing.sm,
     gap: 8,
