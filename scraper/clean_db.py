@@ -22,8 +22,8 @@ from supabase import create_client
 
 # ─── CONFIG ──────────────────────────────────────────────────────────────────
 
-MIN_PPPW = 120.0
-MAX_PPPW = 400.0
+MIN_PPPW = 100.0
+MAX_PPPW = 300.0
 
 TEST_WORDS = ['test', 'dummy', 'placeholder', 'n/a']
 
@@ -53,20 +53,36 @@ def is_garbage_address(addr):
     addr = (addr or '').strip()
     if not addr:
         return True
+    
+    # "Halls in Exeter", "Flats in Exeter", etc. — category aggregation pages
     if re.match(
             r'^(?:halls?|houses?|flats?|rooms?|studios?|apartments?)\s+in\b',
             addr, re.I):
         return True
+    # "5 bedroom house", "1 bedroom flat" — property type description not address
     if re.match(
             r'^\d+\s+bed(?:room)?\s+(?:house|flat|apartment|studio|bungalow)',
             addr, re.I):
         return True
+    # "1 Spacious", "2 Stylish", "1 Beautifully" — adjective after house number
     if _GARBAGE_WORD_RE.match(addr) and not _STREET_TYPE_RE.search(addr):
         return True
+    # "321673 Local", "999999 Something" — starts with 5+ digit number (property IDs)
     if re.match(r'^\d{5,}\s+\w+', addr):
         return True
+    
+    # Pure marketing terms without street context
+    MARKETING_TERMS = {'STUDENT ONLY', 'AVAILABLE NOW', 'WEEKS', 'SEPTEMBER', 'JULY'}
+    addr_upper = addr.upper()
+    
+    # If it has a pipe and NO street-like words AND matches marketing terms, it's garbage
     if '|' in addr:
+        if not _STREET_TYPE_RE.search(addr):
+            return True
+    
+    if any(term in addr_upper for term in MARKETING_TERMS) and not _STREET_TYPE_RE.search(addr):
         return True
+
     return False
 
 # Known generic/placeholder image substrings — any image_url containing these
@@ -240,13 +256,13 @@ def main():
                     float(candidate.get('price_pppw') or 0) -
                     float(keeper.get('price_pppw') or 0)
                 )
-                if price_diff <= 10:
+                if price_diff <= 2:
                     is_dup = True
                     print(f'  [ADDR-DUP] '
                           f'"{candidate.get("address","?")} ({candidate.get("bedrooms","?")}bed '
                           f'£{candidate.get("price_pppw","?")} {candidate.get("landlord_id","?")})" '
                           f'→ dup of id={keeper["id"]} '
-                          f'(price diff £{price_diff:.0f}) | Deleting id={candidate["id"]}')
+                          f'(price diff £{price_diff:.2f}) | Deleting id={candidate["id"]}')
                     delete_by_id(supabase, candidate['id'], 'addr+beds+price duplicate')
                     ids_deleted.add(candidate['id'])
                     deleted_addr_dup += 1
