@@ -8,7 +8,13 @@
       "WebFetch(domain:www.rightmove.co.uk)",
       "Bash(npx expo:*)",
       "Bash(claude mcp:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(python scraper/clean_db.py)",
+      "Bash(python -c \"import sys; sys.stdout.reconfigure\\(encoding='utf-8'\\)\")",
+      "Bash(python -X utf8 scraper/clean_db.py)",
+      "Bash(python -X utf8 scraper/test_scrape.py)",
+      "Bash(python -X utf8 -c ':*)",
+      "Bash(python -X utf8 -c \"import sys; sys.path.insert\\(0,'scraper'\\); import watcher; print\\('Import OK'\\)\")"
     ]
   }
 }
