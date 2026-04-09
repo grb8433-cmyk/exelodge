@@ -10,8 +10,12 @@ import PropertyCard from '../components/PropertyCard';
 import { colors, spacing, radii, typography, shadows, fontFamily, isDesktop } from '../utils/theme';
 
 const AREAS = ['Pennsylvania', 'St James', 'Heavitree', 'Newtown', 'Mount Pleasant', 'Haldon', 'City Centre'];
-const BED_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8];
+const BED_OPTIONS = [1, 2, 3, 4, 5];
 const PRICE_OPTIONS = [120, 140, 160, 180, 200, 250, 300];
+const SOURCES = ['UniHomes', 'StuRents', 'AccommodationForStudents', 'Rightmove', 'Cardens'];
+const DISTANCE_OPTIONS = [0.5, 1, 2];
+
+type SortOption = 'price_asc' | 'price_desc' | 'dist_streatham' | 'dist_st_lukes' | 'newest';
 
 export default function HomeScreen({ onSelectProperty }: { onSelectProperty: (id: string) => void }) {
   const [properties, setProperties] = useState<any[]>([]);
@@ -22,16 +26,22 @@ export default function HomeScreen({ onSelectProperty }: { onSelectProperty: (id
 
   const [showFilters, setShowFilters] = useState(false);
   const [selectedAreas, setSelectedAreas] = useState<string[]>([]);
-  const [minBeds, setMinBeds] = useState<number | null>(null);
+  const [selectedBeds, setSelectedBeds] = useState<number[]>([]);
   const [maxPrice, setMaxPrice] = useState<number | null>(null);
   const [billsIncluded, setBillsIncluded] = useState<boolean | null>(null);
+  const [selectedSources, setSelectedSources] = useState<string[]>([]);
+  const [maxDistance, setMaxDistance] = useState<number | null>(null);
+  const [distanceCampus, setDistanceCampus] = useState<'streatham' | 'st_lukes'>('streatham');
+  const [sortOption, setSortOption] = useState<SortOption>('price_asc');
 
   useEffect(() => { fetchProperties(); }, []);
 
   async function fetchProperties() {
     try {
       setLoading(true);
-      const { data, error } = await supabase.from('properties').select('*').order('price_pppw', { ascending: true });
+      const { data, error } = await supabase.from('properties')
+        .select('*')
+        .eq('is_available', true);
       if (error) throw error;
       setProperties(data || []);
     } catch (err) {
@@ -41,6 +51,15 @@ export default function HomeScreen({ onSelectProperty }: { onSelectProperty: (id
     }
   }
 
+  const lastUpdated = useMemo(() => {
+    if (!properties.length) return null;
+    const dates = properties.map(p => new Date(p.last_scraped).getTime()).filter(t => !isNaN(t));
+    if (!dates.length) return null;
+    return new Date(Math.max(...dates)).toLocaleDateString('en-GB', {
+      day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+    });
+  }, [properties]);
+
   const marketAverage = useMemo(() => {
     if (!properties.length) return 150;
     const valid = properties.map(p => parseFloat(p.price_pppw)).filter(p => !isNaN(p) && p > 0);
@@ -48,24 +67,55 @@ export default function HomeScreen({ onSelectProperty }: { onSelectProperty: (id
   }, [properties]);
 
   const filteredProperties = useMemo(() => {
-    return properties.filter(p => {
+    let result = properties.filter(p => {
       const matchesSearch = !search || p.address?.toLowerCase().includes(search.toLowerCase()) || p.area?.toLowerCase().includes(search.toLowerCase());
       const matchesArea   = !selectedAreas.length || selectedAreas.includes(p.area);
-      const matchesBeds   = minBeds ? p.beds >= minBeds : true;
+      const matchesBeds   = !selectedBeds.length || (
+        selectedBeds.includes(p.bedrooms) || (selectedBeds.includes(5) && p.bedrooms >= 5)
+      );
       const matchesPrice  = maxPrice ? parseFloat(p.price_pppw) <= maxPrice : true;
       const matchesBills  = billsIncluded === null ? true : p.bills_included === billsIncluded;
-      return matchesSearch && matchesArea && matchesBeds && matchesPrice && matchesBills;
+      const matchesSource = !selectedSources.length || selectedSources.includes(p.landlord_id);
+      
+      let matchesDist = true;
+      if (maxDistance) {
+        const dist = distanceCampus === 'streatham' ? p.distance_streatham : p.distance_st_lukes;
+        matchesDist = dist !== null && dist <= maxDistance;
+      }
+
+      return matchesSearch && matchesArea && matchesBeds && matchesPrice && matchesBills && matchesSource && matchesDist;
     });
-  }, [properties, search, selectedAreas, minBeds, maxPrice, billsIncluded]);
+
+    // Apply sorting
+    result.sort((a, b) => {
+      if (sortOption === 'price_asc') return a.price_pppw - b.price_pppw;
+      if (sortOption === 'price_desc') return b.price_pppw - a.price_pppw;
+      if (sortOption === 'dist_streatham') return (a.distance_streatham ?? 99) - (b.distance_streatham ?? 99);
+      if (sortOption === 'dist_st_lukes') return (a.distance_st_lukes ?? 99) - (b.distance_st_lukes ?? 99);
+      if (sortOption === 'newest') return new Date(b.last_scraped).getTime() - new Date(a.last_scraped).getTime();
+      return 0;
+    });
+
+    return result;
+  }, [properties, search, selectedAreas, selectedBeds, maxPrice, billsIncluded, selectedSources, maxDistance, distanceCampus, sortOption]);
 
   const displayedProperties = useMemo(() => filteredProperties.slice(0, displayLimit), [filteredProperties, displayLimit]);
 
-  const activeFilterCount = (selectedAreas.length > 0 ? 1 : 0) + (minBeds ? 1 : 0) + (maxPrice ? 1 : 0) + (billsIncluded !== null ? 1 : 0);
+  const activeFilterCount = (selectedAreas.length > 0 ? 1 : 0) + 
+                            (selectedBeds.length > 0 ? 1 : 0) + 
+                            (maxPrice ? 1 : 0) + 
+                            (billsIncluded !== null ? 1 : 0) +
+                            (selectedSources.length > 0 ? 1 : 0) +
+                            (maxDistance ? 1 : 0);
 
   const toggleArea = (area: string) => setSelectedAreas(prev => prev.includes(area) ? prev.filter(a => a !== area) : [...prev, area]);
+  const toggleBed = (bed: number) => setSelectedBeds(prev => prev.includes(bed) ? prev.filter(b => b !== bed) : [...prev, bed]);
+  const toggleSource = (src: string) => setSelectedSources(prev => prev.includes(src) ? prev.filter(s => s !== src) : [...prev, src]);
 
   const resetFilters = () => {
-    setSelectedAreas([]); setMinBeds(null); setMaxPrice(null); setBillsIncluded(null); setSearch(''); setDisplayLimit(24);
+    setSelectedAreas([]); setSelectedBeds([]); setMaxPrice(null); setBillsIncluded(null); 
+    setSelectedSources([]); setMaxDistance(null); setSearch(''); setDisplayLimit(24);
+    setSortOption('price_asc');
   };
 
   const desktop = isDesktop(width);
@@ -130,6 +180,7 @@ export default function HomeScreen({ onSelectProperty }: { onSelectProperty: (id
       <View style={styles.resultsBar}>
         <Text style={styles.resultsText}>
           <Text style={styles.resultsCount}>{filteredProperties.length}</Text> properties found
+          {lastUpdated && <Text style={styles.lastUpdatedText}> • Listings last updated: {lastUpdated}</Text>}
         </Text>
       </View>
 
@@ -182,6 +233,27 @@ export default function HomeScreen({ onSelectProperty }: { onSelectProperty: (id
 
             <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
               <View style={styles.filterGroup}>
+                <Text style={styles.filterGroupLabel}>Sort By</Text>
+                <View style={styles.chipRow}>
+                  <TouchableOpacity style={[styles.chip, sortOption === 'price_asc' && styles.chipActive]} onPress={() => setSortOption('price_asc')}>
+                    <Text style={[styles.chipText, sortOption === 'price_asc' && styles.chipTextActive]}>Price: Low to High</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[styles.chip, sortOption === 'price_desc' && styles.chipActive]} onPress={() => setSortOption('price_desc')}>
+                    <Text style={[styles.chipText, sortOption === 'price_desc' && styles.chipTextActive]}>Price: High to Low</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[styles.chip, sortOption === 'dist_streatham' && styles.chipActive]} onPress={() => setSortOption('dist_streatham')}>
+                    <Text style={[styles.chipText, sortOption === 'dist_streatham' && styles.chipTextActive]}>Distance: Streatham</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[styles.chip, sortOption === 'dist_st_lukes' && styles.chipActive]} onPress={() => setSortOption('dist_st_lukes')}>
+                    <Text style={[styles.chipText, sortOption === 'dist_st_lukes' && styles.chipTextActive]}>Distance: St Lukes</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[styles.chip, sortOption === 'newest' && styles.chipActive]} onPress={() => setSortOption('newest')}>
+                    <Text style={[styles.chipText, sortOption === 'newest' && styles.chipTextActive]}>Newest Listed</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              <View style={styles.filterGroup}>
                 <Text style={styles.filterGroupLabel}>Preferred Areas</Text>
                 <View style={styles.chipRow}>
                   {AREAS.map(area => (
@@ -197,14 +269,11 @@ export default function HomeScreen({ onSelectProperty }: { onSelectProperty: (id
               </View>
 
               <View style={styles.filterGroup}>
-                <Text style={styles.filterGroupLabel}>Minimum Bedrooms</Text>
+                <Text style={styles.filterGroupLabel}>Bedrooms</Text>
                 <View style={styles.chipRow}>
-                  <TouchableOpacity style={[styles.chip, minBeds === null && styles.chipActive]} onPress={() => setMinBeds(null)}>
-                    <Text style={[styles.chipText, minBeds === null && styles.chipTextActive]}>Any</Text>
-                  </TouchableOpacity>
                   {BED_OPTIONS.map(n => (
-                    <TouchableOpacity key={n} style={[styles.chip, minBeds === n && styles.chipActive]} onPress={() => setMinBeds(n)}>
-                      <Text style={[styles.chipText, minBeds === n && styles.chipTextActive]}>{n}+</Text>
+                    <TouchableOpacity key={n} style={[styles.chip, selectedBeds.includes(n) && styles.chipActive]} onPress={() => toggleBed(n)}>
+                      <Text style={[styles.chipText, selectedBeds.includes(n) && styles.chipTextActive]}>{n}{n === 5 ? '+' : ''}</Text>
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -219,6 +288,49 @@ export default function HomeScreen({ onSelectProperty }: { onSelectProperty: (id
                   {PRICE_OPTIONS.map(price => (
                     <TouchableOpacity key={price} style={[styles.chip, maxPrice === price && styles.chipActive]} onPress={() => setMaxPrice(price)}>
                       <Text style={[styles.chipText, maxPrice === price && styles.chipTextActive]}>£{price}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              <View style={styles.filterGroup}>
+                <Text style={styles.filterGroupLabel}>Source Site</Text>
+                <View style={styles.chipRow}>
+                  {SOURCES.map(src => (
+                    <TouchableOpacity
+                      key={src}
+                      style={[styles.chip, selectedSources.includes(src) && styles.chipActive]}
+                      onPress={() => toggleSource(src)}
+                    >
+                      <Text style={[styles.chipText, selectedSources.includes(src) && styles.chipTextActive]}>{src}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              <View style={styles.filterGroup}>
+                <Text style={styles.filterGroupLabel}>Max Distance from Campus</Text>
+                <View style={styles.chipRow}>
+                  <TouchableOpacity
+                    style={[styles.chip, distanceCampus === 'streatham' && styles.chipActive]}
+                    onPress={() => setDistanceCampus('streatham')}
+                  >
+                    <Text style={[styles.chipText, distanceCampus === 'streatham' && styles.chipTextActive]}>Streatham</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.chip, distanceCampus === 'st_lukes' && styles.chipActive]}
+                    onPress={() => setDistanceCampus('st_lukes')}
+                  >
+                    <Text style={[styles.chipText, distanceCampus === 'st_lukes' && styles.chipTextActive]}>St Lukes</Text>
+                  </TouchableOpacity>
+                </View>
+                <View style={[styles.chipRow, { marginTop: 12 }]}>
+                  <TouchableOpacity style={[styles.chip, maxDistance === null && styles.chipActive]} onPress={() => setMaxDistance(null)}>
+                    <Text style={[styles.chipText, maxDistance === null && styles.chipTextActive]}>Any Distance</Text>
+                  </TouchableOpacity>
+                  {DISTANCE_OPTIONS.map(d => (
+                    <TouchableOpacity key={d} style={[styles.chip, maxDistance === d && styles.chipActive]} onPress={() => setMaxDistance(d)}>
+                      <Text style={[styles.chipText, maxDistance === d && styles.chipTextActive]}>Within {d} mi</Text>
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -347,6 +459,7 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
   },
   resultsText: { fontFamily, fontSize: 13, color: colors.textMuted },
+  lastUpdatedText: { fontStyle: 'italic', fontSize: 12 },
   resultsCount: { fontWeight: '700' as any, color: colors.textPrimary },
 
   listContent: { padding: spacing.sm },

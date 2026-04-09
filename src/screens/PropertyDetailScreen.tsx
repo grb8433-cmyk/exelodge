@@ -62,6 +62,18 @@ export default function PropertyDetailScreen({ propertyId, onBack, onSeeReviews 
   const isSvg = rawImg && typeof rawImg === 'string' && rawImg.toLowerCase().includes('.svg');
   const validImg = rawImg && typeof rawImg === 'string' && rawImg.length > 5 && !rawImg.includes('None') && !isSvg;
 
+  const distance = (property.distance_streatham !== null && property.distance_st_lukes !== null)
+    ? Math.min(property.distance_streatham, property.distance_st_lukes)
+    : (property.distance_streatham ?? property.distance_st_lukes);
+  const nearestCampus = distance === property.distance_streatham ? 'Streatham' : 'St Lukes';
+
+  const openListing = () => {
+    if (property?.external_url) {
+      if (Platform.OS === 'web') window.open(property.external_url, '_blank');
+      else Linking.openURL(property.external_url);
+    }
+  };
+
   return (
     <ScrollView style={styles.container}>
       <View style={styles.hero}>
@@ -99,14 +111,14 @@ export default function PropertyDetailScreen({ propertyId, onBack, onSeeReviews 
             <View style={styles.iconCircle}>
               <Text style={{ fontSize: 22 }}>🛏️</Text>
             </View>
-            <Text style={styles.statVal}>{property.beds || 1}</Text>
+            <Text style={styles.statVal}>{property.bedrooms || 1}</Text>
             <Text style={styles.statLab}>Bedrooms</Text>
           </View>
           <View style={styles.statBox}>
             <View style={styles.iconCircle}>
               <Text style={{ fontSize: 22 }}>🚿</Text>
             </View>
-            <Text style={styles.statVal}>{property.baths || 1}</Text>
+            <Text style={styles.statVal}>{property.bathrooms || 1}</Text>
             <Text style={styles.statLab}>Bathrooms</Text>
           </View>
           <View style={styles.statBox}>
@@ -118,18 +130,39 @@ export default function PropertyDetailScreen({ propertyId, onBack, onSeeReviews 
           </View>
         </View>
 
+        <View style={styles.statsRow}>
+          {property.available_from && (
+            <View style={styles.statBox}>
+              <View style={styles.iconCircle}>
+                <Text style={{ fontSize: 22 }}>📅</Text>
+              </View>
+              <Text style={styles.statVal}>{property.available_from}</Text>
+              <Text style={styles.statLab}>Available From</Text>
+            </View>
+          )}
+          {distance !== null && distance !== undefined && (
+            <View style={styles.statBox}>
+              <View style={styles.iconCircle}>
+                <Text style={{ fontSize: 22 }}>📍</Text>
+              </View>
+              <Text style={styles.statVal}>{distance} mi</Text>
+              <Text style={styles.statLab}>From {nearestCampus}</Text>
+            </View>
+          )}
+        </View>
+
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>About this Listing</Text>
           <Text style={styles.description}>
-            This premium {property.beds}-bedroom property is located in the sought-after {property.area} area of Exeter. 
-            Perfectly suited for students, it features {property.baths} {property.baths === 1 ? 'bathroom' : 'bathrooms'} and all necessary modern amenities. 
+            This premium {property.bedrooms || property.beds}-bedroom property is located in the sought-after {property.area} area of Exeter. 
+            Perfectly suited for students, it features {property.bathrooms || property.baths} { (property.bathrooms || property.baths) === 1 ? 'bathroom' : 'bathrooms'} and all necessary modern amenities. 
             Explore the full details and booking information directly on the provider's website.
           </Text>
           <TouchableOpacity 
             style={styles.listingBtn} 
-            onPress={() => { if (property?.external_url) window.open(property.external_url, '_blank'); }}
+            onPress={openListing}
           >
-            <Text style={styles.listingBtnText}>View Full Listing on Portal</Text>
+            <Text style={styles.listingBtnText}>View on {property.landlord_id || 'Provider Site'}</Text>
             <Text style={{ fontSize: 20, color: colors.white, marginLeft: 8 }}>↗️</Text>
           </TouchableOpacity>
         </View>

@@ -20,6 +20,9 @@ DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1518780664697-55e3ad937233'
 MIN_PPPW      = 100.0   # Minimum credible pppw for Exeter student housing
 MAX_PPPW      = 300.0
 
+STREATHAM_COORDS = (50.7367, -3.5336)
+ST_LUKES_COORDS  = (50.7226, -3.5177)
+
 HEADERS = {
     'User-Agent': (
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
@@ -55,6 +58,63 @@ AREA_MAPPINGS = {
 }
 
 # ─── HELPERS ─────────────────────────────────────────────────────────────────
+
+import math
+
+def haversine(coord1, coord2):
+    """Calculate the great-circle distance between two points in miles."""
+    if not coord1 or not coord2:
+        return None
+    lat1, lon1 = coord1
+    lat2, lon2 = coord2
+    R = 3958.8  # Radius of the Earth in miles
+
+    dlat = math.radians(lat2 - lat1)
+    dlon = math.radians(lon2 - lon1)
+    a = (math.sin(dlat / 2)**2 +
+         math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) *
+         math.sin(dlon / 2)**2)
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    return R * c
+
+
+def extract_postcode(text):
+    """Extract a UK postcode from text."""
+    if not text:
+        return None
+    # Standard UK postcode regex
+    m = re.search(r'\b([A-Z]{1,2}\d[A-Z\d]?\s?\d[A-Z]{2})\b', text.upper())
+    return m.group(1) if m else None
+
+
+_POSTCODE_CACHE = {}
+
+def get_coordinates(postcode):
+    """Fetch lat/lng for a postcode from postcodes.io."""
+    if not postcode:
+        return None
+    
+    clean_pc = postcode.replace(' ', '').upper()
+    if clean_pc in _POSTCODE_CACHE:
+        return _POSTCODE_CACHE[clean_pc]
+    
+    url = f'https://api.postcodes.io/postcodes/{clean_pc}'
+    try:
+        time.sleep(0.5)  # Rate limit
+        r = requests.get(url, timeout=10)
+        if r.status_code == 200:
+            result = r.json().get('result')
+            if result:
+                coords = (result.get('latitude'), result.get('longitude'))
+                _POSTCODE_CACHE[clean_pc] = coords
+                return coords
+        elif r.status_code == 404:
+            _POSTCODE_CACHE[clean_pc] = None
+    except Exception as e:
+        print(f'  [GEO-ERROR] {postcode}: {e}')
+    
+    return None
+
 
 def detect_area(text):
     t = text.lower()
@@ -406,11 +466,20 @@ def scrape_unihomes():
             if not img_url:
                 print(f'  [NO-PHOTO][UniHomes] {ext_url}')
 
+            # ── Available From ───────────────────────────────────────────────
+            # UniHomes cards often have "Available Sep 2026" or similar
+            m_avail = re.search(r'Available\s+([\d\s\w]+)', text, re.I)
+            avail_from = m_avail.group(1).strip() if m_avail else None
+            # Basic validation to ensure it looks like a date/month
+            if avail_from and not re.search(r'(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|\d{4})', avail_from, re.I):
+                avail_from = None
+
             results.append({
                 'address':       address,
                 'price_pppw':    round(price_pppw, 2),
                 'bedrooms':      beds,
                 'bathrooms':     baths,
+                'available_from': avail_from,
                 'area':          detect_area(f'{address} {href}'),
                 'external_url':  ext_url,
                 'image_url':     img_url,
@@ -531,11 +600,19 @@ def scrape_sturents():
                     img = None
                     print(f'  [NO-PHOTO][StuRents] {ext_url}')
 
+                # ── Available From ───────────────────────────────────────────────
+                # StuRents often has availability in JSON-LD or description
+                avail_from = item.get('availabilityStarts')
+                if not avail_from:
+                    m_avail = re.search(r'(?:Available|From)\s+(\d{1,2}\s+[A-Z][a-z]{2}\s+\d{4})', desc, re.I)
+                    avail_from = m_avail.group(1) if m_avail else None
+
                 results.append({
                     'address':       address,
                     'price_pppw':    round(price_pppw, 2),
                     'bedrooms':      beds,
                     'bathrooms':     baths,
+                    'available_from': avail_from,
                     'area':          detect_area(address),
                     'external_url':  ext_url,
                     'image_url':     img,
@@ -605,11 +682,16 @@ def scrape_sturents():
                 if not img_url:
                     print(f'  [NO-PHOTO][StuRents] {ext_url}')
 
+                # ── Available From ───────────────────────────────────────────────
+                m_avail = re.search(r'(?:Available|From)\s+(\d{1,2}\s+[A-Z][a-z]{2}\s+\d{4})', text, re.I)
+                avail_from = m_avail.group(1) if m_avail else None
+
                 results.append({
                     'address':       address,
                     'price_pppw':    round(price_pppw, 2),
                     'bedrooms':      beds,
                     'bathrooms':     baths,
+                    'available_from': avail_from,
                     'area':          detect_area(address),
                     'external_url':  ext_url,
                     'image_url':     img_url,
@@ -716,11 +798,18 @@ def scrape_accommodationforstudents():
                     if not img:
                         print(f'  [NO-PHOTO][AFS] {ext_url}')
 
+                    # ── Available From ───────────────────────────────────────────────
+                    avail_from = prop.get('availableFrom') or prop.get('availableDate')
+                    if not avail_from:
+                        m_avail = re.search(r'(?:Available|From)\s+(\d{1,2}\s+[A-Z][a-z]{2}\s+\d{4})', str(prop), re.I)
+                        avail_from = m_avail.group(1) if m_avail else None
+
                     results.append({
                         'address':       address,
                         'price_pppw':    round(price_pppw, 2),
                         'bedrooms':      beds,
                         'bathrooms':     baths,
+                        'available_from': avail_from,
                         'area':          detect_area(address),
                         'external_url':  ext_url,
                         'image_url':     img,
@@ -790,11 +879,16 @@ def scrape_accommodationforstudents():
                 if not afs_img:
                     print(f'  [NO-PHOTO][AFS] {ext_url}')
 
+                # ── Available From ───────────────────────────────────────────────
+                m_avail = re.search(r'(?:Available|From)\s+(?:from\s+)?(\d{1,2}\s+[A-Z][a-z]{2}\s+\d{4})', text, re.I)
+                avail_from = m_avail.group(1) if m_avail else None
+
                 results.append({
                     'address':       address,
                     'price_pppw':    round(price_pppw, 2),
                     'bedrooms':      beds,
                     'bathrooms':     baths,
+                    'available_from': avail_from,
                     'area':          detect_area(address),
                     'external_url':  ext_url,
                     'image_url':     afs_img,
@@ -913,11 +1007,16 @@ def scrape_cardens():
             if not cardens_img:
                 print(f'  [NO-PHOTO][Cardens] {ext_url}')
 
+            # ── Available From ───────────────────────────────────────────────
+            m_avail = re.search(r'(?:Available|From)\s+(\d{1,2}\s+[A-Z][a-z]{2}\s+\d{4})', text, re.I)
+            avail_from = m_avail.group(1) if m_avail else None
+
             results.append({
                 'address':       address,
                 'price_pppw':    round(price_pppw, 2),
                 'bedrooms':      beds,
                 'bathrooms':     baths,
+                'available_from': avail_from,
                 'area':          detect_area(address),
                 'external_url':  ext_url,
                 'image_url':     cardens_img,
@@ -1045,11 +1144,18 @@ def scrape_rightmove():
                 if not image_url:
                     print(f'  [NO-PHOTO][Rightmove] pid={pid}')
 
+                # ── Available From ───────────────────────────────────────────────
+                avail_from = prop.get('letAvailableDate')
+                if not avail_from:
+                    m_avail = re.search(r'(?:Available|From)\s+(\d{1,2}\s+[A-Z][a-z]{2}\s+\d{4})', str(prop), re.I)
+                    avail_from = m_avail.group(1) if m_avail else None
+
                 results.append({
                     'address':       address,
                     'price_pppw':    round(price_pppw, 2),
                     'bedrooms':      beds,
                     'bathrooms':     baths,
+                    'available_from': avail_from,
                     'area':          detect_area(address),
                     'external_url':  ext_url,
                     'image_url':     image_url,
@@ -1109,11 +1215,16 @@ def scrape_rightmove():
                 if not rm_img:
                     print(f'  [NO-PHOTO][Rightmove] pid={pid}')
 
+                # ── Available From ───────────────────────────────────────────────
+                m_avail = re.search(r'(?:Available|From)\s+(\d{1,2}\s+[A-Z][a-z]{2}\s+\d{4})', text, re.I)
+                avail_from = m_avail.group(1) if m_avail else None
+
                 results.append({
                     'address':       address,
                     'price_pppw':    round(price_pppw, 2),
                     'bedrooms':      beds,
                     'bathrooms':     baths,
+                    'available_from': avail_from,
                     'area':          detect_area(address),
                     'external_url':  ext_url,
                     'image_url':     rm_img,
@@ -1256,17 +1367,29 @@ def main():
     now      = datetime.now(timezone.utc).isoformat()
     upserted = 0
     for l in unique:
+        # ── Geocoding & Distance ─────────────────────────────────────────────
+        # Extract postcode from address or URL
+        postcode = extract_postcode(f"{l['address']} {l['external_url']}")
+        coords = get_coordinates(postcode)
+        
+        dist_streatham = round(haversine(coords, STREATHAM_COORDS), 1) if coords else None
+        dist_st_lukes  = round(haversine(coords, ST_LUKES_COORDS), 1) if coords else None
+
         row = {
             'address':       l['address'],
             'price_pppw':    l['price_pppw'],
             'bedrooms':      l['bedrooms'],
             'bathrooms':     l['bathrooms'],
+            'available_from': l.get('available_from'),
             'area':          l['area'],
             'external_url':  l['external_url'],
             'image_url':     l['image_url'],
             'bills_included': l.get('bills_included', False),
             'landlord_id':   l['landlord_id'],
+            'distance_streatham': dist_streatham,
+            'distance_st_lukes':  dist_st_lukes,
             'last_scraped':  now,
+            'is_available':  True,
         }
         try:
             supabase.table('properties').upsert(row, on_conflict='external_url').execute()

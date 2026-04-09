@@ -112,7 +112,7 @@ export async function getProperties(filters = {}, page = 0) {
   if (!supabase) return [];
   try {
     // 1. Break the Supabase query into a builder pattern - NO JOINS
-    let query = supabase.from('properties').select('*');
+    let query = supabase.from('properties').select('*').eq('is_available', true);
 
     // 2. Conditionally apply filters ONLY if they hold valid, non-default values
     
