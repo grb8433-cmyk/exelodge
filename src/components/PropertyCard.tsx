@@ -28,6 +28,19 @@ function timeAgo(dateStr: string) {
   return `Updated ${diffInDays} days ago`;
 }
 
+const formatDate = (dateStr: string) => {
+  if (!dateStr) return null;
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) {
+    return dateStr;
+  }
+  return d.toLocaleDateString('en-GB', { 
+    day: 'numeric', 
+    month: 'short', 
+    year: 'numeric' 
+  });
+};
+
 export default function PropertyCard({ item, onPress, marketAverage }: PropertyCardProps) {
   const price = parseFloat(item.price_pppw);
   const isVeryGoodValue = price > 0 && price <= marketAverage * 0.9;
@@ -102,7 +115,7 @@ export default function PropertyCard({ item, onPress, marketAverage }: PropertyC
               <View style={styles.detailDot} />
               <View style={styles.detailItem}>
                 <Icon name="calendar" size={12} color={colors.textMuted} />
-                <Text style={styles.detailText}>{item.available_from}</Text>
+                <Text style={styles.detailText}>{formatDate(item.available_from)}</Text>
               </View>
             </>
           )}
@@ -119,9 +132,8 @@ export default function PropertyCard({ item, onPress, marketAverage }: PropertyC
 
         <View style={styles.footer}>
           <View>
-            <Text style={styles.priceLabel}>PER PERSON / WEEK</Text>
             <View style={styles.priceRow}>
-              <Text style={styles.price}>£{item.price_pppw}</Text>
+              <Text style={styles.price}>£{Math.round(item.price_pppw)}</Text>
               {priceDiff !== 0 && (
                 <View style={[styles.diffBadge, priceDiff < 0 ? styles.diffBadgeGood : styles.diffBadgeBad]}>
                   <Text style={[styles.diffText, priceDiff < 0 ? styles.diffTextGood : styles.diffTextBad]}>
@@ -130,6 +142,7 @@ export default function PropertyCard({ item, onPress, marketAverage }: PropertyC
                 </View>
               )}
             </View>
+            <Text style={styles.priceEstLabel}>per person per week (est.)</Text>
           </View>
           <TouchableOpacity style={styles.viewBtn} onPress={onPress}>
             <Text style={styles.viewBtnText}>View Details</Text>
@@ -273,14 +286,12 @@ const styles = StyleSheet.create({
     paddingTop: spacing.sm,
     marginBottom: 8,
   },
-  priceLabel: {
+  priceEstLabel: {
     fontFamily,
-    fontSize: 9,
-    fontWeight: '700' as any,
+    fontSize: 10,
     color: colors.textMuted,
-    letterSpacing: 0.6,
-    textTransform: 'uppercase' as any,
-    marginBottom: 2,
+    fontWeight: '500' as any,
+    marginTop: 2,
   },
   priceRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   price: {

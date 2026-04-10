@@ -5,6 +5,19 @@ import { colors, spacing, radii, typography, shadows } from '../utils/theme';
 
 const DEFAULT_FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1518780664697-55e3ad937233';
 
+const formatDate = (dateStr: string) => {
+  if (!dateStr) return null;
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) {
+    return dateStr;
+  }
+  return d.toLocaleDateString('en-GB', { 
+    day: 'numeric', 
+    month: 'short', 
+    year: 'numeric' 
+  });
+};
+
 interface PropertyDetailScreenProps {
   propertyId: string;
   onBack: () => void;
@@ -101,10 +114,14 @@ export default function PropertyDetailScreen({ propertyId, onBack, onSeeReviews 
             </View>
           </View>
           <View style={[styles.priceContainer, !isDesktop && styles.priceContainerMobile]}>
-            <Text style={styles.price}>£{property.price_pppw}</Text>
+            <Text style={styles.price}>£{Math.round(property.price_pppw)}</Text>
             <Text style={styles.pppw}>per week</Text>
+            <Text style={styles.priceEstLabel}>per person (est.)</Text>
           </View>
         </View>
+        <Text style={styles.infoNote}>
+          Prices are estimated per person based on equal rent split between bedrooms.
+        </Text>
 
         <View style={styles.statsRow}>
           <View style={styles.statBox}>
@@ -136,7 +153,7 @@ export default function PropertyDetailScreen({ propertyId, onBack, onSeeReviews 
               <View style={styles.iconCircle}>
                 <Text style={{ fontSize: 22 }}>📅</Text>
               </View>
-              <Text style={styles.statVal}>{property.available_from}</Text>
+              <Text style={styles.statVal}>{formatDate(property.available_from)}</Text>
               <Text style={styles.statLab}>Available From</Text>
             </View>
           )}
@@ -234,6 +251,8 @@ const styles = StyleSheet.create({
   priceContainerMobile: { alignItems: 'flex-start', alignSelf: 'flex-start' },
   price: { ...typography.h2, color: colors.primary },
   pppw: { ...typography.caption, color: colors.primary, fontWeight: '700', textTransform: 'uppercase' },
+  priceEstLabel: { ...typography.caption, color: colors.primary, fontWeight: '500', textTransform: 'lowercase', marginTop: 2 },
+  infoNote: { ...typography.bodySmall, color: colors.textMuted, fontStyle: 'italic', marginBottom: spacing.xl, marginTop: -spacing.md },
   statsRow: { flexDirection: 'row', marginBottom: spacing.xxl, backgroundColor: colors.background, borderRadius: radii.lg, padding: spacing.md },
   statBox: { flex: 1, alignItems: 'center', paddingHorizontal: 2 },
   iconCircle: {
