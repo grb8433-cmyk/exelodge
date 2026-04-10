@@ -1,8 +1,8 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import {
   View, Text, FlatList, ActivityIndicator, StyleSheet,
   TextInput, TouchableOpacity, ScrollView, useWindowDimensions,
-  Platform, Modal, Switch,
+  Platform, Modal, Switch, Animated,
 } from 'react-native';
 import Icon from '../components/Icon';
 import { supabase } from '../lib/supabase';
@@ -33,6 +33,17 @@ export default function HomeScreen({ onSelectProperty }: { onSelectProperty: (id
   const [maxDistance, setMaxDistance] = useState<number | null>(null);
   const [distanceCampus, setDistanceCampus] = useState<'streatham' | 'st_lukes'>('streatham');
   const [sortOption, setSortOption] = useState<SortOption>('price_asc');
+
+  // Animation states
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const [headerHeight, setHeaderHeight] = useState(0);
+
+  const clampedScrollY = useMemo(() => Animated.diffClamp(scrollY, 0, headerHeight || 1), [headerHeight]);
+  const headerTranslate = useMemo(() => clampedScrollY.interpolate({
+    inputRange: [0, headerHeight || 1],
+    outputRange: [0, -(headerHeight || 1)],
+    extrapolate: 'clamp',
+  }), [clampedScrollY, headerHeight]);
 
   useEffect(() => { fetchProperties(); }, []);
 
@@ -131,58 +142,67 @@ export default function HomeScreen({ onSelectProperty }: { onSelectProperty: (id
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={[styles.header, !desktop && styles.headerMobile]}>
-        <View>
-          <Text style={styles.headerEyebrow}>Exeter Student Housing</Text>
-          <Text style={[styles.headerTitle, !desktop && { fontSize: 22 }]}>Find Your Next Home</Text>
-        </View>
-        <View style={[styles.marketWidget, !desktop && styles.marketWidgetMobile]}>
-          <View style={styles.marketWidgetInner}>
-            <Icon name="trending-up" size={13} color={colors.primary} />
-            <Text style={styles.marketLabel}>MARKET AVG</Text>
+      {/* Animated Header Wrapper */}
+      <Animated.View 
+        style={[
+          styles.headerContainer, 
+          { transform: [{ translateY: headerTranslate }] }
+        ]}
+        onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}
+      >
+        {/* Header */}
+        <View style={[styles.header, !desktop && styles.headerMobile]}>
+          <View>
+            <Text style={styles.headerEyebrow}>Exeter Student Housing</Text>
+            <Text style={[styles.headerTitle, !desktop && { fontSize: 22 }]}>Find Your Next Home</Text>
           </View>
-          <Text style={styles.marketValue}>£{marketAverage}<Text style={styles.marketSub}> pw</Text></Text>
-        </View>
-      </View>
-
-      {/* Search + filter */}
-      <View style={styles.searchBar}>
-        <View style={styles.searchWrap}>
-          <Icon name="search" size={16} color={colors.textMuted} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search by street or area…"
-            placeholderTextColor={colors.textMuted}
-            value={search}
-            onChangeText={setSearch}
-          />
-          {!!search && (
-            <TouchableOpacity onPress={() => setSearch('')} style={styles.clearBtn}>
-              <Icon name="x" size={14} color={colors.textMuted} />
-            </TouchableOpacity>
-          )}
+          <View style={[styles.marketWidget, !desktop && styles.marketWidgetMobile]}>
+            <View style={styles.marketWidgetInner}>
+              <Icon name="trending-up" size={13} color={colors.primary} />
+              <Text style={styles.marketLabel}>MARKET AVG</Text>
+            </View>
+            <Text style={styles.marketValue}>£{marketAverage}<Text style={styles.marketSub}> pw</Text></Text>
+          </View>
         </View>
 
-        <TouchableOpacity
-          style={[styles.filterBtn, activeFilterCount > 0 && styles.filterBtnActive]}
-          onPress={() => setShowFilters(true)}
-          activeOpacity={0.8}
-        >
-          <Icon name="sliders" size={15} color={activeFilterCount > 0 ? colors.white : colors.textSecondary} />
-          <Text style={[styles.filterBtnText, activeFilterCount > 0 && styles.filterBtnTextActive]}>
-            Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
+        {/* Search + filter */}
+        <View style={styles.searchBar}>
+          <View style={styles.searchWrap}>
+            <Icon name="search" size={16} color={colors.textMuted} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search by street or area…"
+              placeholderTextColor={colors.textMuted}
+              value={search}
+              onChangeText={setSearch}
+            />
+            {!!search && (
+              <TouchableOpacity onPress={() => setSearch('')} style={styles.clearBtn}>
+                <Icon name="x" size={14} color={colors.textMuted} />
+              </TouchableOpacity>
+            )}
+          </View>
+
+          <TouchableOpacity
+            style={[styles.filterBtn, activeFilterCount > 0 && styles.filterBtnActive]}
+            onPress={() => setShowFilters(true)}
+            activeOpacity={0.8}
+          >
+            <Icon name="sliders" size={15} color={activeFilterCount > 0 ? colors.white : colors.textSecondary} />
+            <Text style={[styles.filterBtnText, activeFilterCount > 0 && styles.filterBtnTextActive]}>
+              Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Results count */}
+        <View style={styles.resultsBar}>
+          <Text style={styles.resultsText}>
+            <Text style={styles.resultsCount}>{filteredProperties.length}</Text> properties found
+            {lastUpdated && <Text style={styles.lastUpdatedText}> • Listings last updated: {lastUpdated}</Text>}
           </Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Results count */}
-      <View style={styles.resultsBar}>
-        <Text style={styles.resultsText}>
-          <Text style={styles.resultsCount}>{filteredProperties.length}</Text> properties found
-          {lastUpdated && <Text style={styles.lastUpdatedText}> • Listings last updated: {lastUpdated}</Text>}
-        </Text>
-      </View>
+        </View>
+      </Animated.View>
 
       {/* Listing grid */}
       <FlatList
@@ -194,6 +214,12 @@ export default function HomeScreen({ onSelectProperty }: { onSelectProperty: (id
         numColumns={desktop ? 3 : 1}
         key={desktop ? 'desktop' : 'mobile'}
         contentContainerStyle={styles.listContent}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: Platform.OS !== 'web' } // Web support for useNativeDriver is limited for translateY
+        )}
+        scrollEventThrottle={16}
+        ListHeaderComponent={() => <View style={{ height: headerHeight }} />}
         ListFooterComponent={() =>
           displayLimit < filteredProperties.length ? (
             <TouchableOpacity style={styles.loadMoreBtn} onPress={() => setDisplayLimit(p => p + 24)} activeOpacity={0.85}>
@@ -371,6 +397,15 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
   loadingText: { fontFamily, fontSize: 14, color: colors.textMuted },
+
+  headerContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+    backgroundColor: colors.white,
+  },
 
   header: {
     flexDirection: 'row',
