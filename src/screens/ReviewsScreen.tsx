@@ -13,6 +13,7 @@ export default function ReviewsScreen({ initialLandlordId, onAddReview }: { init
   const [selectedLandlord, setSelectedLandlord] = useState<any>(null);
   const [reviews, setReviews] = useState<any[]>([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [fetchError, setFetchError] = useState(false);
   const { width } = useWindowDimensions();
   const desktop = isDesktop(width);
 
@@ -20,6 +21,7 @@ export default function ReviewsScreen({ initialLandlordId, onAddReview }: { init
 
   const fetchLandlords = async () => {
     try {
+      setFetchError(false);
       const { data, error } = await supabase.from('landlords').select('*').order('name').limit(50);
       if (error) throw error;
       const list = (data || []).filter(l => l.id !== 'general' && l.id !== 'other');
@@ -27,26 +29,40 @@ export default function ReviewsScreen({ initialLandlordId, onAddReview }: { init
       setLandlords(fullList);
       if (initialLandlordId) {
         const found = fullList.find(l => l.id === initialLandlordId || (initialLandlordId === 'general' && l.id === 'other'));
-        if (found) { setSelectedLandlord(found); fetchReviews('general'); }
+        if (found) { setSelectedLandlord(found); fetchReviews(found.id); }
       }
-    } catch (err) { console.error(err); }
+    } catch (err) { 
+      console.error(err);
+      setFetchError(true);
+    }
     finally { setLoading(false); }
   };
 
   const fetchReviews = async (landlordId: string) => {
     setReviewsLoading(true);
+    setFetchError(false);
     const targetId = landlordId === 'other' ? 'general' : landlordId;
     try {
       const { data, error } = await supabase.from('reviews').select('*').eq('landlord_id', targetId).order('created_at', { ascending: false }).limit(50);
       if (error) throw error;
       setReviews(data || []);
-    } catch (err) { console.error(err); }
+    } catch (err) { 
+      console.error(err);
+      setFetchError(true);
+    }
     finally { setReviewsLoading(false); }
   };
 
   const handleLandlordSelect = (landlord: any) => { setSelectedLandlord(landlord); fetchReviews(landlord.id); };
 
-  const avgScore = (item: any) => (((item.maintenance || 5) + (item.communication || 5) + (item.value || 5) + (item.deposit || 5)) / 4);
+  const getScore = (item: any) => {
+    if (item.overall_rating !== undefined && item.overall_rating !== null) return item.overall_rating;
+    const m = item.maintenance_rating ?? item.maintenance ?? 5;
+    const c = item.communication_rating ?? item.communication ?? 5;
+    const v = item.value_rating ?? item.value ?? 5;
+    const d = item.deposit_rating ?? item.deposit ?? 5;
+    return (m + c + v + d) / 4;
+  };
 
   const renderStars = (score: number) => (
     <View style={styles.starsRow}>
@@ -130,7 +146,14 @@ export default function ReviewsScreen({ initialLandlordId, onAddReview }: { init
 
         {/* Reviews panel */}
         <View style={styles.reviewsPanel}>
-          {selectedLandlord ? (
+          {fetchError ? (
+            <View style={styles.center}>
+              <Text style={{ color: colors.error, marginBottom: 16 }}>Couldn't load reviews right now. Please try again later.</Text>
+              <TouchableOpacity onPress={fetchLandlords} style={styles.emptyBtn}>
+                <Text style={styles.emptyBtnText}>Retry</Text>
+              </TouchableOpacity>
+            </View>
+          ) : selectedLandlord ? (
             <View style={{ flex: 1 }}>
               <View style={[styles.reviewsHero, !desktop && styles.reviewsHeroMobile]}>
                 <View style={styles.reviewsHeroLeft}>
@@ -164,48 +187,49 @@ export default function ReviewsScreen({ initialLandlordId, onAddReview }: { init
                       <View style={styles.emptyIcon}>
                         <Icon name="message-square" size={28} color={colors.textMuted} />
                       </View>
-                      <Text style={styles.emptyTitle}>No reviews yet</Text>
-                      <Text style={styles.emptyDesc}>Be the first to share your experience with this landlord.</Text>
+                      <Text style={styles.emptyTitle}>No reviews yet — be the first to share your experience!</Text>
+                      <Text style={styles.emptyDesc}>Your feedback helps other Exeter students make informed decisions.</Text>
                       <TouchableOpacity style={styles.emptyBtn} onPress={() => onAddReview(selectedLandlord.id)}>
                         <Text style={styles.emptyBtnText}>Write the First Review</Text>
                       </TouchableOpacity>
                     </View>
                   }
                   renderItem={({ item }) => {
-                    const score = avgScore(item);
-                    const date = item.created_at ? new Date(item.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Recently';
+                    const score = getScore(item);
+                    const date = item.created_at ? new Date(item.created_at).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }) : 'Recently';
 
                     const isGeneral = item.landlord_id === 'general' || item.landlord_id === 'other';
-                    const landlordPrefix = isGeneral && (item.review || '').startsWith('[LANDLORD:')
-                      ? (item.review || '').match(/\[LANDLORD: (.*?)\]/)?.[1] || null
+                    const landlordPrefix = isGeneral && (item.review_text || item.review || '').startsWith('[LANDLORD:')
+                      ? (item.review_text || item.review || '').match(/\[LANDLORD: (.*?)\]/)?.[1] || null
                       : null;
+                    
+                    const landlordName = item.landlord_name || landlordPrefix || selectedLandlord.name;
+                    
                     const reviewText = landlordPrefix
-                      ? (item.review || '').replace(/\[LANDLORD: .*?\] /, '')
-                      : (item.review || 'No review text provided.');
+                      ? (item.review_text || item.review || '').replace(/\[LANDLORD: .*?\] /, '')
+                      : (item.review_text || item.review || 'No review text provided.');
 
                     return (
                       <View style={styles.reviewCard}>
                         <View style={styles.reviewCardHeader}>
                           <View style={styles.reviewScoreBlock}>
-                            <Text style={styles.reviewScoreNum}>{score.toFixed(1)}</Text>
-                            {renderStars(score)}
+                            <Text style={styles.reviewScoreNum}>{Number(score).toFixed(1)}</Text>
+                            {renderStars(Number(score))}
                           </View>
                           <Text style={styles.reviewDate}>{date}</Text>
                         </View>
 
-                        {landlordPrefix && (
-                          <View style={styles.landlordTag}>
-                            <Icon name="user" size={11} color={colors.primary} />
-                            <Text style={styles.landlordTagText}>{landlordPrefix}</Text>
-                          </View>
-                        )}
+                        <View style={styles.landlordTag}>
+                          <Icon name="user" size={11} color={colors.primary} />
+                          <Text style={styles.landlordTagText}>{landlordName}</Text>
+                        </View>
 
                         <View style={styles.metricsGrid}>
                           {[
-                            { label: 'Maintenance', score: item.maintenance || 5 },
-                            { label: 'Communication', score: item.communication || 5 },
-                            { label: 'Value', score: item.value || 5 },
-                            { label: 'Deposit Safety', score: item.deposit || 5 },
+                            { label: 'Maintenance', score: item.maintenance_rating || item.maintenance || 5 },
+                            { label: 'Communication', score: item.communication_rating || item.communication || 5 },
+                            { label: 'Value', score: item.value_rating || item.value || 5 },
+                            { label: 'Deposit Safety', score: item.deposit_rating || item.deposit || 5 },
                           ].map((metric) => (
                             <View key={metric.label} style={styles.metric}>
                               <Text style={styles.metricLabel}>{metric.label}</Text>
@@ -238,6 +262,7 @@ export default function ReviewsScreen({ initialLandlordId, onAddReview }: { init
     </View>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
