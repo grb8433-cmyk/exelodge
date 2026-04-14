@@ -10,7 +10,8 @@ from supabase import create_client, Client
 
 try:
     from dotenv import load_dotenv
-    load_dotenv()
+    # Force override to ensure we use .env even if shell has old keys
+    load_dotenv(override=True)
 except ImportError:
     pass
 
@@ -180,7 +181,10 @@ def validate(listing):
     if not url.startswith('http'):
         return False, f"invalid url: '{url}'"
     if not (MIN_PPPW <= price <= MAX_PPPW):
-        return False, f"price £{price:.0f} pppw outside £{MIN_PPPW:.0f}–£{MAX_PPPW:.0f}"
+        if price < MIN_PPPW:
+            return False, f"price too low: £{price:.0f} pppw (Min: £{MIN_PPPW:.0f})"
+        else:
+            return False, f"price too high: £{price:.0f} pppw (Max: £{MAX_PPPW:.0f})"
     if not (1 <= beds <= 12):
         return False, f"beds={beds} out of range 1–12"
     if not (1 <= baths <= beds):
@@ -918,26 +922,19 @@ def scrape_accommodationforstudents():
 
 def scrape_cardens():
     """
-    Cardens Estate Agents – may return 403; handled gracefully.
+    Cardens Estate Agents – uses a session and browser-like headers to avoid 403.
     """
     BASE  = 'https://www.cardensestateagents.co.uk'
     
-    # Step 5: Fix Cardens 403 by using a session and better headers
     session = requests.Session()
     session.headers.update({
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
         'Accept-Language': 'en-GB,en;q=0.9,en;q=0.8',
-        'Accept-Encoding': 'gzip, deflate, br',
+        'Referer': 'https://www.google.com/',
         'DNT': '1',
         'Connection': 'keep-alive',
         'Upgrade-Insecure-Requests': '1',
-        'Sec-Fetch-Dest': 'document',
-        'Sec-Fetch-Mode': 'navigate',
-        'Sec-Fetch-Site': 'none',
-        'Sec-Fetch-User': '?1',
-        'Cache-Control': 'max-age=0',
-        'Referer': 'https://www.google.com/',
     })
     
     results, seen = [], set()
@@ -946,9 +943,8 @@ def scrape_cardens():
         print(f'  [PAGE] Cardens page {page}')
         url  = f'{BASE}/students' + (f'?page={page}' if page > 1 else '')
         
-        # Random delay between 1-3 seconds to avoid 403
         if page > 1:
-            time.sleep(1 + 2 * (time.time() % 1))
+            time.sleep(2)
 
         try:
             r = session.get(url, timeout=20)
@@ -1326,6 +1322,214 @@ def scrape_rightmove():
     return results
 
 
+def scrape_rsj():
+    """
+    RSJ Investments (Private Landlord)
+    URL: https://rsjinvestments.com/property_tag/exeter/
+    """
+    BASE = "https://rsjinvestments.com"
+    results = []
+    
+    for page_idx in range(1, 10):
+        url = f"{BASE}/property_tag/exeter/" + (f"page/{page_idx}/" if page_idx > 1 else "")
+        soup, _ = get_page(url)
+        if not soup: break
+        
+        cards = soup.select('div.rem_property')
+        if not cards: 
+            # Try alternative selector
+            cards = soup.select('.rem-property-box')
+            if not cards: break
+        
+        added = 0
+        for card in cards:
+            link = card.select_one('h2 a, .property-title a, .img-container a')
+            if not link: continue
+            ext_url = urljoin(BASE, link['href'])
+            
+            if '/property/' not in ext_url or '/author/' in ext_url:
+                continue
+            
+            # User clarification: 'Let' on RSJ means available for rent.
+            # We will scrape everything.
+                
+            title = link.text.strip()
+            addr_tag = card.select_one('span.address-text')
+            address = addr_tag.text.strip() if addr_tag else title
+            address = re.sub(r',?\s*EX\d.*$', '', address, flags=re.I).strip()
+            
+            price_tag = card.select_one('span.rem-price-amount')
+            price_pppw = float(price_tag.text.replace(',', '').replace('£', '')) if price_tag else 0
+            
+            beds = 0
+            bed_tag = card.find('span', title='Beds')
+            if bed_tag:
+                m_beds = re.search(r'\d+', bed_tag.text)
+                if m_beds: beds = int(m_beds.group())
+            
+            baths = 1
+            bath_tag = card.find('span', title='Baths')
+            if bath_tag:
+                m_baths = re.search(r'\d+', bath_tag.text)
+                if m_baths: baths = int(m_baths.group())
+            
+            img_tag = card.select_one('img.rem-f-image')
+            image_url = img_tag['src'] if img_tag else None
+            
+            results.append({
+                'address': address,
+                'price_pppw': price_pppw,
+                'bedrooms': beds,
+                'bathrooms': baths,
+                'area': detect_area(address),
+                'external_url': ext_url,
+                'image_url': image_url,
+                'landlord_id': 'RSJInvestments',
+                'bills_included': False 
+            })
+            added += 1
+        
+        print(f'  [RSJ] page {page_idx}: {added} found')
+        if added == 0: break
+        time.sleep(1)
+        
+    return results
+
+
+def scrape_star():
+    """
+    Star Students (Agency)
+    URL: https://star-students.com/property-to-rent
+    """
+    BASE = "https://star-students.com"
+    results = []
+    
+    # This site seems to load all on one page or use standard pagination
+    url = f"{BASE}/property-to-rent"
+    soup, _ = get_page(url)
+    if not soup: return []
+    
+    cards = soup.select('div.card')
+    for card in cards:
+        link = card.select_one('a.card-image-container')
+        if not link: continue
+        ext_url = urljoin(BASE, link['href'])
+        
+        # Check if Let
+        img_container = card.select_one('.card-image')
+        if img_container and 'let' in img_container.text.lower():
+            continue
+            
+        price_tag = card.select_one('span.price-value')
+        price_raw = float(price_tag.text.replace('£', '').replace(',', '')) if price_tag else 0
+        
+        # Address/Title
+        content = card.select_one('.card-content')
+        title = content.select_one('a').text.strip() if content else ""
+        address = title
+        if ' in ' in address:
+            address = address.split(' in ')[-1]
+        
+        # Detail extraction
+        beds = 0
+        bed_icon = card.select_one('i.fa-bed')
+        if bed_icon:
+            beds_text = bed_icon.find_next_sibling('span', class_='number')
+            if beds_text: beds = int(beds_text.text.strip())
+            
+        baths = 1
+        bath_icon = card.select_one('i.fa-bathtub')
+        if bath_icon:
+            baths_text = bath_icon.find_next_sibling('span', class_='number')
+            if baths_text: baths = int(baths_text.text.strip())
+            
+        img = card.select_one('img')
+        image_url = img['data-src'] if img and img.has_attr('data-src') else (img['src'] if img else None)
+        
+        # Price unit check - Star usually lists pppw
+        unit = 'pppw'
+        price_pppw = calculate_pppw(price_raw, unit, beds, ext_url, 'StarStudents')
+        
+        results.append({
+            'address': address,
+            'price_pppw': price_pppw,
+            'bedrooms': beds,
+            'bathrooms': baths,
+            'area': detect_area(address),
+            'external_url': ext_url,
+            'image_url': image_url,
+            'landlord_id': 'StarStudents',
+            'bills_included': 'bill' in card.text.lower()
+        })
+        
+    return results
+
+
+def scrape_gillams():
+    """
+    Gillams Properties (Agency)
+    URL: https://www.gillams-properties.co.uk/student-houses/exeter#properties
+    """
+    BASE = "https://www.gillams-properties.co.uk"
+    results = []
+    
+    url = f"{BASE}/student-houses/exeter"
+    soup, _ = get_page(url)
+    if not soup: return []
+    
+    cards = soup.select('article.ssr-property-card')
+    for card in cards:
+        link = card.select_one('h3.ssr-card-title a')
+        if not link: continue
+        ext_url = urljoin(BASE, link['href'])
+        
+        # Status
+        badges = card.select_one('.ssr-card-badges')
+        if badges and 'let' in badges.text.lower():
+            continue
+            
+        title = link.text.strip()
+        # "8 bed house - 64 Danes Road Exeter" -> "64 Danes Road"
+        address = title
+        if ' - ' in address:
+            address = address.split(' - ')[-1]
+        address = re.sub(r',?\s*Exeter.*$', '', address, flags=re.I).strip()
+        
+        # Price - Gillams shows inclusive and rent-only. We prefer rent-only if available for pppw consistency
+        # Or we just take the first primary price.
+        price_tag = card.select_one('.ssr-card-price')
+        price_text = price_tag.text if price_tag else ""
+        price_raw = 0
+        m_price = re.search(r'£([\d\.]+)', price_text)
+        if m_price:
+            price_raw = float(m_price.group(1))
+            
+        # Beds
+        meta = card.select_one('.ssr-card-meta')
+        beds = 0
+        if meta:
+            m_beds = re.search(r'(\d+)\s+bed', meta.text)
+            if m_beds: beds = int(m_beds.group(1))
+            
+        # Image - The SSR version doesn't always have images in the card, but let's check
+        img_tag = card.find_parent('div').select_one('img') # Might be outside article in some layouts
+        image_url = img_tag['src'] if img_tag else None
+        
+        results.append({
+            'address': address,
+            'price_pppw': price_raw, # Gillams price is usually already pppw
+            'bedrooms': beds,
+            'bathrooms': 1, # Default
+            'area': detect_area(address),
+            'external_url': ext_url,
+            'image_url': image_url,
+            'landlord_id': 'Gillams',
+            'bills_included': 'inclusive' in card.text.lower()
+        })
+        
+    return results
+
+
 # ─── DEDUPLICATION ────────────────────────────────────────────────────────────
 
 def deduplicate(listings):
@@ -1415,6 +1619,9 @@ def main():
         ('AccommodationForStudents', scrape_accommodationforstudents),
         ('Cardens',                scrape_cardens),
         ('Rightmove',              scrape_rightmove),
+        ('RSJInvestments',         scrape_rsj),
+        ('StarStudents',           scrape_star),
+        ('Gillams',                scrape_gillams),
     ]
 
     for name, fn in scrapers:
@@ -1457,11 +1664,30 @@ def main():
     unique = deduplicate(valid)
     print(f'Dedup:      {len(valid)} valid → {len(unique)} unique')
 
-    # ── Upsert ───────────────────────────────────────────────────────────────
+    # ── Upsert Landlords ───────────────────────────────────────────────────────
+    landlord_data = [
+        {'id': 'UniHomes', 'name': 'UniHomes', 'type': 'Portal'},
+        {'id': 'StuRents', 'name': 'StuRents', 'type': 'Portal'},
+        {'id': 'AccommodationForStudents', 'name': 'AccommodationForStudents', 'type': 'Portal'},
+        {'id': 'Cardens', 'name': 'Cardens', 'type': 'Agency'},
+        {'id': 'Rightmove', 'name': 'Rightmove', 'type': 'Portal'},
+        {'id': 'RSJInvestments', 'name': 'RSJ Investments', 'type': 'Landlord'},
+        {'id': 'StarStudents', 'name': 'Star Students', 'type': 'Agency'},
+        {'id': 'Gillams', 'name': 'Gillams Properties', 'type': 'Agency'},
+    ]
+    for ld in landlord_data:
+        try:
+            supabase.table('landlords').upsert(ld).execute()
+        except Exception as e:
+            print(f"  [LANDLORD ERROR] {ld['id']}: {e}")
+
+    # ── Upsert Properties ─────────────────────────────────────────────────────
     now      = datetime.now(timezone.utc).isoformat()
     upserted = 0
     for l in unique:
         # ── Geocoding & Distance ─────────────────────────────────────────────
+        # Optimization: only geocode if we really need to (or skip in test mode)
+        # For now, let's keep it but handle the case where it might be slow
         postcode = extract_postcode(f"{l['address']} {l['external_url']}")
         coords = get_coordinates(postcode)
         
@@ -1495,7 +1721,7 @@ def main():
     print(f'│ Site                     │ Raw  │ Price  │ Bad URL  │ Bad Addr │ Inserted │')
     print(f'├──────────────────────────┼──────┼────────┼──────────┼──────────┼──────────┤')
     total_raw = total_pf = total_bu = total_ba = total_ins = 0
-    for name in ('UniHomes', 'StuRents', 'AccommodationForStudents', 'Cardens', 'Rightmove'):
+    for name in ('UniHomes', 'StuRents', 'AccommodationForStudents', 'Cardens', 'Rightmove', 'RSJInvestments', 'StarStudents', 'Gillams'):
         s = stats.get(name, {'raw':0, 'price_filter':0, 'bad_url':0, 'bad_addr':0, 'inserted':0})
         print(f'│ {name:24} │ {s["raw"]:4} │ {s["price_filter"]:6} │ {s["bad_url"]:8} │ {s["bad_addr"]:8} │ {s["inserted"]:8} │')
         total_raw += s['raw']; total_pf += s['price_filter']; total_bu += s['bad_url']; total_ba += s['bad_addr']; total_ins += s['inserted']
