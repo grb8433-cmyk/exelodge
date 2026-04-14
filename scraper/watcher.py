@@ -1707,6 +1707,8 @@ def main():
             'landlord_id':   l['landlord_id'],
             'distance_streatham': dist_streatham,
             'distance_st_lukes':  dist_st_lukes,
+            'latitude':      coords[0] if coords else None,
+            'longitude':     coords[1] if coords else None,
             'last_scraped':  now,
             'is_available':  True,
         }
