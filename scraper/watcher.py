@@ -18,7 +18,7 @@ except ImportError:
 # ─── CONFIG ──────────────────────────────────────────────────────────────────
 
 DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1518780664697-55e3ad937233'
-MIN_PPPW      = 100.0   # Minimum credible pppw for Exeter student housing
+MIN_PPPW      = 75.0    # Minimum credible pppw for Exeter student housing
 MAX_PPPW      = 300.0
 
 STREATHAM_COORDS = (50.7367, -3.5336)
