@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, useWindowDimensions, TouchableOpacity, SafeAreaView, Platform } from 'react-native';
+import { View, Text, StyleSheet, useWindowDimensions, TouchableOpacity, Platform, Animated } from 'react-native';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import Icon from './src/components/Icon';
 import Sidebar from './src/components/Sidebar';
 import HomeScreen from './src/screens/HomeScreen';
@@ -69,52 +70,54 @@ export default function App() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={[styles.root, { flexDirection: isDesktop ? 'row' : 'column' }]}>
+    <SafeAreaProvider>
+      <SafeAreaView style={styles.safeArea}>
+        <View style={[styles.root, { flexDirection: isDesktop ? 'row' : 'column' }]}>
 
-        {/* Mobile top header */}
-        {!isDesktop && (
-          <View style={styles.mobileHeader}>
-            <View style={styles.mobileLogoMark}>
-              <Icon name="home" size={12} color={colors.white} />
+          {/* Mobile top header */}
+          {!isDesktop && (
+            <View style={styles.mobileHeader}>
+              <View style={styles.mobileLogoMark}>
+                <Icon name="home" size={12} color={colors.white} />
+              </View>
+              <Text style={styles.mobileLogoText}>ExeLodge</Text>
             </View>
-            <Text style={styles.mobileLogoText}>ExeLodge</Text>
+          )}
+
+          {/* Desktop sidebar */}
+          {isDesktop && (
+            <Sidebar activeTab={activeTab} onTabPress={navigateTab} />
+          )}
+
+          {/* Main content */}
+          <View style={styles.main}>
+            {renderContent()}
           </View>
-        )}
 
-        {/* Desktop sidebar */}
-        {isDesktop && (
-          <Sidebar activeTab={activeTab} onTabPress={navigateTab} />
-        )}
-
-        {/* Main content */}
-        <View style={styles.main}>
-          {renderContent()}
+          {/* Mobile bottom tabs */}
+          {!isDesktop && (
+            <View style={styles.bottomTabs}>
+              {TABS.map((tab) => {
+                const isActive = activeTab === tab.id;
+                return (
+                  <TouchableOpacity
+                    key={tab.id}
+                    style={styles.tabItem}
+                    onPress={() => navigateTab(tab.id)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={[styles.tabIconWrap, isActive && styles.tabIconWrapActive]}>
+                      <Icon name={tab.icon} size={18} color={isActive ? colors.primary : colors.textMuted} />
+                    </View>
+                    <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>{tab.label}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
         </View>
-
-        {/* Mobile bottom tabs */}
-        {!isDesktop && (
-          <View style={styles.bottomTabs}>
-            {TABS.map((tab) => {
-              const isActive = activeTab === tab.id;
-              return (
-                <TouchableOpacity
-                  key={tab.id}
-                  style={styles.tabItem}
-                  onPress={() => navigateTab(tab.id)}
-                  activeOpacity={0.7}
-                >
-                  <View style={[styles.tabIconWrap, isActive && styles.tabIconWrapActive]}>
-                    <Icon name={tab.icon} size={18} color={isActive ? colors.primary : colors.textMuted} />
-                  </View>
-                  <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>{tab.label}</Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        )}
-      </View>
-    </SafeAreaView>
+      </SafeAreaView>
+    </SafeAreaProvider>
   );
 }
 

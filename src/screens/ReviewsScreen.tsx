@@ -56,23 +56,33 @@ export default function ReviewsScreen({ initialLandlordId, onAddReview }: { init
   const handleLandlordSelect = (landlord: any) => { setSelectedLandlord(landlord); fetchReviews(landlord.id); };
 
   const getScore = (item: any) => {
-    if (item.overall_rating !== undefined && item.overall_rating !== null) return item.overall_rating;
-    const m = item.maintenance_rating ?? item.maintenance ?? 5;
-    const c = item.communication_rating ?? item.communication ?? 5;
-    const v = item.value_rating ?? item.value ?? 5;
-    const d = item.deposit_rating ?? item.deposit ?? 5;
-    return (m + c + v + d) / 4;
+    if (!item) return 5;
+    if (item.overall_rating !== undefined && item.overall_rating !== null) return Number(item.overall_rating);
+    const m = Number(item.maintenance_rating ?? item.maintenance ?? 5);
+    const c = Number(item.communication_rating ?? item.communication ?? 5);
+    const v = Number(item.value_rating ?? item.value ?? 5);
+    const d = Number(item.deposit_rating ?? item.deposit ?? 5);
+    const sum = (isNaN(m) ? 5 : m) + (isNaN(c) ? 5 : c) + (isNaN(v) ? 5 : v) + (isNaN(d) ? 5 : d);
+    return sum / 4;
   };
 
-  const renderStars = (score: number) => (
-    <View style={styles.starsRow}>
-      {[1,2,3,4,5].map(s => (
-        <Text key={s} style={{ fontSize: 13, color: s <= Math.round(score) ? '#FBBF24' : colors.border }}>{'★'}</Text>
-      ))}
-    </View>
-  );
+  const renderStars = (score: number) => {
+    const sVal = isNaN(score) ? 0 : Math.round(score);
+    return (
+      <View style={styles.starsRow}>
+        {[1,2,3,4,5].map(s => (
+          <Text key={s} style={{ fontSize: 13, color: s <= sVal ? '#FBBF24' : colors.border }}>{'★'}</Text>
+        ))}
+      </View>
+    );
+  };
 
-  const getInitials = (name: string) => name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+  const getInitials = (name: string) => {
+    if (!name) return '??';
+    const parts = name.split(' ').filter(Boolean);
+    if (parts.length === 0) return '??';
+    return parts.map(w => w[0]).join('').slice(0, 2).toUpperCase();
+  };
 
   if (loading) {
     return (
@@ -97,51 +107,70 @@ export default function ReviewsScreen({ initialLandlordId, onAddReview }: { init
 
         {/* Landlord panel */}
         <View style={[styles.landlordPanel, !desktop && styles.landlordPanelMobile]}>
-          {desktop && (
-            <View style={styles.panelHeader}>
-              <Text style={styles.panelHeaderText}>LANDLORDS</Text>
-              <View style={styles.panelCount}>
-                <Text style={styles.panelCountText}>{landlords.length}</Text>
+          {desktop ? (
+            <>
+              <View style={styles.panelHeader}>
+                <Text style={styles.panelHeaderText}>LANDLORDS</Text>
+                <View style={styles.panelCount}>
+                  <Text style={styles.panelCountText}>{landlords.length}</Text>
+                </View>
               </View>
-            </View>
-          )}
-
-          <FlatList
-            data={landlords}
-            horizontal={!desktop}
-            showsHorizontalScrollIndicator={false}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={!desktop ? styles.mobileList : styles.desktopList}
-            renderItem={({ item }) => {
-              const isActive = selectedLandlord?.id === item.id;
-              return (
-                <TouchableOpacity
-                  style={[styles.landlordItem, isActive && styles.landlordItemActive, !desktop && styles.landlordItemMobile]}
-                  onPress={() => handleLandlordSelect(item)}
-                  activeOpacity={0.75}
-                >
-                  {desktop && (
-                    <View style={[styles.landlordAvatar, isActive && styles.landlordAvatarActive]}>
-                      <Text style={[styles.landlordAvatarText, isActive && { color: colors.white }]}>
-                        {getInitials(item.name)}
-                      </Text>
-                    </View>
-                  )}
-                  <View style={styles.landlordMeta}>
-                    <Text style={[styles.landlordName, isActive && styles.landlordNameActive, !desktop && { fontSize: 13 }]} numberOfLines={1}>
+              <FlatList
+                data={landlords}
+                keyExtractor={(item) => item.id}
+                contentContainerStyle={styles.desktopList}
+                renderItem={({ item }) => {
+                  const isActive = selectedLandlord?.id === item.id;
+                  return (
+                    <TouchableOpacity
+                      style={[styles.landlordItem, isActive && styles.landlordItemActive]}
+                      onPress={() => handleLandlordSelect(item)}
+                      activeOpacity={0.75}
+                    >
+                      <View style={[styles.landlordAvatar, isActive && styles.landlordAvatarActive]}>
+                        <Text style={[styles.landlordAvatarText, isActive && { color: colors.white }]}>
+                          {getInitials(item.name)}
+                        </Text>
+                      </View>
+                      <View style={styles.landlordMeta}>
+                        <Text style={[styles.landlordName, isActive && styles.landlordNameActive]} numberOfLines={1}>
+                          {item.name}
+                        </Text>
+                        {item.type && (
+                          <Text style={[styles.landlordType, isActive && { color: 'rgba(255,255,255,0.7)' }]}>{item.type}</Text>
+                        )}
+                      </View>
+                      <Icon name="chevron-right" size={14} color={isActive ? 'rgba(255,255,255,0.6)' : colors.borderDark} />
+                    </TouchableOpacity>
+                  );
+                }}
+              />
+            </>
+          ) : (
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.mobileList}
+              decelerationRate="fast"
+              keyboardShouldPersistTaps="handled"
+            >
+              {landlords.map((item) => {
+                const isActive = selectedLandlord?.id === item.id;
+                return (
+                  <TouchableOpacity
+                    key={item.id}
+                    style={[styles.landlordItem, isActive && styles.landlordItemActive]}
+                    onPress={() => handleLandlordSelect(item)}
+                    activeOpacity={0.75}
+                  >
+                    <Text style={[styles.landlordName, isActive && styles.landlordNameActive]}>
                       {item.name}
                     </Text>
-                    {desktop && item.type && (
-                      <Text style={[styles.landlordType, isActive && { color: 'rgba(255,255,255,0.7)' }]}>{item.type}</Text>
-                    )}
-                  </View>
-                  {desktop && (
-                    <Icon name="chevron-right" size={14} color={isActive ? 'rgba(255,255,255,0.6)' : colors.borderDark} />
-                  )}
-                </TouchableOpacity>
-              );
-            }}
-          />
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          )}
         </View>
 
         {/* Reviews panel */}
@@ -196,18 +225,30 @@ export default function ReviewsScreen({ initialLandlordId, onAddReview }: { init
                   }
                   renderItem={({ item }) => {
                     const score = getScore(item);
-                    const date = item.created_at ? new Date(item.created_at).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }) : 'Recently';
+                    
+                    let dateStr = 'Recently';
+                    try {
+                      if (item.created_at) {
+                        const d = new Date(item.created_at);
+                        if (!isNaN(d.getTime())) {
+                          dateStr = d.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+                        }
+                      }
+                    } catch (e) {
+                      console.log('Date parse error', e);
+                    }
 
                     const isGeneral = item.landlord_id === 'general' || item.landlord_id === 'other';
-                    const landlordPrefix = isGeneral && (item.review_text || item.review || '').startsWith('[LANDLORD:')
-                      ? (item.review_text || item.review || '').match(/\[LANDLORD: (.*?)\]/)?.[1] || null
+                    const rawReviewText = item.review_text || item.review || '';
+                    const landlordPrefix = isGeneral && rawReviewText.startsWith('[LANDLORD:')
+                      ? rawReviewText.match(/\[LANDLORD: (.*?)\]/)?.[1] || null
                       : null;
                     
                     const landlordName = item.landlord_name || landlordPrefix || selectedLandlord.name;
                     
                     const reviewText = landlordPrefix
-                      ? (item.review_text || item.review || '').replace(/\[LANDLORD: .*?\] /, '')
-                      : (item.review_text || item.review || 'No review text provided.');
+                      ? rawReviewText.replace(/\[LANDLORD: .*?\] /, '')
+                      : (rawReviewText || 'No review text provided.');
 
                     return (
                       <View style={styles.reviewCard}>
@@ -216,7 +257,7 @@ export default function ReviewsScreen({ initialLandlordId, onAddReview }: { init
                             <Text style={styles.reviewScoreNum}>{Number(score).toFixed(1)}</Text>
                             {renderStars(Number(score))}
                           </View>
-                          <Text style={styles.reviewDate}>{date}</Text>
+                          <Text style={styles.reviewDate}>{dateStr}</Text>
                         </View>
 
                         <View style={styles.landlordTag}>
@@ -269,9 +310,9 @@ const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 
   pageHeader: {
-    paddingHorizontal: spacing.xl,
-    paddingTop: spacing.xl,
-    paddingBottom: spacing.lg,
+    paddingHorizontal: spacing.lg,
+    paddingTop: 48,
+    paddingBottom: spacing.md,
     backgroundColor: colors.white,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
@@ -279,10 +320,16 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-end',
   },
-  pageHeaderMobile: { flexDirection: 'column', alignItems: 'flex-start', gap: 4, paddingHorizontal: spacing.lg },
-  headerEyebrow: { ...typography.label, color: colors.primary, marginBottom: 4 },
-  pageTitle: { fontFamily, fontSize: 26, fontWeight: '800' as any, color: colors.textPrimary, letterSpacing: -0.4 },
-  pageDesc: { fontFamily, fontSize: 14, color: colors.textMuted },
+  pageHeaderMobile: { 
+    flexDirection: 'column', 
+    alignItems: 'flex-start', 
+    paddingHorizontal: spacing.md, 
+    paddingTop: 40,
+    gap: 4
+  },
+  headerEyebrow: { ...typography.label, color: colors.primary, marginBottom: 2 },
+  pageTitle: { fontFamily, fontSize: 24, fontWeight: '800' as any, color: colors.textPrimary, letterSpacing: -0.4 },
+  pageDesc: { fontFamily, fontSize: 13, color: colors.textMuted },
 
   body: { flex: 1, flexDirection: 'row' },
   bodyMobile: { flexDirection: 'column' },
@@ -295,10 +342,11 @@ const styles = StyleSheet.create({
   },
   landlordPanelMobile: {
     width: '100%',
-    borderRightWidth: 0,
+    height: 72,
+    backgroundColor: '#F1F5F9',
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
-    maxHeight: 90,
+    zIndex: 99,
   },
   panelHeader: {
     flexDirection: 'row',
@@ -318,23 +366,30 @@ const styles = StyleSheet.create({
   },
   panelCountText: { fontFamily, fontSize: 11, fontWeight: '700' as any, color: colors.textSecondary },
   desktopList: { paddingVertical: spacing.sm },
-  mobileList: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, gap: 8, alignItems: 'center' },
+  mobileList: { 
+    paddingHorizontal: 16, 
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: '100%',
+  },
   landlordItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 12,
-    borderRadius: radii.md,
-    marginHorizontal: spacing.sm,
-    marginVertical: 2,
-  },
-  landlordItemActive: { backgroundColor: colors.primary },
-  landlordItemMobile: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
     borderRadius: radii.full,
-    backgroundColor: colors.surfaceSubtle,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginRight: 10,
+    ...shadows.soft,
+  },
+  landlordItemActive: { 
+    backgroundColor: colors.primary, 
+    borderColor: colors.primary,
+  },
+  landlordItemMobile: {
+    alignSelf: 'center',
     marginHorizontal: 0,
   },
   landlordAvatar: {
@@ -346,7 +401,7 @@ const styles = StyleSheet.create({
   landlordAvatarText: { fontFamily, fontSize: 12, fontWeight: '700' as any, color: colors.primary },
   landlordMeta: { flex: 1 },
   landlordName: { fontFamily, fontSize: 14, fontWeight: '600' as any, color: colors.textPrimary },
-  landlordNameActive: { color: colors.white },
+  landlordNameActive: { color: colors.white, fontWeight: '700' as any },
   landlordType: { fontFamily, fontSize: 11, color: colors.textMuted, marginTop: 1 },
 
   reviewsPanel: { flex: 1, backgroundColor: colors.background },
@@ -354,12 +409,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: spacing.xl,
+    padding: spacing.lg,
     backgroundColor: colors.white,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  reviewsHeroMobile: { padding: spacing.lg },
+  reviewsHeroMobile: { padding: spacing.md },
   reviewsHeroLeft: { flexDirection: 'row', alignItems: 'center', gap: 14, flex: 1 },
   heroAvatar: {
     width: 48, height: 48, borderRadius: 24,
@@ -382,7 +437,7 @@ const styles = StyleSheet.create({
   },
   writeReviewText: { fontFamily, color: colors.white, fontWeight: '700' as any, fontSize: 13 },
 
-  reviewsList: { padding: spacing.xl, paddingTop: spacing.lg, gap: spacing.md },
+  reviewsList: { padding: spacing.md, gap: spacing.md },
   reviewCard: {
     backgroundColor: colors.white,
     borderRadius: radii.lg,

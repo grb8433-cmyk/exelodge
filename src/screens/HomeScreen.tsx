@@ -99,11 +99,20 @@ export default function HomeScreen({ onSelectProperty }: { onSelectProperty: (id
 
     // Apply sorting
     result.sort((a, b) => {
-      if (sortOption === 'price_asc') return a.price_pppw - b.price_pppw;
-      if (sortOption === 'price_desc') return b.price_pppw - a.price_pppw;
+      const pA = parseFloat(a.price_pppw) || 0;
+      const pB = parseFloat(b.price_pppw) || 0;
+      
+      if (sortOption === 'price_asc') return pA - pB;
+      if (sortOption === 'price_desc') return pB - pA;
+      
       if (sortOption === 'dist_streatham') return (a.distance_streatham ?? 99) - (b.distance_streatham ?? 99);
       if (sortOption === 'dist_st_lukes') return (a.distance_st_lukes ?? 99) - (b.distance_st_lukes ?? 99);
-      if (sortOption === 'newest') return new Date(b.last_scraped).getTime() - new Date(a.last_scraped).getTime();
+      
+      if (sortOption === 'newest') {
+        const dA = a.last_scraped ? new Date(a.last_scraped).getTime() : 0;
+        const dB = b.last_scraped ? new Date(b.last_scraped).getTime() : 0;
+        return (isNaN(dB) ? 0 : dB) - (isNaN(dA) ? 0 : dA);
+      }
       return 0;
     });
 
@@ -205,7 +214,7 @@ export default function HomeScreen({ onSelectProperty }: { onSelectProperty: (id
       </Animated.View>
 
       {/* Listing grid */}
-      <FlatList
+      <Animated.FlatList
         data={displayedProperties}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (

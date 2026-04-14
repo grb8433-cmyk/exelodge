@@ -28,12 +28,16 @@ export default function OverviewScreen({ onNavigateToHouses }: { onNavigateToHou
   }, []);
 
   const stats = useMemo(() => {
-    if (!properties.length) return { count: 0, avg: 0, min: 0, max: 0, sources: 0 };
-    const prices = properties.map(p => parseFloat(p.price_pppw)).filter(p => p > 0);
+    if (!properties || !properties.length) return { count: 0, avg: 0, min: 0, max: 0, sources: 0 };
+    const prices = properties.map(p => parseFloat(p.price_pppw)).filter(p => !isNaN(p) && p > 0);
     const avg = prices.length ? prices.reduce((a, b) => a + b, 0) / prices.length : 0;
     const sources = new Set(properties.map(p => {
       if (!p.external_url) return 'Direct';
-      try { return p.external_url.split('/')[2].replace('www.', ''); }
+      try { 
+        const url = p.external_url;
+        if (typeof url !== 'string') return 'Other';
+        return url.split('/')[2]?.replace('www.', '') || 'Other'; 
+      }
       catch { return 'Other'; }
     })).size;
     return { count: properties.length, avg: Math.round(avg), sources: Math.max(sources, 4) };
@@ -489,7 +493,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  cardFull: { width: '100%', minHeight: 'auto' as any },
+  cardFull: { width: '100%' },
   statIcon: {
     width: 44,
     height: 44,

@@ -7,6 +7,7 @@
 
 import React from 'react';
 import { View, Platform } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 
 // Each icon is an array of SVG element descriptors
 type PathEl     = { t: 'path'; d: string; fill?: string };
@@ -235,16 +236,15 @@ interface IconProps {
 }
 
 export default function Icon({ name, size = 24, color = '#000', style }: IconProps) {
+  if (Platform.OS !== 'web') {
+    return <Feather name={name as any} size={size} color={color} style={style} />;
+  }
+
   const els = ICONS[name];
 
   if (!els) {
     // Unknown icon — render empty placeholder so layout is preserved
-    return React.createElement(View, { style: [{ width: size, height: size }, style] });
-  }
-
-  if (Platform.OS !== 'web') {
-    // Native fallback: transparent square (app is web-exported)
-    return React.createElement(View, { style: [{ width: size, height: size }, style] });
+    return <View style={[{ width: size, height: size }, style]} />;
   }
 
   const svgEl = React.createElement(
