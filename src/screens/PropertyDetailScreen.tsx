@@ -32,6 +32,7 @@ export default function PropertyDetailScreen({ propertyId, onBack, onSeeReviews 
   
   const { width } = useWindowDimensions();
   const isDesktop = width >= 768;
+  const isSmallMobile = width < 400;
 
   useEffect(() => {
     fetchData();
@@ -80,6 +81,22 @@ export default function PropertyDetailScreen({ propertyId, onBack, onSeeReviews 
     : (property.distance_streatham ?? property.distance_st_lukes);
   const nearestCampus = distance === property.distance_streatham ? 'Streatham' : 'St Lukes';
 
+  // Walking time estimates (approx 20 mins per mile)
+  const walkStreatham = property.distance_streatham ? Math.round(property.distance_streatham * 20) : null;
+  const walkStLukes = property.distance_st_lukes ? Math.round(property.distance_st_lukes * 20) : null;
+
+  const openInMaps = () => {
+    const lat = property.latitude;
+    const lon = property.longitude;
+    const addr = encodeURIComponent(property.address);
+    const url = (lat && lon) 
+      ? `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`
+      : `https://www.google.com/maps/search/?api=1&query=${addr}+Exeter`;
+    
+    if (Platform.OS === 'web') window.open(url, '_blank');
+    else Linking.openURL(url);
+  };
+
   const openListing = () => {
     if (property?.external_url) {
       if (Platform.OS === 'web') window.open(property.external_url, '_blank');
@@ -88,8 +105,8 @@ export default function PropertyDetailScreen({ propertyId, onBack, onSeeReviews 
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.hero}>
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      <View style={[styles.hero, { height: isDesktop ? 500 : 320 }]}>
         <Image 
           source={{ uri: (validImg && !imageError) ? rawImg : DEFAULT_FALLBACK_IMAGE }} 
           style={styles.heroImage}
@@ -104,14 +121,17 @@ export default function PropertyDetailScreen({ propertyId, onBack, onSeeReviews 
         </View>
       </View>
 
-      <View style={styles.content}>
+      <View style={[styles.content, { padding: isDesktop ? spacing.xl : spacing.lg }]}>
         <View style={[styles.mainHeader, !isDesktop && styles.mainHeaderMobile]}>
           <View style={{ flex: 1 }}>
-            <Text style={[styles.address, !isDesktop && { fontSize: 24 }]}>{property.address || 'Exeter Property'}</Text>
-            <View style={styles.areaRow}>
+            <Text style={[styles.address, !isDesktop && { fontSize: 28 }, isSmallMobile && { fontSize: 24 }]}>
+              {property.address || 'Exeter Property'}
+            </Text>
+            <TouchableOpacity style={styles.areaRow} onPress={openInMaps}>
               <Text style={{ fontSize: 16 }}>📍</Text>
-              <Text style={styles.area}>{property.area || 'Exeter'}</Text>
-            </View>
+              <Text style={styles.area}>{property.area || 'Exeter'} (View on Map)</Text>
+              <Text style={{ fontSize: 12, color: colors.primary, marginLeft: 4 }}>↗️</Text>
+            </TouchableOpacity>
           </View>
           <View style={[styles.priceContainer, !isDesktop && styles.priceContainerMobile]}>
             <Text style={styles.price}>£{Math.round(property.price_pppw)}</Text>
@@ -123,50 +143,77 @@ export default function PropertyDetailScreen({ propertyId, onBack, onSeeReviews 
           Prices are estimated per person based on equal rent split between bedrooms.
         </Text>
 
-        <View style={styles.statsRow}>
+        <View style={[styles.statsRow, isSmallMobile && { flexDirection: 'column', alignItems: 'stretch', gap: spacing.md }]}>
           <View style={styles.statBox}>
             <View style={styles.iconCircle}>
               <Text style={{ fontSize: 22 }}>🛏️</Text>
             </View>
-            <Text style={styles.statVal}>{property.bedrooms || 1}</Text>
-            <Text style={styles.statLab}>Bedrooms</Text>
+            <View style={styles.statTextGroup}>
+              <Text style={styles.statVal}>{property.bedrooms || 1}</Text>
+              <Text style={styles.statLab}>Bedrooms</Text>
+            </View>
           </View>
           <View style={styles.statBox}>
             <View style={styles.iconCircle}>
               <Text style={{ fontSize: 22 }}>🚿</Text>
             </View>
-            <Text style={styles.statVal}>{property.bathrooms || 1}</Text>
-            <Text style={styles.statLab}>Bathrooms</Text>
+            <View style={styles.statTextGroup}>
+              <Text style={styles.statVal}>{property.bathrooms || 1}</Text>
+              <Text style={styles.statLab}>Bathrooms</Text>
+            </View>
           </View>
           <View style={styles.statBox}>
             <View style={styles.iconCircle}>
               <Text style={{ fontSize: 22 }}>⚡</Text>
             </View>
-            <Text style={styles.statVal}>{property.bills_included ? 'Included' : 'Not Inc.'}</Text>
-            <Text style={styles.statLab}>Wifi/Bills</Text>
+            <View style={styles.statTextGroup}>
+              <Text style={styles.statVal}>{property.bills_included ? 'Included' : 'Not Inc.'}</Text>
+              <Text style={styles.statLab}>Wifi/Bills</Text>
+            </View>
           </View>
         </View>
 
-        <View style={styles.statsRow}>
-          {property.available_from && (
-            <View style={styles.statBox}>
-              <View style={styles.iconCircle}>
-                <Text style={{ fontSize: 22 }}>📅</Text>
-              </View>
-              <Text style={styles.statVal}>{formatDate(property.available_from)}</Text>
-              <Text style={styles.statLab}>Available From</Text>
+        <Text style={[styles.sectionTitle, { marginTop: spacing.md }]}>Campus Commute (Walking)</Text>
+        <View style={[styles.statsRow, isSmallMobile && { flexDirection: 'column', alignItems: 'stretch', gap: spacing.md }]}>
+          <View style={styles.statBox}>
+            <View style={styles.iconCircle}>
+              <Text style={{ fontSize: 22 }}>🏰</Text>
             </View>
-          )}
-          {distance !== null && distance !== undefined && (
-            <View style={styles.statBox}>
-              <View style={styles.iconCircle}>
-                <Text style={{ fontSize: 22 }}>📍</Text>
-              </View>
-              <Text style={styles.statVal}>{distance} mi</Text>
-              <Text style={styles.statLab}>From {nearestCampus}</Text>
+            <View style={styles.statTextGroup}>
+              <Text style={styles.statVal}>{walkStreatham || '?'} mins</Text>
+              <Text style={styles.statLab}>To Streatham</Text>
             </View>
-          )}
+          </View>
+          <View style={styles.statBox}>
+            <View style={styles.iconCircle}>
+              <Text style={{ fontSize: 22 }}>🏥</Text>
+            </View>
+            <View style={styles.statTextGroup}>
+              <Text style={styles.statVal}>{walkStLukes || '?'} mins</Text>
+              <Text style={styles.statLab}>To St Luke's</Text>
+            </View>
+          </View>
+          <TouchableOpacity style={styles.statBox} onPress={openInMaps}>
+            <View style={[styles.iconCircle, { backgroundColor: colors.primaryLight }]}>
+              <Text style={{ fontSize: 22 }}>🗺️</Text>
+            </View>
+            <View style={styles.statTextGroup}>
+              <Text style={[styles.statVal, { color: colors.primary }]}>Maps</Text>
+              <Text style={styles.statLab}>Open Route</Text>
+            </View>
+          </TouchableOpacity>
         </View>
+
+        {property.available_from && (
+          <View style={[styles.section, { marginBottom: spacing.lg }]}>
+             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Text style={{ fontSize: 18, marginRight: 12 }}>📅</Text>
+                <Text style={styles.description}>
+                  Available from <Text style={{ fontWeight: '700', color: colors.textPrimary }}>{formatDate(property.available_from)}</Text>
+                </Text>
+             </View>
+          </View>
+        )}
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>About this Listing</Text>
@@ -176,7 +223,7 @@ export default function PropertyDetailScreen({ propertyId, onBack, onSeeReviews 
             Explore the full details and booking information directly on the provider's website.
           </Text>
           <TouchableOpacity 
-            style={styles.listingBtn} 
+            style={[styles.listingBtn, !isDesktop && { width: '100%', justifyContent: 'center' }]} 
             onPress={openListing}
           >
             <Text style={styles.listingBtnText}>View on {property.landlord_id || 'Provider Site'}</Text>
@@ -210,7 +257,7 @@ export default function PropertyDetailScreen({ propertyId, onBack, onSeeReviews 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.white },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  hero: { width: '100%', height: 450, position: 'relative' },
+  hero: { width: '100%', position: 'relative' },
   heroImage: { width: '100%', height: '100%', backgroundColor: colors.background },
   backBtn: { 
     position: 'absolute', 
@@ -221,10 +268,11 @@ const styles = StyleSheet.create({
     borderRadius: radii.full,
     justifyContent: 'center',
     alignItems: 'center',
+    zIndex: 10,
   },
   sourceBadge: { 
     position: 'absolute', 
-    bottom: 24, 
+    bottom: 48, 
     right: 24, 
     backgroundColor: 'rgba(255, 255, 255, 0.9)', 
     paddingHorizontal: 16, 
@@ -233,7 +281,6 @@ const styles = StyleSheet.create({
   },
   sourceText: { ...typography.caption, fontWeight: '700', color: colors.textPrimary },
   content: { 
-    padding: spacing.xl, 
     maxWidth: 900, 
     alignSelf: 'center', 
     width: '100%', 
@@ -253,20 +300,27 @@ const styles = StyleSheet.create({
   pppw: { ...typography.caption, color: colors.primary, fontWeight: '700', textTransform: 'uppercase' },
   priceEstLabel: { ...typography.caption, color: colors.primary, fontWeight: '500', textTransform: 'lowercase', marginTop: 2 },
   infoNote: { ...typography.bodySmall, color: colors.textMuted, fontStyle: 'italic', marginBottom: spacing.xl, marginTop: -spacing.md },
-  statsRow: { flexDirection: 'row', marginBottom: spacing.xxl, backgroundColor: colors.background, borderRadius: radii.lg, padding: spacing.md },
-  statBox: { flex: 1, alignItems: 'center', paddingHorizontal: 2 },
+  statsRow: { 
+    flexDirection: 'row', 
+    marginBottom: spacing.xxl, 
+    backgroundColor: colors.background, 
+    borderRadius: radii.lg, 
+    padding: spacing.md,
+    justifyContent: 'space-around',
+  },
+  statBox: { flex: 1, alignItems: 'center', paddingHorizontal: 2, flexDirection: 'row', justifyContent: 'center' },
+  statTextGroup: { marginLeft: 12, flexShrink: 1 },
   iconCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: radii.full,
+    width: 44,
+    height: 44,
+    borderRadius: radii.md,
     backgroundColor: colors.white,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 12,
     ...shadows.soft,
   },
-  statVal: { ...typography.h4, color: colors.textPrimary },
-  statLab: { ...typography.caption, color: colors.textSecondary, textTransform: 'uppercase', marginTop: 4, letterSpacing: 1, textAlign: 'center' },
+  statVal: { ...typography.h4, color: colors.textPrimary, fontSize: 15 },
+  statLab: { ...typography.caption, color: colors.textSecondary, textTransform: 'uppercase', marginTop: 1, fontSize: 9, letterSpacing: 0.5 },
   section: { marginBottom: spacing.xxl },
   sectionTitle: { ...typography.h3, marginBottom: spacing.md },
   description: { ...typography.body, color: colors.textSecondary, lineHeight: 28, marginBottom: spacing.xl },
