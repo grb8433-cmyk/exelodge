@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, useWindowDimensions, Platform, Linking, ActivityIndicator } from 'react-native';
 import { supabase } from '../lib/supabase';
 import { colors, spacing, radii, typography, shadows } from '../utils/theme';
+import { AREA_COORDS, CAMPUS_COORDS } from '../data/seeds';
 
 const DEFAULT_FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1518780664697-55e3ad937233';
 
@@ -16,6 +17,17 @@ const formatDate = (dateStr: string) => {
     month: 'short', 
     year: 'numeric' 
   });
+};
+
+// Simple haversine-like distance helper for the UI safety net
+const calculateStraightDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+  const p = 0.017453292519943295;    // Math.PI / 180
+  const c = Math.cos;
+  const a = 0.5 - c((lat2 - lat1) * p)/2 + 
+            c(lat1 * p) * c(lat2 * p) * 
+            (1 - c((lon2 - lon1) * p))/2;
+
+  return 12742 * Math.asin(Math.sqrt(a)) * 0.621371; // 2 * R; R = 6371 km -> convert to miles
 };
 
 interface PropertyDetailScreenProps {
@@ -76,14 +88,25 @@ export default function PropertyDetailScreen({ propertyId, onBack, onSeeReviews 
   const isSvg = rawImg && typeof rawImg === 'string' && rawImg.toLowerCase().includes('.svg');
   const validImg = rawImg && typeof rawImg === 'string' && rawImg.length > 5 && !rawImg.includes('None') && !isSvg;
 
-  const distance = (property.distance_streatham !== null && property.distance_st_lukes !== null)
-    ? Math.min(property.distance_streatham, property.distance_st_lukes)
-    : (property.distance_streatham ?? property.distance_st_lukes);
-  const nearestCampus = distance === property.distance_streatham ? 'Streatham' : 'St Lukes';
+  // ── Commute Logic with Area Safety Net ─────────────────────────────────────
+  let distStreatham = property.distance_streatham;
+  let distStLukes = property.distance_st_lukes;
+  let isEstimate = false;
 
-  // Walking time estimates (approx 20 mins per mile)
-  const walkStreatham = property.distance_streatham ? Math.round(property.distance_streatham * 20) : null;
-  const walkStLukes = property.distance_st_lukes ? Math.round(property.distance_st_lukes * 20) : null;
+  // If DB distance is missing, use Area fallback from seeds.ts
+  if (distStreatham === null || distStreatham === undefined) {
+    const areaKey = property.area as keyof typeof AREA_COORDS;
+    const areaCenter = areaKey ? AREA_COORDS[areaKey] : null;
+    
+    if (areaCenter) {
+      isEstimate = true;
+      distStreatham = calculateStraightDistance(areaCenter.latitude, areaCenter.longitude, CAMPUS_COORDS.streatham.latitude, CAMPUS_COORDS.streatham.longitude);
+      distStLukes = calculateStraightDistance(areaCenter.latitude, areaCenter.longitude, CAMPUS_COORDS.stLukes.latitude, CAMPUS_COORDS.stLukes.longitude);
+    }
+  }
+
+  const walkStreatham = distStreatham ? Math.round(distStreatham * 20) : null;
+  const walkStLukes = distStLukes ? Math.round(distStLukes * 20) : null;
 
   const openInMaps = () => {
     const lat = property.latitude;
@@ -173,7 +196,14 @@ export default function PropertyDetailScreen({ propertyId, onBack, onSeeReviews 
           </View>
         </View>
 
-        <Text style={[styles.sectionTitle, { marginTop: spacing.md }]}>Campus Commute (Walking)</Text>
+        <View style={styles.commuteHeader}>
+          <Text style={styles.sectionTitle}>Campus Commute (Walking)</Text>
+          {isEstimate && (
+            <View style={styles.estimateBadge}>
+              <Text style={styles.estimateBadgeText}>AREA ESTIMATE</Text>
+            </View>
+          )}
+        </View>
         <View style={[styles.statsRow, isSmallMobile && { flexDirection: 'column', alignItems: 'stretch', gap: spacing.md }]}>
           <View style={styles.statBox}>
             <View style={styles.iconCircle}>
@@ -321,6 +351,27 @@ const styles = StyleSheet.create({
   },
   statVal: { ...typography.h4, color: colors.textPrimary, fontSize: 15 },
   statLab: { ...typography.caption, color: colors.textSecondary, textTransform: 'uppercase', marginTop: 1, fontSize: 9, letterSpacing: 0.5 },
+  commuteHeader: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    justifyContent: 'space-between',
+    marginTop: spacing.md,
+    marginBottom: spacing.md 
+  },
+  estimateBadge: {
+    backgroundColor: colors.primaryLight,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: radii.sm,
+    borderWidth: 1,
+    borderColor: colors.primaryMedium,
+  },
+  estimateBadgeText: {
+    ...typography.caption,
+    color: colors.primary,
+    fontWeight: '700',
+    fontSize: 10,
+  },
   section: { marginBottom: spacing.xxl },
   sectionTitle: { ...typography.h3, marginBottom: spacing.md },
   description: { ...typography.body, color: colors.textSecondary, lineHeight: 28, marginBottom: spacing.xl },

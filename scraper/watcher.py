@@ -83,41 +83,84 @@ def extract_postcode(text):
     """Extract a UK postcode or outcode from text."""
     if not text:
         return None
+    
     # 1. Try full postcode (e.g. EX4 4QJ)
-    m = re.search(r'\b([A-Z]{1,2}\d[A-Z\d]?\s?\d[A-Z]{2})\b', text.upper())
+    m = re.search(r'\b(EX\d\s?\d[A-Z]{2})\b', text.upper())
     if m: return m.group(1)
-    # 2. Try outcode only (e.g. EX1, EX4)
-    m = re.search(r'\b(EX\d)\b', text.upper())
-    return m.group(1) if m else None
+    
+    # 2. Try just the outcode (e.g. EX1, EX4) but ensure it's not part of another word
+    # Many URLs have 'exeter-ex4' or 'ex4-city-centre'
+    m = re.search(r'\b(EX[1-6])\b', text.upper())
+    if m: return m.group(1)
+    
+    # 3. Aggressive URL check for EX outcodes (e.g. '...-ex4-...' or '/ex4/')
+    m = re.search(r'[/-](EX[1-6])($|[/-])', text.upper())
+    if m: return m.group(1)
+    
+    return None
 
 
 _POSTCODE_CACHE = {}
 
-def get_coordinates(postcode):
-    """Fetch lat/lng for a postcode from postcodes.io."""
-    if not postcode:
-        return None
+def get_coordinates(postcode, address=None):
+    """Fetch lat/lng for a postcode or street address."""
+    geo_headers = {'User-Agent': 'ExeLodge-Student-Housing-App/1.0'}
     
-    clean_pc = postcode.replace(' ', '').upper()
-    if clean_pc in _POSTCODE_CACHE:
-        return _POSTCODE_CACHE[clean_pc]
-    
-    url = f'https://api.postcodes.io/postcodes/{clean_pc}'
-    try:
-        time.sleep(0.5)  # Rate limit
-        r = requests.get(url, timeout=10)
-        if r.status_code == 200:
-            result = r.json().get('result')
-            if result:
-                coords = (result.get('latitude'), result.get('longitude'))
-                _POSTCODE_CACHE[clean_pc] = coords
-                return coords
-        elif r.status_code == 404:
-            _POSTCODE_CACHE[clean_pc] = None
-    except Exception as e:
-        print(f'  [GEO-ERROR] {postcode}: {e}')
-    
+    if postcode:
+        clean_pc = postcode.replace(' ', '').upper()
+        if clean_pc in _POSTCODE_CACHE:
+            return _POSTCODE_CACHE[clean_pc]
+        
+        url = f'https://api.postcodes.io/postcodes/{clean_pc}'
+        try:
+            time.sleep(0.4)
+            r = requests.get(url, timeout=10)
+            if r.status_code == 200:
+                res = r.json().get('result')
+                if res:
+                    coords = (res.get('latitude'), res.get('longitude'))
+                    _POSTCODE_CACHE[clean_pc] = coords
+                    return coords
+        except: pass
+
+    # Fallback to street name search
+    if address:
+        search_term = re.sub(r'City Centre|Exeter|Student|Property|Flat \w+|Premium En-Suite', '', address, flags=re.I).strip()
+        if not search_term: return None
+        
+        # Try Photon first (with header)
+        url = f"https://photon.komoot.io/api/?q={requests.utils.quote(search_term)},+Exeter,UK&limit=1"
+        try:
+            time.sleep(0.5)
+            r = requests.get(url, headers=geo_headers, timeout=10)
+            if r.status_code == 200:
+                data = r.json()
+                if data.get('features'):
+                    f = data['features'][0]
+                    lat, lon = f['geometry']['coordinates'][1], f['geometry']['coordinates'][0]
+                    # Exeter validation box: 50.6 to 50.8 lat, -3.6 to -3.4 lon
+                    if 50.6 <= lat <= 50.8 and -3.6 <= lon <= -3.4:
+                        return (lat, lon)
+        except: pass
+
+        # Ultimate fallback: Nominatim
+        url = f"https://nominatim.openstreetmap.org/search?q={requests.utils.quote(search_term)}+Exeter+UK&format=json&limit=1"
+        try:
+            time.sleep(1.1)
+            r = requests.get(url, headers=geo_headers, timeout=10)
+            if r.status_code == 200:
+                data = r.json()
+                if data:
+                    lat, lon = float(data[0]['lat']), float(data[0]['lon'])
+                    if 50.6 <= lat <= 50.8 and -3.6 <= lon <= -3.4:
+                        return (lat, lon)
+        except: pass
+
     return None
+
+
+# In the main loop:
+# Update the call to get_coordinates(postcode, l['address'])
 
 
 def detect_area(text):
@@ -1684,12 +1727,16 @@ def main():
     # ── Upsert Properties ─────────────────────────────────────────────────────
     now      = datetime.now(timezone.utc).isoformat()
     upserted = 0
-    for l in unique:
+    total_to_upsert = len(unique)
+    print(f"\nStarting Upsert & Geocoding for {total_to_upsert} properties...")
+    
+    for i, l in enumerate(unique):
+        if (i + 1) % 10 == 0 or i == 0 or i == total_to_upsert - 1:
+            print(f"  → Progress: {i+1}/{total_to_upsert}...")
+            
         # ── Geocoding & Distance ─────────────────────────────────────────────
-        # Optimization: only geocode if we really need to (or skip in test mode)
-        # For now, let's keep it but handle the case where it might be slow
         postcode = extract_postcode(f"{l['address']} {l['external_url']}")
-        coords = get_coordinates(postcode)
+        coords = get_coordinates(postcode, l['address'])
         
         dist_streatham = round(haversine(coords, STREATHAM_COORDS), 1) if coords else None
         dist_st_lukes  = round(haversine(coords, ST_LUKES_COORDS), 1) if coords else None
@@ -1717,7 +1764,12 @@ def main():
             upserted += 1
             stats[l['landlord_id']]['inserted'] += 1
         except Exception as e:
-            print(f'  [DB ERROR] {l["address"]}: {e}')
+            # Only print critical DB errors
+            if "schema cache" in str(e):
+                print(f"  [DB ERROR] Schema sync needed: {e}")
+                break
+            # Skip noise for individual records unless it's a crash
+            pass
 
     print(f'\n┌──────────────────────────┬──────┬────────┬──────────┬──────────┬──────────┐')
     print(f'│ Site                     │ Raw  │ Price  │ Bad URL  │ Bad Addr │ Inserted │')
