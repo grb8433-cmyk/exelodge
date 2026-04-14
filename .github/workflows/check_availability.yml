@@ -6,8 +6,8 @@ on:
   workflow_dispatch:
 
 env:
-  SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-  SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+  SUPABASE_URL: ${{ github.ref == 'refs/heads/main' && secrets.SUPABASE_URL || secrets.DEV_SUPABASE_URL }}
+  SUPABASE_SERVICE_ROLE_KEY: ${{ github.ref == 'refs/heads/main' && secrets.SUPABASE_SERVICE_ROLE_KEY || secrets.DEV_SUPABASE_SERVICE_ROLE_KEY }}
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
