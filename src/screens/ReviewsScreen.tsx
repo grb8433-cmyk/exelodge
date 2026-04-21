@@ -5,9 +5,23 @@ import {
 } from 'react-native';
 import Icon from '../components/Icon';
 import { supabase } from '../lib/supabase';
-import { colors, spacing, radii, typography, shadows, fontFamily, isDesktop } from '../utils/theme';
+import { colors, spacing, radii, typography, shadows, fontFamily, isDesktop, getUniversityColors } from '../utils/theme';
 
-export default function ReviewsScreen({ initialLandlordId, onAddReview }: { initialLandlordId?: string | null, onAddReview: (landlordId: string) => void }) {
+import UNIVERSITIES from '../../config/universities.json';
+
+const EXETER_LANDLORDS = [
+  'UniHomes', 'StuRents', 'AccommodationForStudents', 'Rightmove', 'Cardens', 'RSJInvestments', 'StarStudents', 'Gillams'
+];
+
+const BRISTOL_LANDLORDS = [
+  'UniHomes', 'StuRents', 'AccommodationForStudents', 'Rightmove', 'UWEStudentPad', 'BristolSULettings', 'CJHole', 'BristolDigs', 'StudentCrowd', 'JointLiving', 'UniteStudents'
+];
+
+export default function ReviewsScreen({ universityId, initialLandlordId, onAddReview }: { 
+  universityId: string,
+  initialLandlordId?: string | null, 
+  onAddReview: (landlordId: string) => void 
+}) {
   const [landlords, setLandlords] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedLandlord, setSelectedLandlord] = useState<any>(null);
@@ -16,20 +30,40 @@ export default function ReviewsScreen({ initialLandlordId, onAddReview }: { init
   const [fetchError, setFetchError] = useState(false);
   const { width } = useWindowDimensions();
   const desktop = isDesktop(width);
+  
+  const currentUni = UNIVERSITIES.find(u => u.id === universityId) || UNIVERSITIES[0];
+  const theme = getUniversityColors(universityId);
 
-  useEffect(() => { fetchLandlords(); }, []);
+  useEffect(() => { fetchLandlords(); }, [universityId]);
 
   const fetchLandlords = async () => {
     try {
       setFetchError(false);
-      const { data, error } = await supabase.from('landlords').select('*').order('name').limit(50);
+      const { data, error } = await supabase.from('landlords').select('*').order('name');
       if (error) throw error;
-      const list = (data || []).filter(l => l.id !== 'general' && l.id !== 'other');
-      const fullList = [...list, { id: 'other', name: 'General Landlords', type: 'Private Providers' }];
-      setLandlords(fullList);
+      
+      const targetIds = universityId === 'bristol' ? BRISTOL_LANDLORDS : EXETER_LANDLORDS;
+      
+      // Create objects for all target landlords to ensure they show up even if not in DB
+      const fullList = targetIds.map(id => {
+        const dbEntry = (data || []).find(l => l.id === id || l.name === id);
+        return dbEntry || { id, name: id, type: 'Verified Provider' };
+      });
+
+      // Sort alphabetically by name
+      fullList.sort((a, b) => a.name.localeCompare(b.name));
+      
+      // Append "General Landlords"
+      const finalList = [...fullList, { id: 'other', name: 'General Landlords', type: 'Private Providers' }];
+      
+      setLandlords(finalList);
+      
       if (initialLandlordId) {
-        const found = fullList.find(l => l.id === initialLandlordId || (initialLandlordId === 'general' && l.id === 'other'));
+        const found = finalList.find(l => l.id === initialLandlordId || (initialLandlordId === 'general' && l.id === 'other'));
         if (found) { setSelectedLandlord(found); fetchReviews(found.id); }
+      } else if (finalList.length > 0 && desktop) {
+        setSelectedLandlord(finalList[0]);
+        fetchReviews(finalList[0].id);
       }
     } catch (err) { 
       console.error(err);
@@ -43,7 +77,13 @@ export default function ReviewsScreen({ initialLandlordId, onAddReview }: { init
     setFetchError(false);
     const targetId = landlordId === 'other' ? 'general' : landlordId;
     try {
-      const { data, error } = await supabase.from('reviews').select('*').eq('landlord_id', targetId).order('created_at', { ascending: false }).limit(50);
+      const { data, error } = await supabase
+        .from('reviews')
+        .select('*')
+        .eq('landlord_id', targetId)
+        .eq('approved', true) // Moderation: only show approved reviews
+        .order('created_at', { ascending: false })
+        .limit(50);
       if (error) throw error;
       setReviews(data || []);
     } catch (err) { 
@@ -87,7 +127,7 @@ export default function ReviewsScreen({ initialLandlordId, onAddReview }: { init
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color={colors.primary} />
+        <ActivityIndicator size="large" color={theme.primary} />
       </View>
     );
   }
@@ -97,10 +137,10 @@ export default function ReviewsScreen({ initialLandlordId, onAddReview }: { init
       {/* Page header */}
       <View style={[styles.pageHeader, !desktop && styles.pageHeaderMobile]}>
         <View>
-          <Text style={styles.headerEyebrow}>Tenant Verified</Text>
+          <Text style={[styles.headerEyebrow, { color: theme.primary }]}>Tenant Verified</Text>
           <Text style={[styles.pageTitle, !desktop && { fontSize: 22 }]}>Landlord Reviews</Text>
         </View>
-        <Text style={styles.pageDesc}>Transparent feedback from real Exeter students.</Text>
+        <Text style={styles.pageDesc}>Transparent feedback from real {currentUni.city} students.</Text>
       </View>
 
       <View style={[styles.body, !desktop && styles.bodyMobile]}>
@@ -111,8 +151,8 @@ export default function ReviewsScreen({ initialLandlordId, onAddReview }: { init
             <>
               <View style={styles.panelHeader}>
                 <Text style={styles.panelHeaderText}>LANDLORDS</Text>
-                <View style={styles.panelCount}>
-                  <Text style={styles.panelCountText}>{landlords.length}</Text>
+                <View style={[styles.panelCount, { backgroundColor: theme.primaryLight }]}>
+                  <Text style={[styles.panelCountText, { color: theme.primary }]}>{landlords.length}</Text>
                 </View>
               </View>
               <FlatList
@@ -123,21 +163,21 @@ export default function ReviewsScreen({ initialLandlordId, onAddReview }: { init
                   const isActive = selectedLandlord?.id === item.id;
                   return (
                     <TouchableOpacity
-                      style={[styles.landlordItem, isActive && styles.landlordItemActive]}
+                      style={[styles.landlordItem, isActive && { backgroundColor: theme.primary, borderColor: theme.primary }]}
                       onPress={() => handleLandlordSelect(item)}
                       activeOpacity={0.75}
                     >
-                      <View style={[styles.landlordAvatar, isActive && styles.landlordAvatarActive]}>
-                        <Text style={[styles.landlordAvatarText, isActive && { color: colors.white }]}>
+                      <View style={[styles.landlordAvatar, { backgroundColor: isActive ? 'rgba(255,255,255,0.2)' : theme.primaryLight }]}>
+                        <Text style={[styles.landlordAvatarText, { color: isActive ? colors.white : theme.primary }]}>
                           {getInitials(item.name)}
                         </Text>
                       </View>
                       <View style={styles.landlordMeta}>
-                        <Text style={[styles.landlordName, isActive && styles.landlordNameActive]} numberOfLines={1}>
+                        <Text style={[styles.landlordName, isActive && { color: colors.white }]} numberOfLines={1}>
                           {item.name}
                         </Text>
                         {item.type && (
-                          <Text style={[styles.landlordType, isActive && { color: 'rgba(255,255,255,0.7)' }]}>{item.type}</Text>
+                          <Text style={[styles.landlordType, { color: isActive ? 'rgba(255,255,255,0.7)' : colors.textMuted }]}>{item.type}</Text>
                         )}
                       </View>
                       <Icon name="chevron-right" size={14} color={isActive ? 'rgba(255,255,255,0.6)' : colors.borderDark} />
@@ -159,11 +199,11 @@ export default function ReviewsScreen({ initialLandlordId, onAddReview }: { init
                 return (
                   <TouchableOpacity
                     key={item.id}
-                    style={[styles.landlordItem, isActive && styles.landlordItemActive]}
+                    style={[styles.landlordItem, isActive && { backgroundColor: theme.primary, borderColor: theme.primary }]}
                     onPress={() => handleLandlordSelect(item)}
                     activeOpacity={0.75}
                   >
-                    <Text style={[styles.landlordName, isActive && styles.landlordNameActive]}>
+                    <Text style={[styles.landlordName, isActive && { color: colors.white }]}>
                       {item.name}
                     </Text>
                   </TouchableOpacity>
@@ -178,16 +218,17 @@ export default function ReviewsScreen({ initialLandlordId, onAddReview }: { init
           {fetchError ? (
             <View style={styles.center}>
               <Text style={{ color: colors.error, marginBottom: 16 }}>Couldn't load reviews right now. Please try again later.</Text>
-              <TouchableOpacity onPress={fetchLandlords} style={styles.emptyBtn}>
+              <TouchableOpacity onPress={fetchLandlords} style={[styles.emptyBtn, { backgroundColor: theme.primary }]}>
                 <Text style={styles.emptyBtnText}>Retry</Text>
               </TouchableOpacity>
             </View>
           ) : selectedLandlord ? (
             <View style={{ flex: 1 }}>
+              <div className="vibrant-header-placeholder" style={{ display: 'none', color: theme.primary }}></div>
               <View style={[styles.reviewsHero, !desktop && styles.reviewsHeroMobile]}>
                 <View style={styles.reviewsHeroLeft}>
-                  <View style={styles.heroAvatar}>
-                    <Text style={styles.heroAvatarText}>{getInitials(selectedLandlord.name)}</Text>
+                  <View style={[styles.heroAvatar, { backgroundColor: theme.primaryLight, borderColor: theme.primaryMedium }]}>
+                    <Text style={[styles.heroAvatarText, { color: theme.primary }]}>{getInitials(selectedLandlord.name)}</Text>
                   </View>
                   <View>
                     <Text style={[styles.heroName, !desktop && { fontSize: 18 }]}>{selectedLandlord.name}</Text>
@@ -195,7 +236,7 @@ export default function ReviewsScreen({ initialLandlordId, onAddReview }: { init
                   </View>
                 </View>
                 <TouchableOpacity
-                  style={styles.writeReviewBtn}
+                  style={[styles.writeReviewBtn, { backgroundColor: theme.primary }]}
                   onPress={() => onAddReview(selectedLandlord.id)}
                   activeOpacity={0.85}
                 >
@@ -205,7 +246,7 @@ export default function ReviewsScreen({ initialLandlordId, onAddReview }: { init
               </View>
 
               {reviewsLoading ? (
-                <ActivityIndicator style={{ marginTop: 48 }} color={colors.primary} />
+                <ActivityIndicator style={{ marginTop: 48 }} color={theme.primary} />
               ) : (
                 <FlatList
                   data={reviews}
@@ -217,8 +258,8 @@ export default function ReviewsScreen({ initialLandlordId, onAddReview }: { init
                         <Icon name="message-square" size={28} color={colors.textMuted} />
                       </View>
                       <Text style={styles.emptyTitle}>No reviews yet — be the first to share your experience!</Text>
-                      <Text style={styles.emptyDesc}>Your feedback helps other Exeter students make informed decisions.</Text>
-                      <TouchableOpacity style={styles.emptyBtn} onPress={() => onAddReview(selectedLandlord.id)}>
+                      <Text style={styles.emptyDesc}>Your feedback helps other {currentUni.city} students make informed decisions.</Text>
+                      <TouchableOpacity style={[styles.emptyBtn, { backgroundColor: theme.primary }]} onPress={() => onAddReview(selectedLandlord.id)}>
                         <Text style={styles.emptyBtnText}>Write the First Review</Text>
                       </TouchableOpacity>
                     </View>
@@ -260,9 +301,9 @@ export default function ReviewsScreen({ initialLandlordId, onAddReview }: { init
                           <Text style={styles.reviewDate}>{dateStr}</Text>
                         </View>
 
-                        <View style={styles.landlordTag}>
-                          <Icon name="user" size={11} color={colors.primary} />
-                          <Text style={styles.landlordTagText}>{landlordName}</Text>
+                        <View style={[styles.landlordTag, { backgroundColor: theme.primaryLight }]}>
+                          <Icon name="user" size={11} color={theme.primary} />
+                          <Text style={[styles.landlordTagText, { color: theme.primary }]}>{landlordName}</Text>
                         </View>
 
                         <View style={styles.metricsGrid}>
@@ -275,7 +316,7 @@ export default function ReviewsScreen({ initialLandlordId, onAddReview }: { init
                             <View key={metric.label} style={styles.metric}>
                               <Text style={styles.metricLabel}>{metric.label}</Text>
                               <View style={styles.metricBar}>
-                                <View style={[styles.metricBarFill, { width: `${(metric.score / 5) * 100}%` as any }]} />
+                                <View style={[styles.metricBarFill, { width: `${(metric.score / 5) * 100}%` as any, backgroundColor: theme.primary }]} />
                               </View>
                               <Text style={styles.metricScore}>{metric.score}/5</Text>
                             </View>
@@ -327,7 +368,7 @@ const styles = StyleSheet.create({
     paddingTop: 40,
     gap: 4
   },
-  headerEyebrow: { ...typography.label, color: colors.primary, marginBottom: 2 },
+  headerEyebrow: { ...typography.label, marginBottom: 2 },
   pageTitle: { fontFamily, fontSize: 24, fontWeight: '800' as any, color: colors.textPrimary, letterSpacing: -0.4 },
   pageDesc: { fontFamily, fontSize: 13, color: colors.textMuted },
 
@@ -359,12 +400,11 @@ const styles = StyleSheet.create({
   },
   panelHeaderText: { fontFamily, fontSize: 11, fontWeight: '700' as any, color: colors.textMuted, letterSpacing: 0.8 },
   panelCount: {
-    backgroundColor: colors.surfaceSubtle,
     borderRadius: radii.full,
     paddingHorizontal: 8,
     paddingVertical: 2,
   },
-  panelCountText: { fontFamily, fontSize: 11, fontWeight: '700' as any, color: colors.textSecondary },
+  panelCountText: { fontFamily, fontSize: 11, fontWeight: '700' as any },
   desktopList: { paddingVertical: spacing.sm },
   mobileList: { 
     paddingHorizontal: 16, 
@@ -384,25 +424,14 @@ const styles = StyleSheet.create({
     marginRight: 10,
     ...shadows.soft,
   },
-  landlordItemActive: { 
-    backgroundColor: colors.primary, 
-    borderColor: colors.primary,
-  },
-  landlordItemMobile: {
-    alignSelf: 'center',
-    marginHorizontal: 0,
-  },
   landlordAvatar: {
     width: 32, height: 32, borderRadius: 16,
-    backgroundColor: colors.primaryLight,
     alignItems: 'center', justifyContent: 'center',
   },
-  landlordAvatarActive: { backgroundColor: 'rgba(255,255,255,0.2)' },
-  landlordAvatarText: { fontFamily, fontSize: 12, fontWeight: '700' as any, color: colors.primary },
-  landlordMeta: { flex: 1 },
+  landlordAvatarText: { fontFamily, fontSize: 12, fontWeight: '700' as any },
+  landlordMeta: { flex: 1, marginLeft: 12 },
   landlordName: { fontFamily, fontSize: 14, fontWeight: '600' as any, color: colors.textPrimary },
-  landlordNameActive: { color: colors.white, fontWeight: '700' as any },
-  landlordType: { fontFamily, fontSize: 11, color: colors.textMuted, marginTop: 1 },
+  landlordType: { fontFamily, fontSize: 11, marginTop: 1 },
 
   reviewsPanel: { flex: 1, backgroundColor: colors.background },
   reviewsHero: {
@@ -418,18 +447,16 @@ const styles = StyleSheet.create({
   reviewsHeroLeft: { flexDirection: 'row', alignItems: 'center', gap: 14, flex: 1 },
   heroAvatar: {
     width: 48, height: 48, borderRadius: 24,
-    backgroundColor: colors.primaryLight,
     alignItems: 'center', justifyContent: 'center',
-    borderWidth: 2, borderColor: colors.primaryMedium,
+    borderWidth: 2,
   },
-  heroAvatarText: { fontFamily, fontSize: 16, fontWeight: '800' as any, color: colors.primary },
+  heroAvatarText: { fontFamily, fontSize: 16, fontWeight: '800' as any },
   heroName: { fontFamily, fontSize: 22, fontWeight: '800' as any, color: colors.textPrimary, letterSpacing: -0.3 },
   heroType: { fontFamily, fontSize: 13, color: colors.textMuted, marginTop: 2 },
   writeReviewBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 7,
-    backgroundColor: colors.primary,
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: radii.md,
@@ -461,19 +488,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: colors.primaryLight,
     alignSelf: 'flex-start',
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: radii.sm,
     marginBottom: spacing.md,
   },
-  landlordTagText: { fontFamily, fontSize: 12, fontWeight: '700' as any, color: colors.primary },
+  landlordTagText: { fontFamily, fontSize: 12, fontWeight: '700' as any },
   metricsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: spacing.md },
   metric: { width: '47%', gap: 4 },
   metricLabel: { fontFamily, fontSize: 11, color: colors.textMuted, fontWeight: '600' as any },
   metricBar: { height: 4, backgroundColor: colors.border, borderRadius: 2, overflow: 'hidden' },
-  metricBarFill: { height: '100%', backgroundColor: colors.primary, borderRadius: 2 },
+  metricBarFill: { height: '100%', borderRadius: 2 },
   metricScore: { fontFamily, fontSize: 11, fontWeight: '700' as any, color: colors.textSecondary },
   reviewText: { fontFamily, fontSize: 14, color: colors.textSecondary, lineHeight: 22 },
 
@@ -486,7 +512,6 @@ const styles = StyleSheet.create({
   emptyTitle: { fontFamily, fontSize: 17, fontWeight: '700' as any, color: colors.textPrimary },
   emptyDesc: { fontFamily, fontSize: 13, color: colors.textMuted, textAlign: 'center', maxWidth: 280, lineHeight: 20 },
   emptyBtn: {
-    backgroundColor: colors.primary,
     paddingVertical: 11, paddingHorizontal: 20,
     borderRadius: radii.md, marginTop: 4,
   },

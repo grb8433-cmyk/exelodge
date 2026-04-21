@@ -30,4 +30,8 @@ jobs:
         if [ -f scraper/requirements.txt ]; then pip install -r scraper/requirements.txt; else pip install requests beautifulsoup4 supabase; fi
 
     - name: Run Availability Check
-      run: python scraper/check_availability.py
+      run: |
+        for uni in $(jq -r '.[].id' config/universities.json); do
+          echo "Checking availability for $uni..."
+          python scraper/check_availability.py --university $uni
+        done

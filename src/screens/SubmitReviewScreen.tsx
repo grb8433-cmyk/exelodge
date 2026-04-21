@@ -1,16 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Platform } from 'react-native';
 import { supabase } from '../lib/supabase';
-import { colors, spacing, radii, typography, shadows, fontFamily } from '../utils/theme';
+import { colors, spacing, radii, typography, shadows, fontFamily, getUniversityColors } from '../utils/theme';
 import Icon from '../components/Icon';
+import UNIVERSITIES from '../../config/universities.json';
 
 interface SubmitReviewScreenProps {
   landlordId: string;
+  universityId: string;
   onCancel: () => void;
   onSuccess: () => void;
 }
 
-export default function SubmitReviewScreen({ landlordId, onCancel, onSuccess }: SubmitReviewScreenProps) {
+export default function SubmitReviewScreen({ landlordId, universityId, onCancel, onSuccess }: SubmitReviewScreenProps) {
   const scrollRef = useRef<ScrollView>(null);
   const [landlord, setLandlord] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -25,9 +27,13 @@ export default function SubmitReviewScreen({ landlordId, onCancel, onSuccess }: 
   
   const [reviewText, setReviewText] = useState('');
   const [landlordName, setLandlordName] = useState('');
+  const [honeypot, setHoneypot] = useState(''); 
   
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submissionError, setSubmissionError] = useState<string | null>(null);
+
+  const currentUni = UNIVERSITIES.find(u => u.id === universityId) || UNIVERSITIES[0];
+  const theme = getUniversityColors(universityId);
 
   useEffect(() => {
     if (landlordId !== 'other') {
@@ -39,96 +45,76 @@ export default function SubmitReviewScreen({ landlordId, onCancel, onSuccess }: 
   }, [landlordId]);
 
   const fetchLandlord = async () => {
+    const timeout = setTimeout(() => {
+      if (loading) {
+        setLoading(false);
+        setSubmissionError("Connection is slow, but you can still write your review.");
+      }
+    }, 5000);
+
     try {
       const { data, error } = await supabase.from('landlords').select('*').eq('id', landlordId).single();
-      if (error) throw error;
-      setLandlord(data);
+      if (error) {
+        setLandlord({ name: landlordId.replace(/([A-Z])/g, ' $1').trim() });
+      } else {
+        setLandlord(data);
+      }
     } catch (err) {
       console.error(err);
     } finally {
+      clearTimeout(timeout);
       setLoading(false);
     }
   };
 
-  const resetForm = () => {
-    setMaintenance(0);
-    setCommunication(0);
-    setValue(0);
-    setDeposit(0);
-    setReviewText('');
-    setLandlordName('');
-    setErrors({});
-    setSubmissionError(null);
-  };
-
   const validate = () => {
     const newErrors: Record<string, string> = {};
-    
     if (landlordId === 'other') {
-      if (!landlordName.trim()) {
-        newErrors.landlordName = "Please enter a landlord name";
-      } else if (landlordName.trim().length < 2) {
-        newErrors.landlordName = "Landlord name must be at least 2 characters";
-      } else if (landlordName.trim().length > 100) {
-        newErrors.landlordName = "Landlord name is too long (max 100)";
-      }
+      if (!landlordName.trim()) newErrors.landlordName = "Please enter a landlord name";
     }
-    
-    if (maintenance === 0) newErrors.maintenance = "Please select a rating for Maintenance & Repairs";
-    if (communication === 0) newErrors.communication = "Please select a rating for Communication & Respect";
-    if (value === 0) newErrors.value = "Please select a rating for Value for Money";
-    if (deposit === 0) newErrors.deposit = "Please select a rating for Deposit Handling & Fairness";
-    
-    if (!reviewText.trim()) {
-      newErrors.reviewText = "Please write about your experience";
-    } else if (reviewText.trim().length < 20) {
-      newErrors.reviewText = "Please write at least 20 characters about your experience";
-    } else if (reviewText.trim().length > 1000) {
-      newErrors.reviewText = "Review text is too long (max 1000 characters)";
-    }
-    
+    if (maintenance === 0) newErrors.maintenance = "Select a rating";
+    if (communication === 0) newErrors.communication = "Select a rating";
+    if (value === 0) newErrors.value = "Select a rating";
+    if (deposit === 0) newErrors.deposit = "Select a rating";
+    if (!reviewText.trim()) newErrors.reviewText = "Please write about your experience";
+    else if (reviewText.trim().length < 20) newErrors.reviewText = "Please write at least 20 characters";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async () => {
-    if (!validate()) {
-      scrollRef.current?.scrollTo({ y: 0, animated: true });
-      return;
-    }
-
-    setSubmitting(true);
-    setSubmissionError(null);
-
-    const overallRating = Math.round((maintenance + communication + value + deposit) / 4);
-    const targetId = landlordId === 'other' ? 'general' : landlordId;
-
     try {
+      if (honeypot.length > 0) {
+        setShowSuccess(true);
+        return;
+      }
+      if (!validate()) {
+        scrollRef.current?.scrollTo({ y: 0, animated: true });
+        return;
+      }
+      setSubmitting(true);
+      const overallRating = Math.round((maintenance + communication + value + deposit) / 4);
+      const targetId = landlordId === 'other' ? 'general' : landlordId;
+      const finalName = landlordId === 'other' ? landlordName.trim() : (landlord?.name || landlordId);
+
       const { error } = await supabase.from('reviews').insert([{
         landlord_id: targetId,
-        landlord_name: landlordId === 'other' ? landlordName.trim() : landlord.name,
+        landlord_name: finalName,
         maintenance_rating: maintenance,
         communication_rating: communication,
         value_rating: value,
         deposit_rating: deposit,
         review_text: reviewText.trim(),
         overall_rating: overallRating,
+        approved: false,
+        university: universityId,
       }]);
 
       if (error) throw error;
-      
       setShowSuccess(true);
-      resetForm();
       scrollRef.current?.scrollTo({ y: 0, animated: true });
-      
-      setTimeout(() => {
-        setShowSuccess(false);
-        // We don't call onSuccess() here because the requirement says "show the blank form again ready for another review"
-      }, 4000);
-
     } catch (err: any) {
-      setSubmissionError('Something went wrong submitting your review. Please try again.');
-      console.error('Supabase submission error:', err);
+      setSubmissionError(`Submission failed. Please try again.`);
     } finally {
       setSubmitting(false);
     }
@@ -174,17 +160,30 @@ export default function SubmitReviewScreen({ landlordId, onCancel, onSuccess }: 
           <TouchableOpacity onPress={onCancel} style={styles.backBtn}>
             <Text style={{ fontSize: 24, color: "#374151" }}>←</Text>
           </TouchableOpacity>
-          <Text style={styles.title}>Review: {landlord?.name}</Text>
+          <View>
+            <Text style={styles.title}>Review: {landlord?.name}</Text>
+          </View>
         </View>
 
         {showSuccess ? (
-          <View style={styles.successBox}>
-            <Icon name="check-circle" size={24} color={colors.success} />
-            <Text style={styles.successText}>Thank you! Your review has been submitted and will help other Exeter students.</Text>
+          <View style={styles.successContainer}>
+            <View style={styles.successBox}>
+              <Icon name="check-circle" size={28} color={colors.success} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.successTitle}>Review Submitted!</Text>
+                <Text style={styles.successText}>Thank you! Your review is being reviewed and will be live once approved.</Text>
+              </View>
+            </View>
+            <TouchableOpacity 
+              style={styles.backHomeBtn}
+              onPress={onCancel}
+            >
+              <Text style={styles.backHomeBtnText}>Back to Home</Text>
+            </TouchableOpacity>
           </View>
         ) : (
           <>
-            <Text style={styles.instruction}>Your feedback is anonymous and helps other Exeter students make informed decisions.</Text>
+            <Text style={styles.instruction}>Your feedback is anonymous and helps other {currentUni.city} students make informed decisions.</Text>
 
             {submissionError && (
               <View style={styles.errorBox}>
@@ -205,37 +204,25 @@ export default function SubmitReviewScreen({ landlordId, onCancel, onSuccess }: 
               </View>
             )}
 
+            <TextInput
+              style={styles.honeypot}
+              value={honeypot}
+              onChangeText={setHoneypot}
+              tabIndex={-1}
+              autoComplete="off"
+            />
+
             <View style={styles.ratingsSection}>
-              <RatingInput 
-                label="Maintenance & Repairs" 
-                value={maintenance} 
-                onChange={setMaintenance} 
-                error={errors.maintenance}
-              />
-              <RatingInput 
-                label="Communication & Respect" 
-                value={communication} 
-                onChange={setCommunication} 
-                error={errors.communication}
-              />
-              <RatingInput 
-                label="Value for Money" 
-                value={value} 
-                onChange={setValue} 
-                error={errors.value}
-              />
-              <RatingInput 
-                label="Deposit Handling & Fairness" 
-                value={deposit} 
-                onChange={setDeposit} 
-                error={errors.deposit}
-              />
+              <RatingInput label="Maintenance & Repairs" value={maintenance} onChange={setMaintenance} error={errors.maintenance} />
+              <RatingInput label="Communication & Respect" value={communication} onChange={setCommunication} error={errors.communication} />
+              <RatingInput label="Value for Money" value={value} onChange={setValue} error={errors.value} />
+              <RatingInput label="Deposit Handling & Fairness" value={deposit} onChange={setDeposit} error={errors.deposit} />
             </View>
 
             <View style={styles.commentSection}>
               <Text style={styles.ratingLabel}>Your Experience</Text>
               <TextInput 
-                style={[styles.textArea, errors.reviewText && styles.errorInput]}
+                style={[styles.textArea, errors.reviewText && { borderColor: colors.error, borderWidth: 1 }]}
                 placeholder="Tell us about your time with this landlord. What went well? What could be improved?"
                 multiline
                 numberOfLines={6}
@@ -247,7 +234,7 @@ export default function SubmitReviewScreen({ landlordId, onCancel, onSuccess }: 
             </View>
 
             <TouchableOpacity 
-              style={[styles.submitBtn, submitting && styles.disabledBtn]} 
+              style={[styles.submitBtn, { backgroundColor: theme.primary }, submitting && styles.disabledBtn]} 
               onPress={handleSubmit}
               disabled={submitting}
             >
@@ -266,25 +253,25 @@ export default function SubmitReviewScreen({ landlordId, onCancel, onSuccess }: 
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  content: { padding: 40, alignItems: 'center' },
+  content: { padding: 20, alignItems: 'center', paddingTop: 40, paddingBottom: 60 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   formCard: { 
     width: '100%', 
     maxWidth: 600, 
     backgroundColor: '#fff', 
     borderRadius: 24, 
-    padding: 40,
+    padding: 24,
     ...shadows.medium,
   },
-  formHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-  backBtn: { marginRight: 16 },
-  title: { fontSize: 24, fontWeight: '700', color: '#111827', fontFamily },
+  formHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 24 },
+  backBtn: { marginRight: 16, minHeight: 44, minWidth: 44, justifyContent: 'center' },
+  title: { fontSize: 22, fontWeight: '700', color: '#111827', fontFamily, flex: 1 },
   instruction: { fontSize: 15, color: '#6b7280', marginBottom: 32, lineHeight: 22, fontFamily },
   ratingsSection: { marginBottom: 32 },
   ratingInputGroup: { marginBottom: 24 },
   ratingLabel: { fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 12, fontFamily },
   starsRow: { flexDirection: 'row' },
-  starTouch: { paddingVertical: 4, paddingRight: 8 },
+  starTouch: { paddingVertical: 8, paddingRight: 12, minWidth: 44, minHeight: 44 },
   starIcon: { fontSize: 32 },
   commentSection: { marginBottom: 40 },
   textArea: { 
@@ -295,27 +282,35 @@ const styles = StyleSheet.create({
     color: '#111827', 
     minHeight: 150,
     fontFamily,
-    ...Platform.select({
-      web: { outlineStyle: 'none' } as any
-    })
   },
-  errorInput: { borderWidth: 1, borderColor: colors.error },
-  submitBtn: { backgroundColor: colors.primary, paddingVertical: 16, borderRadius: 12, alignItems: 'center' },
+  honeypot: { position: 'absolute', width: 0, height: 0, opacity: 0, left: -9999 },
+  submitBtn: { paddingVertical: 16, borderRadius: 12, alignItems: 'center', minHeight: 56, justifyContent: 'center' },
   disabledBtn: { opacity: 0.7 },
   submitBtnText: { color: '#fff', fontSize: 16, fontWeight: '700', fontFamily },
   errorBox: { backgroundColor: '#fef2f2', padding: 16, borderRadius: 12, marginBottom: 24 },
   errorText: { color: colors.error, fontSize: 14, fontWeight: '500', fontFamily },
   inlineError: { color: colors.error, fontSize: 12, marginTop: 4, fontFamily },
+  successContainer: { alignItems: 'center', width: '100%', gap: 32, paddingVertical: 20 },
   successBox: { 
     backgroundColor: '#f0fdf4', 
     padding: 24, 
     borderRadius: 16, 
     flexDirection: 'row', 
     alignItems: 'center', 
-    gap: 12,
+    gap: 16,
     borderWidth: 1,
-    borderColor: '#bcf0da'
+    borderColor: '#bcf0da',
+    width: '100%',
   },
-  successText: { color: colors.success, fontSize: 16, fontWeight: '600', flex: 1, lineHeight: 24, fontFamily }
+  successTitle: { fontSize: 18, fontWeight: '700', color: '#166534', marginBottom: 4, fontFamily },
+  successText: { color: '#166534', fontSize: 15, lineHeight: 22, flex: 1, fontFamily },
+  backHomeBtn: {
+    paddingVertical: 14,
+    paddingHorizontal: 32,
+    borderRadius: 12,
+    ...shadows.soft,
+    minHeight: 48,
+    justifyContent: 'center',
+  },
+  backHomeBtnText: { color: '#fff', fontSize: 16, fontWeight: '700', fontFamily },
 });
-

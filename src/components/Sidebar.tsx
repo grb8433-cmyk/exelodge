@@ -1,11 +1,15 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import Icon from './Icon';
-import { colors, spacing, radii, typography, shadows, fontFamily } from '../utils/theme';
+import { colors, spacing, radii, typography, shadows, fontFamily, getUniversityColors } from '../utils/theme';
+
+import UNIVERSITIES from '../../config/universities.json';
 
 interface SidebarProps {
   activeTab: string;
   onTabPress: (tab: string) => void;
+  universityId: string;
+  onSwitchCity: () => void;
 }
 
 const navItems = [
@@ -15,19 +19,27 @@ const navItems = [
   { id: 'Rights',  label: 'Your Rights',  icon: 'shield'  },
 ];
 
-export default function Sidebar({ activeTab, onTabPress }: SidebarProps) {
+export default function Sidebar({ activeTab, onTabPress, universityId, onSwitchCity }: SidebarProps) {
+  const currentUni = UNIVERSITIES.find(u => u.id === universityId) || UNIVERSITIES[0];
+  const theme = getUniversityColors(universityId);
+
   return (
     <View style={styles.sidebar}>
       {/* Brand */}
       <View style={styles.brand}>
-        <View style={styles.logoMark}>
+        <View style={[styles.logoMark, { backgroundColor: theme.primary }]}>
           <Icon name="home" size={14} color={colors.white} />
         </View>
-        <View>
+        <View style={{ flex: 1 }}>
           <Text style={styles.logoText}>ExeLodge</Text>
-          <Text style={styles.logoSub}>Exeter Student Housing</Text>
+          <Text style={styles.logoSub}>{currentUni.city} Student Housing</Text>
         </View>
       </View>
+
+      <TouchableOpacity onPress={onSwitchCity} style={styles.switchCityBtn}>
+        <Icon name="refresh-cw" size={12} color={theme.primary} />
+        <Text style={[styles.switchCityText, { color: theme.primary }]}>Switch City</Text>
+      </TouchableOpacity>
 
       <View style={styles.divider} />
 
@@ -39,19 +51,19 @@ export default function Sidebar({ activeTab, onTabPress }: SidebarProps) {
           return (
             <TouchableOpacity
               key={item.id}
-              style={[styles.navItem, isActive && styles.navItemActive]}
+              style={[styles.navItem, isActive && { backgroundColor: theme.primaryLight }]}
               onPress={() => onTabPress(item.id)}
               activeOpacity={0.7}
             >
-              <View style={[styles.accentBar, isActive && styles.accentBarActive]} />
-              <View style={[styles.iconWrap, isActive && styles.iconWrapActive]}>
+              <View style={[styles.accentBar, isActive && { backgroundColor: theme.primary }]} />
+              <View style={[styles.iconWrap, isActive && { backgroundColor: 'rgba(255,255,255,0.5)' }]}>
                 <Icon
                   name={item.icon}
                   size={16}
-                  color={isActive ? colors.primary : colors.textMuted}
+                  color={isActive ? theme.primary : colors.textMuted}
                 />
               </View>
-              <Text style={[styles.navLabel, isActive && styles.navLabelActive]}>
+              <Text style={[styles.navLabel, isActive && { color: theme.primary, fontWeight: '700' as any }]}>
                 {item.label}
               </Text>
             </TouchableOpacity>
@@ -111,6 +123,21 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     letterSpacing: 0.3,
     marginTop: 1,
+  },
+  switchCityBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: spacing.sm,
+    marginBottom: spacing.md,
+    opacity: 0.8,
+  },
+  switchCityText: {
+    fontFamily,
+    fontSize: 12,
+    fontWeight: '700' as any,
+    textTransform: 'uppercase' as any,
+    letterSpacing: 0.5,
   },
   divider: {
     height: 1,

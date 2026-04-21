@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import UNIVERSITIES from '../../config/universities.json';
 
 // Inject Inter font on web at module load time
 if (Platform.OS === 'web' && typeof document !== 'undefined') {
@@ -17,13 +18,7 @@ export const fontFamily =
     ? "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
     : undefined;
 
-export const colors = {
-  // Deep Emerald — premium, not "startup green"
-  primary: '#0B6E4F',
-  primaryDark: '#085240',
-  primaryLight: '#EFF7F3',
-  primaryMedium: '#C8E6DA',
-
+export const baseColors = {
   // Warm Off-White — feels expensive
   white: '#FFFFFF',
   background: '#FAFAF8',
@@ -53,9 +48,50 @@ export const colors = {
   surfaceHover: '#EDF3EF',
 };
 
+/**
+ * Utility to darken or lighten a hex color
+ */
+function adjustColor(color: string, amount: number) {
+  return '#' + color.replace(/^#/, '').replace(/../g, color => ('0' + Math.min(255, Math.max(0, parseInt(color, 16) + amount)).toString(16)).slice(-2));
+}
+
+export const getUniversityColors = (universityId: string) => {
+  const uni = UNIVERSITIES.find(u => u.id === universityId) || UNIVERSITIES[0];
+  const primary = uni.primaryColor || '#0B6E4F';
+  
+  // Bristol Red specifically needs to be vibrant
+  if (universityId === 'bristol') {
+    return {
+      ...baseColors,
+      primary: '#BE0F34',
+      primaryDark: '#9A0C2A',
+      primaryMedium: '#E0CCD2',
+      primaryLight: '#FDF2F3',
+    };
+  }
+
+  // Exeter Green
+  return {
+    ...baseColors,
+    primary: '#0B6E4F',
+    primaryDark: '#085240',
+    primaryMedium: '#C8E6DA',
+    primaryLight: '#EFF7F3',
+  };
+};
+
+// Legacy Export for safety (default to Exeter)
+export const colors = {
+  ...baseColors,
+  primary: '#0B6E4F',
+  primaryDark: '#085240',
+  primaryLight: '#EFF7F3',
+  primaryMedium: '#C8E6DA',
+};
+
 export const shadows = {
   soft: {
-    shadowColor: '#0B6E4F',
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 8,
@@ -77,15 +113,6 @@ export const shadows = {
   },
 };
 
-export const radii = {
-  xs: 6,
-  sm: 10,
-  md: 14,
-  lg: 20,
-  xl: 28,
-  full: 9999,
-};
-
 export const spacing = {
   xs: 4,
   sm: 8,
@@ -95,37 +122,24 @@ export const spacing = {
   xxl: 48,
 };
 
-const baseFont: any = { fontFamily };
+export const radii = {
+  xs: 4,
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 24,
+  full: 9999,
+};
 
 export const typography = {
-  logo: {
-    ...baseFont,
-    fontSize: 24,
-    fontWeight: '800' as any,
-    letterSpacing: -0.5,
-    color: colors.primary,
-  },
-  h1: { ...baseFont, fontSize: 36, fontWeight: '800' as any, color: colors.textPrimary, letterSpacing: -0.5 },
-  h2: { ...baseFont, fontSize: 26, fontWeight: '700' as any, color: colors.textPrimary, letterSpacing: -0.3 },
-  h3: { ...baseFont, fontSize: 20, fontWeight: '700' as any, color: colors.textPrimary },
-  h4: { ...baseFont, fontSize: 16, fontWeight: '700' as any, color: colors.textPrimary },
-  body: { ...baseFont, fontSize: 15, fontWeight: '400' as any, color: colors.textSecondary, lineHeight: 24 },
-  bodySmall: { ...baseFont, fontSize: 13, fontWeight: '400' as any, color: colors.textSecondary, lineHeight: 20 },
-  label: {
-    ...baseFont,
-    fontSize: 11,
-    fontWeight: '700' as any,
-    color: colors.textMuted,
-    textTransform: 'uppercase' as any,
-    letterSpacing: 0.8,
-  },
-  caption: {
-    ...baseFont,
-    fontSize: 11,
-    fontWeight: '600' as any,
-    color: colors.textMuted,
-    letterSpacing: 0.5,
-  },
+  h1: { fontFamily, fontSize: 32, fontWeight: '800' as any, letterSpacing: -0.5 },
+  h2: { fontFamily, fontSize: 24, fontWeight: '700' as any, letterSpacing: -0.3 },
+  h3: { fontFamily, fontSize: 20, fontWeight: '700' as any },
+  h4: { fontFamily, fontSize: 17, fontWeight: '600' as any },
+  body: { fontFamily, fontSize: 15, fontWeight: '400' as any, lineHeight: 22 },
+  bodySmall: { fontFamily, fontSize: 13, fontWeight: '400' as any },
+  label: { fontFamily, fontSize: 12, fontWeight: '700' as any, letterSpacing: 0.5, textTransform: 'uppercase' as any },
+  caption: { fontFamily, fontSize: 11, fontWeight: '500' as any },
 };
 
 export const BREAKPOINTS = {

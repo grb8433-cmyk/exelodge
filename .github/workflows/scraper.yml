@@ -29,5 +29,9 @@ jobs:
         python -m pip install --upgrade pip
         if [ -f scraper/requirements.txt ]; then pip install -r scraper/requirements.txt; else pip install requests beautifulsoup4 supabase; fi
 
-    - name: Run scraper
-      run: python scraper/watcher.py
+    - name: Run scrapers
+      run: |
+        for uni in $(jq -r '.[].id' config/universities.json); do
+          echo "Running scraper for $uni..."
+          python scraper/watcher.py --university $uni
+        done

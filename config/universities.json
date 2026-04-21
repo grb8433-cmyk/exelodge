@@ -1,0 +1,16 @@
+[
+  {
+    "id": "exeter",
+    "name": "University of Exeter",
+    "city": "Exeter",
+    "primaryColor": "#0B6E4F",
+    "primaryLight": "#E8F5F1"
+  },
+  {
+    "id": "bristol",
+    "name": "University of Bristol",
+    "city": "Bristol",
+    "primaryColor": "#BE0F34",
+    "primaryLight": "#FDF2F3"
+  }
+]

@@ -2,7 +2,7 @@
  * Lightweight custom SVG icon system — replaces @expo/vector-icons
  * Feather-style line icons, 24×24 viewBox, stroke-rendered.
  * Works in Expo web export (React Native Web → DOM).
- * Native fallback: transparent placeholder View.
+ * Native fallback: Feather from @expo/vector-icons.
  */
 
 import React from 'react';
@@ -71,6 +71,12 @@ const ICONS: Record<string, El[]> = {
   'chevron-down': [pl('6 9 12 15 18 9')],
   'chevron-up':   [pl('18 15 12 9 6 15')],
   'chevron-right':[pl('9 18 15 12 9 6')],
+  'refresh-cw': [
+    p('M23 4v6h-6'),
+    p('M1 20v-6h6'),
+    p('M3.51 9a9 9 0 0 1 14.85-3.36L23 10'),
+    p('M20.49 15a9 9 0 0 1-14.85 3.36L1 14'),
+  ],
   'arrow-right': [
     l(5, 12, 19, 12),
     pl('12 5 19 12 12 19'),
@@ -79,10 +85,18 @@ const ICONS: Record<string, El[]> = {
     p('M7 17L17 7'),
     p('M7 7h10v10'),
   ],
+  'arrow-left': [
+    l(19, 12, 5, 12),
+    pl('12 19 5 12 12 5'),
+  ],
 
   // Actions
   'edit-2': [
     p('M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z'),
+  ],
+  'plus': [
+    l(12, 5, 12, 19),
+    l(5, 12, 19, 12),
   ],
   'external-link': [
     p('M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6'),
@@ -126,6 +140,9 @@ const ICONS: Record<string, El[]> = {
   'check-circle': [
     p('M22 11.08V12a10 10 0 1 1-5.93-9.14'),
     pl('22 4 12 14.01 9 11.01'),
+  ],
+  'check': [
+    pl('20 6 9 17 4 12'),
   ],
 
   // Communication
@@ -185,9 +202,6 @@ const ICONS: Record<string, El[]> = {
     l(9, 22, 9, 12),
     l(15, 12, 15, 22),
   ],
-  'check': [
-    pl('20 6 9 17 4 12'),
-  ],
   'clock': [
     c(12, 12, 10),
     pl('12 6 12 12 16 14'),
@@ -200,7 +214,7 @@ function toSVGEl(el: El, i: number, color: string): React.ReactElement {
   const sharedStroke = {
     fill: 'none',
     stroke: color,
-    strokeWidth: '2',
+    strokeWidth: 2,
     strokeLinecap: 'round' as any,
     strokeLinejoin: 'round' as any,
     key: i,
@@ -250,12 +264,13 @@ export default function Icon({ name, size = 24, color = '#000', style }: IconPro
   const svgEl = React.createElement(
     'svg' as any,
     {
+      xmlns: 'http://www.w3.org/2000/svg',
       width: size,
       height: size,
       viewBox: '0 0 24 24',
       fill: 'none',
       stroke: color,
-      strokeWidth: '2',
+      strokeWidth: 2,
       strokeLinecap: 'round',
       strokeLinejoin: 'round',
       style: { display: 'block', flexShrink: 0, ...(style || {}) },

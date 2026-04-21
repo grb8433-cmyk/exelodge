@@ -5,18 +5,30 @@ import {
 } from 'react-native';
 import Icon from '../components/Icon';
 import { supabase } from '../lib/supabase';
-import { colors, spacing, radii, typography, shadows, fontFamily, isDesktop } from '../utils/theme';
+import { colors, spacing, radii, typography, shadows, fontFamily, isDesktop, getUniversityColors } from '../utils/theme';
+import UNIVERSITIES from '../../config/universities.json';
 
-export default function OverviewScreen({ onNavigateToHouses }: { onNavigateToHouses: () => void }) {
+export default function OverviewScreen({ universityId, onSelectUniversity, onNavigateToHouses }: { 
+  universityId: string, 
+  onSelectUniversity: (id: string) => void,
+  onNavigateToHouses: () => void 
+}) {
   const [properties, setProperties] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const { width } = useWindowDimensions();
   const desktop = isDesktop(width);
+  
+  const currentUni = UNIVERSITIES.find(u => u.id === universityId) || UNIVERSITIES[0];
+  const theme = getUniversityColors(universityId);
 
   useEffect(() => {
     const load = async () => {
+      setLoading(true);
       try {
-        const { data } = await supabase.from('properties').select('price_pppw, external_url').limit(500);
+        const { data } = await supabase.from('properties')
+          .select('price_pppw, external_url')
+          .eq('university', universityId)
+          .limit(500);
         if (data) setProperties(data);
       } catch (err) {
         console.error(err);
@@ -25,33 +37,29 @@ export default function OverviewScreen({ onNavigateToHouses }: { onNavigateToHou
       }
     };
     load();
-  }, []);
+  }, [universityId]);
 
   const stats = useMemo(() => {
-    if (!properties || !properties.length) return { count: 0, avg: 0, min: 0, max: 0, sources: 0 };
-    const prices = properties.map(p => parseFloat(p.price_pppw)).filter(p => !isNaN(p) && p > 0);
-    const avg = prices.length ? prices.reduce((a, b) => a + b, 0) / prices.length : 0;
-    const sources = new Set(properties.map(p => {
-      if (!p.external_url) return 'Direct';
-      try { 
-        const url = p.external_url;
-        if (typeof url !== 'string') return 'Other';
-        return url.split('/')[2]?.replace('www.', '') || 'Other'; 
-      }
-      catch { return 'Other'; }
-    })).size;
-    return { count: properties.length, avg: Math.round(avg), sources: Math.max(sources, 4) };
+    if (!properties.length) return { avg: 0, count: 0, sources: 0 };
+    const valid = properties.map(p => parseFloat(p.price_pppw)).filter(p => !isNaN(p) && p > 0);
+    const avg = valid.length ? Math.round(valid.reduce((a, b) => a + b, 0) / valid.length) : 0;
+    
+    const hosts = new Set(properties.map(p => {
+        try { return new URL(p.external_url).hostname; } catch { return 'Other'; }
+    }));
+
+    return { avg, count: properties.length, sources: hosts.size };
   }, [properties]);
 
   const getGreeting = () => {
-    const h = new Date().getHours();
-    if (h < 12) return 'Good morning';
-    if (h < 17) return 'Good afternoon';
-    return 'Good evening';
+    const hr = new Date().getHours();
+    if (hr < 12) return 'Good Morning';
+    if (hr < 17) return 'Good Afternoon';
+    return 'Good Evening';
   };
 
   const openGuild = () => {
-    const url = 'https://www.exeterguild.com/advice';
+    const url = universityId === 'exeter' ? 'https://www.exeterguild.com/advice' : 'https://www.bristolsu.org.uk/advice-support';
     if (Platform.OS === 'web') window.open(url, '_blank');
     else Linking.openURL(url);
   };
@@ -59,8 +67,8 @@ export default function OverviewScreen({ onNavigateToHouses }: { onNavigateToHou
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={styles.loadingText}>Loading market data…</Text>
+        <ActivityIndicator size="large" color={theme.primary} />
+        <Text style={[styles.loadingText, { color: theme.primary }]}>Loading market data…</Text>
       </View>
     );
   }
@@ -78,74 +86,84 @@ export default function OverviewScreen({ onNavigateToHouses }: { onNavigateToHou
       {/* ── HERO ── */}
       <View style={[styles.hero, !desktop && styles.heroMobile]}>
         <Image
-          source={{ uri: 'https://images.unsplash.com/photo-1569329007721-f00490129200?q=80&w=2070&auto=format&fit=crop' }}
+          source={{ uri: universityId === 'exeter' 
+            ? 'https://images.unsplash.com/photo-1569329007721-f00490129200?q=80&w=2070&auto=format&fit=crop'
+            : 'https://images.unsplash.com/photo-1541410945376-a7872656acec?q=80&w=2070&auto=format&fit=crop' }}
           style={styles.heroImage}
           resizeMode="cover"
         />
-        <View style={styles.heroOverlayDark} />
-        <View style={styles.heroOverlayGreen} />
+        
+        {/* FULL COLOR OVERLAY REVERTED */}
+        <View style={[styles.heroOverlayVibrant, { backgroundColor: theme.primary }]} />
 
         <View style={[styles.heroContent, !desktop && styles.heroContentMobile]}>
-          <View style={styles.heroPill}>
+          <View style={[styles.heroPill, { backgroundColor: 'rgba(255,255,255,0.15)', borderColor: 'rgba(255,255,255,0.3)' }]}>
             <View style={styles.heroPillDot} />
             <Text style={styles.heroPillText}>{getGreeting()} — {stats.count} homes listed live</Text>
           </View>
 
           <Text style={[styles.heroTitle, !desktop && styles.heroTitleMobile]}>
-            Find Your Perfect{'\n'}Student Home in Exeter
+            Find Your Perfect{'\n'}Student Home in {currentUni.city}
           </Text>
           <Text style={[styles.heroSub, !desktop && styles.heroSubMobile]}>
             Verified listings, real landlord reviews, and your legal rights — all in one place.
           </Text>
 
-          <TouchableOpacity style={[styles.heroCTA, !desktop && styles.heroCTAMobile]} onPress={onNavigateToHouses} activeOpacity={0.88}>
-            <Text style={styles.heroCTAText}>Search Verified Listings</Text>
-            <Icon name="arrow-right" size={18} color={colors.primary} />
+          <TouchableOpacity 
+            style={[styles.heroCTA, !desktop && styles.heroCTAMobile]} 
+            onPress={onNavigateToHouses} 
+            activeOpacity={0.88}
+          >
+            <Text style={[styles.heroCTAText, { color: theme.primary }]}>Search Verified Listings</Text>
+            <Icon name="arrow-right" size={18} color={theme.primary} />
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* ── TRUST BAR ── */}
-      {desktop ? (
-        // Desktop: single horizontal row with dividers
-        <View style={styles.trustBarDesktop}>
-          {trustItems.map((item, i) => (
-            <View key={i} style={styles.trustItemDesktop}>
-              <View style={styles.trustIconWrap}>
-                <Icon name={item.icon} size={14} color={colors.primary} />
-              </View>
-              <Text style={styles.trustText}>{item.label}</Text>
-              {i < trustItems.length - 1 && <View style={styles.trustDivider} />}
-            </View>
+      {/* ── CITY SELECTOR ── */}
+      <View style={[styles.citySelector, !desktop && styles.citySelectorMobile]}>
+        <Text style={styles.citySelectorTitle}>Switch City</Text>
+        <View style={styles.cityCards}>
+          {UNIVERSITIES.map(uni => (
+            <TouchableOpacity 
+              key={uni.id} 
+              style={[styles.cityCard, universityId === uni.id && { borderColor: uni.primaryColor, backgroundColor: uni.primaryLight }]}
+              onPress={() => onSelectUniversity(uni.id)}
+            >
+              <Text style={[styles.cityCardName, universityId === uni.id && { color: uni.primaryColor }]}>{uni.city}</Text>
+              <Text style={styles.cityCardUni}>{uni.name}</Text>
+              {universityId === uni.id && (
+                <View style={[styles.cityActiveDot, { backgroundColor: uni.primaryColor }]} />
+              )}
+            </TouchableOpacity>
           ))}
         </View>
-      ) : (
-        // Mobile: clean 2×2 grid — each item is self-contained
-        <View style={styles.trustGridMobile}>
-          {trustItems.map((item, i) => (
-            <View key={i} style={styles.trustCardMobile}>
-              <View style={styles.trustIconWrap}>
-                <Icon name={item.icon} size={14} color={colors.primary} />
-              </View>
-              <Text style={styles.trustTextMobile} numberOfLines={2}>{item.label}</Text>
-            </View>
-          ))}
-        </View>
-      )}
+      </View>
 
-      <View style={[styles.main, !desktop && styles.mainMobile]}>
+      <View style={styles.inner}>
+        {/* ── TRUST BAR ── */}
+        {desktop ? (
+          <View style={styles.trustBar}>
+            {trustItems.map((item, i) => (
+              <View key={i} style={styles.trustItem}>
+                <Icon name={item.icon as any} size={14} color={theme.primary} />
+                <Text style={[styles.trustLabel, { color: theme.primary }]}>{item.label}</Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
 
         {/* ── GUILD CARD ── */}
-        <View style={[styles.guildCard, !desktop && styles.guildCardMobile]}>
+        <View style={[styles.guildCard, !desktop && styles.guildCardMobile, { backgroundColor: theme.primaryLight }]}>
           <View style={[styles.guildLeft, !desktop && styles.guildLeftMobile]}>
-            <View style={styles.guildIconWrap}>
+            <View style={[styles.guildIconWrap, { backgroundColor: theme.primary }]}>
               <Icon name="users" size={22} color={colors.white} />
             </View>
-            <Text style={styles.guildTitle}>Exeter Students' Guild Housing Advice</Text>
+            <Text style={styles.guildTitle}>{universityId === 'exeter' ? "Exeter Students' Guild" : "Bristol SU"} Housing Advice</Text>
             <Text style={styles.guildSub}>Free, independent guidance for every student.</Text>
             <TouchableOpacity style={styles.guildBtn} onPress={openGuild} activeOpacity={0.85}>
-              <Text style={styles.guildBtnText}>Book an Appointment</Text>
-              <Icon name="external-link" size={13} color={colors.primary} />
+              <Text style={[styles.guildBtnText, { color: theme.primary }]}>Book an Appointment</Text>
+              <Icon name="external-link" size={13} color={theme.primary} />
             </TouchableOpacity>
           </View>
           <View style={[styles.guildRight, !desktop && styles.guildRightMobile]}>
@@ -154,8 +172,8 @@ export default function OverviewScreen({ onNavigateToHouses }: { onNavigateToHou
               Whether you're signing your first lease or dealing with an unresponsive landlord — we're here.
             </Text>
             <TouchableOpacity onPress={openGuild} style={styles.guildLink}>
-              <Text style={styles.guildLinkText}>Visit Guild Housing Advice</Text>
-              <Icon name="arrow-right" size={14} color={colors.primary} />
+              <Text style={[styles.guildLinkText, { color: theme.primary }]}>Visit {universityId === 'exeter' ? "Guild" : "SU"} Housing Advice</Text>
+              <Icon name="arrow-right" size={14} color={theme.primary} />
             </TouchableOpacity>
           </View>
         </View>
@@ -166,28 +184,28 @@ export default function OverviewScreen({ onNavigateToHouses }: { onNavigateToHou
             <Text style={styles.sectionLabel}>LIVE MARKET DATA</Text>
             <Text style={styles.sectionTitle}>Market Insights & Features</Text>
           </View>
-          <View style={styles.liveBadge}>
-            <View style={styles.livePulse} />
-            <Text style={styles.liveText}>LIVE</Text>
+          <View style={[styles.liveBadge, { backgroundColor: theme.primaryLight }]}>
+            <View style={[styles.livePulse, { backgroundColor: theme.primary }]} />
+            <Text style={[styles.liveText, { color: theme.primary }]}>LIVE</Text>
           </View>
         </View>
 
         <View style={[styles.grid, !desktop && styles.gridMobile]}>
 
           <View style={[styles.statCard, !desktop && styles.cardFull]}>
-            <View style={[styles.statIcon, { backgroundColor: colors.primaryLight }]}>
-              <Icon name="trending-up" size={18} color={colors.primary} />
+            <View style={[styles.statIcon, { backgroundColor: theme.primaryLight }]}>
+              <Icon name="trending-up" size={18} color={theme.primary} />
             </View>
-            <Text style={styles.statValue}>£{stats.avg}</Text>
+            <Text style={[styles.statValue, { color: theme.primary }]}>£{stats.avg}</Text>
             <Text style={styles.statUnit}>per person / week</Text>
-            <Text style={styles.cardDesc}>Current Exeter market average across {stats.sources} sources.</Text>
+            <Text style={styles.cardDesc}>Current {currentUni.city} market average across {stats.sources} sources.</Text>
           </View>
 
           <View style={[styles.statCard, !desktop && styles.cardFull]}>
             <View style={[styles.statIcon, { backgroundColor: colors.accentLight }]}>
               <Icon name="home" size={18} color={colors.accent} />
             </View>
-            <Text style={styles.statValue}>{stats.count}</Text>
+            <Text style={[styles.statValue, { color: colors.accent }]}>{stats.count}</Text>
             <Text style={styles.statUnit}>unique homes listed</Text>
             <Text style={styles.cardDesc}>Aggregated and deduplicated daily from all major portals.</Text>
           </View>
@@ -205,7 +223,7 @@ export default function OverviewScreen({ onNavigateToHouses }: { onNavigateToHou
               <Icon name="message-circle" size={18} color="#E07B20" />
             </View>
             <Text style={styles.featureTitle}>Landlord Reviews</Text>
-            <Text style={styles.cardDesc}>Authentic tenant experiences from Exeter students across all providers.</Text>
+            <Text style={styles.cardDesc}>Authentic tenant experiences from {currentUni.city} students across all providers.</Text>
           </View>
 
           <View style={[styles.featureCard, !desktop && styles.cardFull]}>
@@ -217,11 +235,11 @@ export default function OverviewScreen({ onNavigateToHouses }: { onNavigateToHou
           </View>
 
           <View style={[styles.featureCard, !desktop && styles.cardFull]}>
-            <View style={[styles.statIcon, { backgroundColor: colors.primaryLight }]}>
-              <Icon name="map-pin" size={18} color={colors.primary} />
+            <View style={[styles.statIcon, { backgroundColor: theme.primaryLight }]}>
+              <Icon name="map-pin" size={18} color={theme.primary} />
             </View>
-            <Text style={styles.featureTitle}>Full Exeter Coverage</Text>
-            <Text style={styles.cardDesc}>All 10 key student neighbourhoods monitored including Pennsylvania and St James.</Text>
+            <Text style={styles.featureTitle}>Full {currentUni.city} Coverage</Text>
+            <Text style={styles.cardDesc}>Comprehensive monitoring of all student-friendly areas in {currentUni.city}.</Text>
           </View>
 
         </View>
@@ -234,17 +252,19 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   scroll: { paddingBottom: 48 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
-  loadingText: { fontFamily, fontSize: 14, color: colors.textMuted },
+  loadingText: { fontFamily, fontSize: 14, fontWeight: '700' as any },
+  inner: { paddingHorizontal: 52, maxWidth: 1200, alignSelf: 'center', width: '100%' },
 
   // ── Hero ────────────────────────────────────────────────────────────────────
   hero: { width: '100%', height: 520, position: 'relative', overflow: 'hidden' },
   heroMobile: { height: 420 },
   heroImage: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' },
-  heroOverlayDark: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(12,10,9,0.55)' },
-  heroOverlayGreen: {
-    position: 'absolute', bottom: 0, left: 0, right: 0, height: 160,
-    backgroundColor: 'rgba(11,110,79,0.25)',
+  
+  heroOverlayVibrant: { 
+    ...StyleSheet.absoluteFillObject, 
+    opacity: 0.82, 
   },
+
   heroContent: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
@@ -257,38 +277,36 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: 'rgba(255,255,255,0.12)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: radii.full,
     marginBottom: 20,
   },
-  heroPillDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#4ADE80' },
-  heroPillText: { fontFamily, color: 'rgba(255,255,255,0.9)', fontSize: 13, fontWeight: '500' as any },
+  heroPillDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#FFFFFF' },
+  heroPillText: { fontFamily, color: '#FFFFFF', fontSize: 13, fontWeight: '700' as any },
   heroTitle: {
     fontFamily,
     fontSize: 52,
-    fontWeight: '800' as any,
+    fontWeight: '900' as any,
     color: colors.white,
     textAlign: 'center',
     lineHeight: 60,
     letterSpacing: -1,
     textShadowColor: 'rgba(0,0,0,0.3)',
     textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 8,
+    textShadowRadius: 12,
   },
-  heroTitleMobile: { fontSize: 30, lineHeight: 36 },
+  heroTitleMobile: { fontSize: 32, lineHeight: 38 },
   heroSub: {
     fontFamily,
-    fontSize: 17,
-    color: 'rgba(255,255,255,0.82)',
+    fontSize: 18,
+    color: 'rgba(255,255,255,0.95)',
     textAlign: 'center',
     marginTop: 16,
     lineHeight: 26,
-    fontWeight: '400' as any,
-    maxWidth: 560,
+    fontWeight: '500' as any,
+    maxWidth: 600,
   },
   heroSubMobile: { fontSize: 15, marginTop: 12 },
   heroCTA: {
@@ -296,242 +314,142 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
     backgroundColor: colors.white,
-    paddingVertical: 16,
-    paddingHorizontal: 28,
+    paddingVertical: 18,
+    paddingHorizontal: 32,
     borderRadius: radii.md,
     marginTop: 32,
     ...shadows.medium,
   },
   heroCTAMobile: { marginTop: 24, paddingVertical: 14, paddingHorizontal: 22 },
-  heroCTAText: { fontFamily, color: colors.primary, fontSize: 16, fontWeight: '700' as any, letterSpacing: -0.1 },
+  heroCTAText: { fontFamily, fontSize: 16, fontWeight: '800' as any, letterSpacing: -0.1 },
 
-  // ── Trust bar — DESKTOP (horizontal row) ────────────────────────────────────
-  trustBarDesktop: {
-    backgroundColor: colors.white,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    flexDirection: 'row',
-    paddingVertical: 18,
-    paddingHorizontal: spacing.xl,
-    justifyContent: 'center',
+  citySelector: {
+    paddingHorizontal: 52,
+    paddingTop: 32,
+    paddingBottom: 0,
+    maxWidth: 1200,
+    alignSelf: 'center',
+    width: '100%',
   },
-  trustItemDesktop: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    position: 'relative',
+  citySelectorMobile: {
+    paddingHorizontal: spacing.md,
   },
-  trustDivider: {
-    position: 'absolute', right: 0,
-    width: 1, height: 24,
-    backgroundColor: colors.border,
-  },
-
-  // ── Trust bar — MOBILE (2×2 grid) ───────────────────────────────────────────
-  trustGridMobile: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    backgroundColor: colors.white,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    padding: spacing.md,
-    gap: spacing.sm,
-  },
-  trustCardMobile: {
-    // Each card takes ~half the row minus gap
-    width: '47.5%',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: colors.surfaceSubtle,
-    borderRadius: radii.md,
-    paddingVertical: 10,
-    paddingHorizontal: 10,
-  },
-  trustTextMobile: {
+  citySelectorTitle: {
     fontFamily,
-    fontSize: 12,
-    fontWeight: '600' as any,
-    color: colors.textSecondary,
-    flex: 1,
-    lineHeight: 16,
-  },
-
-  // Shared trust icon (used in both desktop and mobile)
-  trustIconWrap: {
-    width: 30,
-    height: 30,
-    borderRadius: radii.sm,
-    backgroundColor: colors.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  },
-  trustText: {
-    fontFamily,
-    fontSize: 13,
-    fontWeight: '600' as any,
-    color: colors.textSecondary,
-  },
-
-  // ── Main content ────────────────────────────────────────────────────────────
-  main: { paddingHorizontal: 52, paddingTop: spacing.xl, maxWidth: 1200, alignSelf: 'center', width: '100%' },
-  mainMobile: { paddingHorizontal: spacing.md, paddingTop: spacing.lg },
-
-  // Guild card
-  guildCard: {
-    backgroundColor: colors.white,
-    borderRadius: radii.xl,
-    flexDirection: 'row',
-    overflow: 'hidden',
-    ...shadows.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-    marginBottom: spacing.xl,
-  },
-  guildCardMobile: { flexDirection: 'column' },
-  guildLeft: {
-    width: '38%',
-    backgroundColor: colors.primary,
-    padding: spacing.xl,
-    justifyContent: 'center',
-  },
-  guildLeftMobile: { width: '100%', padding: spacing.lg },
-  guildIconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: radii.md,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 14,
-  },
-  guildTitle: {
-    fontFamily,
-    fontSize: 18,
-    fontWeight: '800' as any,
-    color: colors.white,
-    lineHeight: 24,
-    marginBottom: 8,
-    letterSpacing: -0.2,
-  },
-  guildSub: {
-    fontFamily,
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.75)',
-    marginBottom: 20,
-    lineHeight: 18,
-  },
-  guildBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: colors.white,
-    paddingVertical: 11,
-    paddingHorizontal: 16,
-    borderRadius: radii.sm,
-    alignSelf: 'flex-start',
-  },
-  guildBtnText: { fontFamily, color: colors.primary, fontWeight: '700' as any, fontSize: 13 },
-  guildRight: { flex: 1, padding: spacing.xl, justifyContent: 'center' },
-  guildRightMobile: { padding: spacing.lg },
-  guildDesc: {
-    fontFamily,
-    fontSize: 15,
-    color: colors.textSecondary,
-    lineHeight: 25,
-    marginBottom: spacing.lg,
-  },
-  guildLink: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  guildLinkText: { fontFamily, color: colors.primary, fontWeight: '700' as any, fontSize: 14 },
-
-  // Section header
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: spacing.lg,
-  },
-  sectionLabel: { ...typography.label, color: colors.primary, marginBottom: 4 },
-  sectionTitle: { fontFamily, fontSize: 20, fontWeight: '700' as any, color: colors.textPrimary },
-  liveBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: colors.primaryLight,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: radii.sm,
-    borderWidth: 1,
-    borderColor: colors.primaryMedium,
-  },
-  livePulse: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.success },
-  liveText: { fontFamily, fontSize: 10, fontWeight: '800' as any, color: colors.primary, letterSpacing: 0.5 },
-
-  // Grid
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
-  gridMobile: { gap: spacing.sm },
-  statCard: {
-    backgroundColor: colors.white,
-    borderRadius: radii.lg,
-    padding: spacing.lg,
-    width: '31.5%',
-    minHeight: 180,
-    ...shadows.soft,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  featureCard: {
-    backgroundColor: colors.white,
-    borderRadius: radii.lg,
-    padding: spacing.lg,
-    width: '31.5%',
-    minHeight: 160,
-    ...shadows.soft,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  cardFull: { width: '100%' },
-  statIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: radii.sm,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 14,
-  },
-  statValue: {
-    fontFamily,
-    fontSize: 36,
-    fontWeight: '800' as any,
-    color: colors.textPrimary,
-    letterSpacing: -1,
-    lineHeight: 40,
-  },
-  statUnit: {
-    fontFamily,
-    fontSize: 11,
-    fontWeight: '600' as any,
+    fontSize: 14,
+    fontWeight: '700' as any,
     color: colors.textMuted,
     textTransform: 'uppercase' as any,
-    letterSpacing: 0.5,
-    marginTop: 2,
-    marginBottom: 8,
+    letterSpacing: 1,
+    marginBottom: 16,
   },
-  featureTitle: {
+  cityCards: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  cityCard: {
+    flex: 1,
+    backgroundColor: colors.white,
+    padding: 20,
+    borderRadius: radii.lg,
+    borderWidth: 2,
+    borderColor: colors.border,
+    ...shadows.soft,
+    position: 'relative',
+    minHeight: 100,
+    justifyContent: 'center',
+  },
+  cityCardName: {
     fontFamily,
-    fontSize: 16,
-    fontWeight: '700' as any,
+    fontSize: 20,
+    fontWeight: '800' as any,
     color: colors.textPrimary,
-    marginBottom: 8,
-    marginTop: 2,
   },
-  cardDesc: {
+  cityCardUni: {
     fontFamily,
-    fontSize: 13,
+    fontSize: 12,
     color: colors.textMuted,
-    lineHeight: 20,
+    marginTop: 4,
   },
+  cityActiveDot: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+
+  trustBar: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 32,
+    paddingVertical: spacing.xl,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  trustItem: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  trustLabel: { fontFamily, fontSize: 12, fontWeight: '700' as any, letterSpacing: 0.2 },
+
+  guildCard: {
+    flexDirection: 'row',
+    borderRadius: radii.lg,
+    padding: spacing.xl,
+    marginTop: spacing.xl,
+    marginBottom: spacing.xxl,
+    ...shadows.soft,
+  },
+  guildCardMobile: { flexDirection: 'column', gap: spacing.lg, padding: spacing.lg },
+  guildLeft: { flex: 1 },
+  guildIconWrap: {
+    width: 44, height: 44, borderRadius: radii.md,
+    alignItems: 'center', justifyContent: 'center',
+    marginBottom: spacing.md,
+  },
+  guildTitle: { fontFamily, fontSize: 24, fontWeight: '800' as any, color: colors.textPrimary, marginBottom: 8, letterSpacing: -0.5 },
+  guildSub: { fontFamily, fontSize: 15, color: colors.textSecondary, marginBottom: 20 },
+  guildBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: colors.white, alignSelf: 'flex-start',
+    paddingHorizontal: 16, paddingVertical: 10, borderRadius: radii.sm,
+    ...shadows.soft,
+  },
+  guildBtnText: { fontFamily, fontSize: 14, fontWeight: '700' as any },
+  guildRight: { flex: 1.2, borderLeftWidth: 1, borderLeftColor: 'rgba(0,0,0,0.05)', paddingLeft: spacing.xl, justifyContent: 'center' },
+  guildRightMobile: { borderLeftWidth: 0, paddingLeft: 0 },
+  guildDesc: { fontFamily, fontSize: 15, color: colors.textSecondary, lineHeight: 24, marginBottom: 16 },
+  guildLink: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  guildLinkText: { fontFamily, fontSize: 14, fontWeight: '700' as any },
+
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: spacing.lg },
+  sectionLabel: { fontFamily, fontSize: 11, fontWeight: '700' as any, color: colors.textMuted, letterSpacing: 1, marginBottom: 4 },
+  sectionTitle: { fontFamily, fontSize: 24, fontWeight: '800' as any, color: colors.textPrimary, letterSpacing: -0.5 },
+  liveBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 10, paddingVertical: 5, borderRadius: radii.full,
+  },
+  livePulse: { width: 6, height: 6, borderRadius: 3 },
+  liveText: { fontFamily, fontSize: 10, fontWeight: '800' as any, letterSpacing: 0.5 },
+
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
+  gridMobile: { flexDirection: 'column' },
+  statCard: {
+    flex: 1, minWidth: 240, backgroundColor: colors.white,
+    padding: spacing.lg, borderRadius: radii.lg,
+    borderWidth: 1, borderColor: colors.border, ...shadows.soft,
+  },
+  featureCard: {
+    flex: 1, minWidth: 200, backgroundColor: colors.white,
+    padding: spacing.lg, borderRadius: radii.lg,
+    borderWidth: 1, borderColor: colors.border, ...shadows.soft,
+  },
+  cardFull: { width: '100%', minWidth: '100%' },
+  statIcon: {
+    width: 40, height: 40, borderRadius: radii.sm,
+    alignItems: 'center', justifyContent: 'center', marginBottom: spacing.md,
+  },
+  statValue: { fontFamily, fontSize: 32, fontWeight: '800' as any, letterSpacing: -1 },
+  statUnit: { fontFamily, fontSize: 12, fontWeight: '600' as any, color: colors.textMuted, marginTop: 2, marginBottom: 12 },
+  featureTitle: { fontFamily, fontSize: 17, fontWeight: '700' as any, color: colors.textPrimary, marginBottom: 8, marginTop: 2 },
+  cardDesc: { fontFamily, fontSize: 13, color: colors.textMuted, lineHeight: 20 },
 });

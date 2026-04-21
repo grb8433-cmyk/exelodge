@@ -227,21 +227,41 @@ export const LANDLORDS_SEED = [
 export const EXETER_AVG_PPPW = 150;
 
 export const CAMPUS_COORDS = {
-  streatham: { latitude: 50.7354, longitude: -3.5353 },
-  stLukes: { latitude: 50.7227, longitude: -3.5152 },
+  exeter: {
+    streatham: { latitude: 50.7354, longitude: -3.5353 },
+    stLukes: { latitude: 50.7227, longitude: -3.5152 },
+  },
+  bristol: {
+    uob: { latitude: 51.4584, longitude: -2.6030 },
+    uwe: { latitude: 51.5000, longitude: -2.5484 },
+  }
 };
 
-export const AREA_COORDS = {
-  'Pennsylvania': { latitude: 50.7400, longitude: -3.5300 },
-  'St James': { latitude: 50.7320, longitude: -3.5220 },
-  'City Centre': { latitude: 50.7250, longitude: -3.5280 },
-  'Newtown': { latitude: 50.7240, longitude: -3.5150 },
-  'Mount Pleasant': { latitude: 50.7310, longitude: -3.5120 },
-  'Heavitree': { latitude: 50.7210, longitude: -3.5020 },
-  'St Davids': { latitude: 50.7310, longitude: -3.5380 },
-  'Riverside': { latitude: 50.7230, longitude: -3.5420 },
-  'St Leonards': { latitude: 50.7180, longitude: -3.5200 },
-  'Haldon': { latitude: 50.7200, longitude: -3.5450 },
+export const AREA_COORDS: Record<string, Record<string, {latitude: number, longitude: number}>> = {
+  exeter: {
+    'Pennsylvania': { latitude: 50.7400, longitude: -3.5300 },
+    'St James': { latitude: 50.7320, longitude: -3.5220 },
+    'City Centre': { latitude: 50.7250, longitude: -3.5280 },
+    'Newtown': { latitude: 50.7240, longitude: -3.5150 },
+    'Mount Pleasant': { latitude: 50.7310, longitude: -3.5120 },
+    'Heavitree': { latitude: 50.7210, longitude: -3.5020 },
+    'St Davids': { latitude: 50.7310, longitude: -3.5380 },
+    'Riverside': { latitude: 50.7230, longitude: -3.5420 },
+    'St Leonards': { latitude: 50.7180, longitude: -3.5200 },
+    'Haldon': { latitude: 50.7200, longitude: -3.5450 },
+  },
+  bristol: {
+    'City Centre': { latitude: 51.4545, longitude: -2.5879 },
+    'Clifton': { latitude: 51.4550, longitude: -2.6150 },
+    'Redland': { latitude: 51.4680, longitude: -2.6050 },
+    'Cotham': { latitude: 51.4630, longitude: -2.6000 },
+    'Stokes Croft': { latitude: 51.4620, longitude: -2.5880 },
+    'Southville': { latitude: 51.4420, longitude: -2.6050 },
+    'Horfield': { latitude: 51.4850, longitude: -2.5850 },
+    'Bishopston': { latitude: 51.4780, longitude: -2.5920 },
+    'Filton': { latitude: 51.5050, longitude: -2.5600 },
+    'Stoke Bishop': { latitude: 51.4750, longitude: -2.6250 },
+  }
 };
 
 export const PROPERTIES_SEED = [

@@ -3,6 +3,7 @@ import re
 import json
 import time
 import requests
+import argparse
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse, urlunparse, parse_qs, urlencode
 from datetime import datetime, timezone, timedelta
@@ -15,47 +16,108 @@ try:
 except ImportError:
     pass
 
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "en-GB,en;q=0.9"
+}
+
+# ─── UNIVERSITIES CONFIG ─────────────────────────────────────────────────────
+
+def load_universities():
+    config_path = os.path.join(os.path.dirname(__file__), '..', 'config', 'universities.json')
+    try:
+        with open(config_path, 'r') as f:
+            return json.load(f)
+    except Exception as e:
+        print(f"[WARN] Could not load universities.json: {e}")
+        return [{"id": "exeter", "name": "University of Exeter", "city": "Exeter"}]
+
+UNIVERSITIES = load_universities()
+
 # ─── CONFIG ──────────────────────────────────────────────────────────────────
 
 DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1518780664697-55e3ad937233'
-MIN_PPPW      = 75.0    # Minimum credible pppw for Exeter student housing
+MIN_PPPW      = 75.0
 MAX_PPPW      = 300.0
 
-STREATHAM_COORDS = (50.7367, -3.5336)
-ST_LUKES_COORDS  = (50.7226, -3.5177)
-
-HEADERS = {
-    'User-Agent': (
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
-        'AppleWebKit/537.36 (KHTML, like Gecko) '
-        'Chrome/122.0.0.0 Safari/537.36'
-    ),
-    'Accept':          'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-    'Accept-Language': 'en-GB,en;q=0.9',
-}
-
-AREA_MAPPINGS = {
-    'Pennsylvania':   ['pennsylvania', 'danes road', 'hoopern', 'howell road', 'powderham',
-                       'union road', 'hillsborough', 'rosebarn', 'mowbray', "queen's crescent",
-                       'kilbarran', 'belvidere'],
-    'St James':       ['st james', 'old tiverton', 'blackboy road', 'springfield road',
-                       'victoria street', 'well street', 'prospect park', 'culverland',
-                       'iddesleigh', 'st james road', 'york road'],
-    'City Centre':    ['city centre', 'longbrook', 'north street', 'high street', 'sidwell',
-                       'queen street', 'northernhay', 'iron bridge', 'bartholomew', 'clifton',
-                       'bampfylde', 'paris street', 'cheeke street'],
-    'Newtown':        ['newtown', 'elmside', 'sandford walk', 'belmont', 'gladstone',
-                       'portland street', 'codrington', 'clifton road'],
-    'Heavitree':      ['heavitree', 'homefield', 'atlas house', 'st lister', 'hamlin',
-                       'magdalen road', 'polsham'],
-    'Mount Pleasant': ['mount pleasant', 'pinhoe road', 'monks road', 'monkswell',
-                       'priory road', 'polsloe'],
-    'St Davids':      ['st davids', 'bonhay', 'richmond court', 'king edward', 'point exe',
-                       'new north road', 'eldertree', 'st davids hill'],
-    'St Leonards':    ['st leonards', 'magdalen road', 'barnardo road', 'archibald',
-                       'mount radford', 'wonford road'],
-    'Riverside':      ['riverside', 'quay', 'renslade', 'exwick'],
-    'Haldon':         ['haldon'],
+UNIVERSITY_SETTINGS = {
+    'exeter': {
+        'city': 'Exeter',
+        'coords': {
+            'streatham': (50.7367, -3.5336),
+            'st_lukes': (50.7226, -3.5177),
+        },
+        'postcode_range': r'EX[1-6]',
+        'area_mappings': {
+            'Pennsylvania':   ['pennsylvania', 'danes road', 'hoopern', 'howell road', 'powderham',
+                               'union road', 'hillsborough', 'rosebarn', 'mowbray', "queen's crescent",
+                               'kilbarran', 'belvidere'],
+            'St James':       ['st james', 'old tiverton', 'blackboy road', 'springfield road',
+                               'victoria street', 'well street', 'prospect park', 'culverland',
+                               'iddesleigh', 'st james road', 'york road'],
+            'City Centre':    ['city centre', 'longbrook', 'north street', 'high street', 'sidwell',
+                               'queen street', 'northernhay', 'iron bridge', 'bartholomew', 'clifton',
+                               'bampfylde', 'paris street', 'cheeke street'],
+            'Newtown':        ['newtown', 'elmside', 'sandford walk', 'belmont', 'gladstone',
+                               'portland street', 'codrington', 'clifton road'],
+            'Heavitree':      ['heavitree', 'homefield', 'atlas house', 'st lister', 'hamlin',
+                               'magdalen road', 'polsham'],
+            'Mount Pleasant': ['mount pleasant', 'pinhoe road', 'monks road', 'monkswell',
+                               'priory road', 'polsloe'],
+            'St Davids':      ['st davids', 'bonhay', 'richmond court', 'king edward', 'point exe',
+                               'new north road', 'eldertree', 'st davids hill'],
+            'St Leonards':    ['st leonards', 'magdalen road', 'barnardo road', 'archibald',
+                               'mount radford', 'wonford road'],
+            'Riverside':      ['riverside', 'quay', 'renslade', 'exwick'],
+            'Haldon':         ['haldon'],
+        },
+        'search_urls': {
+            'UniHomes': 'https://www.unihomes.co.uk/student-accommodation/exeter',
+            'StuRents': 'https://sturents.com/student-accommodation/exeter/listings',
+            'AccommodationForStudents': 'https://www.accommodationforstudents.com/exeter',
+            'Rightmove': 'https://www.rightmove.co.uk/student-accommodation/Exeter.html',
+            'OnTheMarket': 'https://www.onthemarket.com/to-rent/property/exeter/',
+            'Cardens': 'https://www.cardensestateagents.co.uk/students',
+            'RSJInvestments': 'https://rsjinvestments.com/property_tag/exeter/',
+            'StarStudents': 'https://star-students.com/property-to-rent',
+            'Gillams': 'https://www.gillams-properties.co.uk/student-houses/exeter'
+        }
+    },
+    'bristol': {
+        'city': 'Bristol',
+        'coords': {
+            'uob': (51.4584, -2.6030), # University of Bristol
+            'uwe': (51.5000, -2.5484), # UWE Frenchay
+        },
+        'postcode_range': r'BS[1-9]|BS1[0-6]|BS34',
+        'area_mappings': {
+             'City Centre': ['city centre', 'bs1 ', 'bs2 '],
+             'Clifton': ['clifton', 'bs8'],
+             'Redland': ['redland', 'bs6'],
+             'Cotham': ['cotham', 'bs6'],
+             'Stokes Croft': ['stokes croft', 'bs1 ', 'bs2 '],
+             'Southville': ['southville', 'bs3'],
+             'Horfield': ['horfield', 'bs7'],
+             'Bishopston': ['bishopston', 'bs7'],
+             'Filton': ['filton', 'bs34'],
+             'Stoke Bishop': ['stoke bishop', 'bs9'],
+        },
+        'search_urls': {
+            'UniHomes': 'https://www.unihomes.co.uk/student-accommodation/bristol',
+            'StuRents': 'https://sturents.com/student-accommodation/bristol',
+            'AccommodationForStudents': 'https://www.accommodationforstudents.com/search-results?location=Bristol&minBedrooms=0&occupancy=min&minPrice=0&maxPrice=500&latitude=51.454514&longitude=-2.58791&geo=false&page=1&filterName=location',
+            'Rightmove': 'https://www.rightmove.co.uk/student-accommodation/Bristol.html',
+            'OnTheMarket': 'https://www.onthemarket.com/to-rent/property/bristol/',
+            'UWEStudentPad': 'https://www.uwestudentpad.co.uk/SearchResults/1',
+            'BristolSULettings': 'https://www.bristolsulettings.co.uk/properties-to-let',
+            'CJHole': 'https://www.cjhole.co.uk/search-results/for-letting/in-united-kingdom/?orderby=price_desc&radius=0.1&department=student',
+            'BristolDigs': 'https://bristoldigs.co.uk/rent-flat-or-house-bristol/?department=student&minimum_rent=&maximum_rent=&bedrooms=&minimum_rent_pppm=&maximum_rent_pppm=&minimum_bedrooms=',
+            'StudentCrowd': 'https://www.studentcrowd.com/student-accommodation-l1000825-bristol',
+            'JointLiving': 'https://jointliving.co.uk/cities/bristol/',
+            'UniteStudents': 'https://www.unitestudents.com/student-accommodation/bristol?roomTypes=&lengthOfStay=Full+Year,Academic+Year&academicYear=2026+-+2027&city=BS'
+        }
+    }
 }
 
 # ─── HELPERS ─────────────────────────────────────────────────────────────────
@@ -79,22 +141,24 @@ def haversine(coord1, coord2):
     return R * c
 
 
-def extract_postcode(text):
+def extract_postcode(text, pc_range=None):
     """Extract a UK postcode or outcode from text."""
     if not text:
         return None
     
-    # 1. Try full postcode (e.g. EX4 4QJ)
-    m = re.search(r'\b(EX\d\s?\d[A-Z]{2})\b', text.upper())
+    # Use the specific range for the university if provided
+    pattern = pc_range or r'[A-Z]{1,2}\d[A-Z0-9]?'
+    
+    # 1. Try full postcode (e.g. EX4 4QJ, BS1 2AB)
+    m = re.search(fr'\b({pattern}\s?\d[A-Z]{{2}})\b', text.upper())
     if m: return m.group(1)
     
-    # 2. Try just the outcode (e.g. EX1, EX4) but ensure it's not part of another word
-    # Many URLs have 'exeter-ex4' or 'ex4-city-centre'
-    m = re.search(r'\b(EX[1-6])\b', text.upper())
+    # 2. Try just the outcode (e.g. EX1, BS8)
+    m = re.search(fr'\b({pattern})\b', text.upper())
     if m: return m.group(1)
     
-    # 3. Aggressive URL check for EX outcodes (e.g. '...-ex4-...' or '/ex4/')
-    m = re.search(r'[/-](EX[1-6])($|[/-])', text.upper())
+    # 3. Aggressive URL check
+    m = re.search(fr'[/-]({pattern})($|[/-])', text.upper())
     if m: return m.group(1)
     
     return None
@@ -102,7 +166,7 @@ def extract_postcode(text):
 
 _POSTCODE_CACHE = {}
 
-def get_coordinates(postcode, address=None):
+def get_coordinates(postcode, address=None, city='Exeter'):
     """Fetch lat/lng for a postcode or street address."""
     geo_headers = {'User-Agent': 'ExeLodge-Student-Housing-App/1.0'}
     
@@ -125,11 +189,11 @@ def get_coordinates(postcode, address=None):
 
     # Fallback to street name search
     if address:
-        search_term = re.sub(r'City Centre|Exeter|Student|Property|Flat \w+|Premium En-Suite', '', address, flags=re.I).strip()
+        search_term = re.sub(r'City Centre|Exeter|Bristol|Student|Property|Flat \w+|Premium En-Suite', '', address, flags=re.I).strip()
         if not search_term: return None
         
         # Try Photon first (with header)
-        url = f"https://photon.komoot.io/api/?q={requests.utils.quote(search_term)},+Exeter,UK&limit=1"
+        url = f"https://photon.komoot.io/api/?q={requests.utils.quote(search_term)},+{city},UK&limit=1"
         try:
             time.sleep(0.5)
             r = requests.get(url, headers=geo_headers, timeout=10)
@@ -138,13 +202,13 @@ def get_coordinates(postcode, address=None):
                 if data.get('features'):
                     f = data['features'][0]
                     lat, lon = f['geometry']['coordinates'][1], f['geometry']['coordinates'][0]
-                    # Exeter validation box: 50.6 to 50.8 lat, -3.6 to -3.4 lon
-                    if 50.6 <= lat <= 50.8 and -3.6 <= lon <= -3.4:
+                    # Basic UK validation
+                    if 49.0 <= lat <= 60.0 and -8.0 <= lon <= 2.0:
                         return (lat, lon)
         except: pass
 
         # Ultimate fallback: Nominatim
-        url = f"https://nominatim.openstreetmap.org/search?q={requests.utils.quote(search_term)}+Exeter+UK&format=json&limit=1"
+        url = f"https://nominatim.openstreetmap.org/search?q={requests.utils.quote(search_term)}+{city}+UK&format=json&limit=1"
         try:
             time.sleep(1.1)
             r = requests.get(url, headers=geo_headers, timeout=10)
@@ -152,68 +216,52 @@ def get_coordinates(postcode, address=None):
                 data = r.json()
                 if data:
                     lat, lon = float(data[0]['lat']), float(data[0]['lon'])
-                    if 50.6 <= lat <= 50.8 and -3.6 <= lon <= -3.4:
+                    if 49.0 <= lat <= 60.0 and -8.0 <= lon <= 2.0:
                         return (lat, lon)
         except: pass
 
     return None
 
 
-# In the main loop:
-# Update the call to get_coordinates(postcode, l['address'])
-
-
-def detect_area(text):
+def detect_area(text, area_mappings, default_city='Exeter'):
     t = text.lower()
-    for area, kws in AREA_MAPPINGS.items():
+    for area, kws in area_mappings.items():
         if any(k in t for k in kws):
             return area
-    return 'Exeter'
+    return default_city
 
 
-def validate_postcode(text):
+def validate_postcode(text, pc_range, city):
     """
-    Check if the text contains an Exeter postcode EX1-EX6.
-    Log [GEO-SKIP] for any listing whose postcode falls outside this range.
+    Check if the text contains a valid postcode for the city.
     """
-    # Find all postcode-like patterns (e.g. EX1, EX17, TQ12)
-    # This matches the prefix of a UK postcode.
-    postcodes = re.findall(r'\b([A-Z]{1,2}\d{1,2})\b', text.upper())
+    postcodes = re.findall(r'\b([A-Z]{1,2}\d[A-Z0-9]?)\b', text.upper())
     
-    ex_postcodes = [pc for pc in postcodes if pc.startswith('EX')]
-    if ex_postcodes:
-        for pc in ex_postcodes:
-            try:
-                num = int(re.search(r'\d+', pc).group())
-                if 1 <= num <= 6:
-                    return True
-            except (ValueError, AttributeError):
-                continue
-        # Found EX postcodes but none are 1-6
+    # Check if any found postcode matches the expected range prefix
+    if postcodes:
+        for pc in postcodes:
+            if re.match(pc_range, pc):
+                return True
         return False
     
-    # If other postcodes are found (like TQ, PL, BS) but no EX postcodes, skip
-    other_postcodes = [pc for pc in postcodes if not pc.startswith('EX')]
-    if other_postcodes:
-        return False
-
-    # No postcode found at all. Since we scrape Exeter-specific URLs,
-    # we assume it's Exeter unless it mentions a different city.
-    OTHER_CITIES = {'LONDON', 'BRISTOL', 'PLYMOUTH', 'BIRMINGHAM', 'LEEDS', 'MANCHESTER'}
+    # No postcode found at all. Check for city name.
+    OTHER_CITIES = {'LONDON', 'BRISTOL', 'PLYMOUTH', 'BIRMINGHAM', 'LEEDS', 'MANCHESTER', 'EXETER'}
     text_upper = text.upper()
-    if any(city in text_upper for city in OTHER_CITIES) and 'EXETER' not in text_upper:
-        return False
+    if any(c in text_upper for c in OTHER_CITIES):
+        return city.upper() in text_upper
 
     return True
 
 
-def validate(listing):
+def validate(listing, settings):
     """Return (True, '') or (False, reason)."""
     price = listing.get('price_pppw', 0)
     beds  = listing.get('bedrooms', 0)
     baths = listing.get('bathrooms', 0)
     addr  = listing.get('address', '').strip()
     url   = listing.get('external_url', '')
+    city  = settings['city']
+    pc_range = settings['postcode_range']
 
     if not addr or len(addr.split()) < 2:
         return False, f"address too short: '{addr}'"
@@ -228,12 +276,12 @@ def validate(listing):
             return False, f"price too low: £{price:.0f} pppw (Min: £{MIN_PPPW:.0f})"
         else:
             return False, f"price too high: £{price:.0f} pppw (Max: £{MAX_PPPW:.0f})"
-    if not (1 <= beds <= 12):
-        return False, f"beds={beds} out of range 1–12"
-    if not (1 <= baths <= beds):
+    if not (1 <= beds <= 15): # Increased max beds for Bristol halls
+        return False, f"beds={beds} out of range 1–15"
+    if not (1 <= baths <= beds + 1):
         return False, f"baths={baths} invalid for {beds} beds"
-    if not validate_postcode(addr + ' ' + url):
-        return False, f"[GEO-SKIP] not in EX1-EX6: '{addr}'"
+    if not validate_postcode(addr + ' ' + url, pc_range, city):
+        return False, f"[GEO-SKIP] not in {city} range ({pc_range}): '{addr}'"
     return True, ''
 
 
@@ -377,9 +425,9 @@ def is_garbage_address(addr):
     return False
 
 
-def _sturents_address_from_url(url):
+def _sturents_address_from_url(url, university_id='exeter'):
     """Extract a property address from a StuRents URL slug as a last resort."""
-    m = re.search(r'/exeter/([a-z0-9][a-z0-9\-]+)', url, re.I)
+    m = re.search(fr'/{university_id}/([a-z0-9][a-z0-9\-]+)', url, re.I)
     if not m:
         return ''
     slug = m.group(1)
@@ -433,35 +481,34 @@ def calculate_pppw(raw_value, unit, beds, url, landlord):
     except (ValueError, TypeError):
         return None
 
+    # Heuristic: if the raw value is already in a student pppw range, 
+    # many sites mislabel it. Correct for this.
+    if val >= 75 and val <= 300 and unit in ('pppw_property', 'ppm_property'):
+        # If it's a multi-bed house and the price is e.g. 150, 
+        # it's almost certainly pppw, not the whole house.
+        if beds and beds > 1:
+            unit = 'pppw' if 'pw' in str(unit) else 'pppm'
+
     pppw = None
     if unit == 'pppw':
         pppw = val
     elif unit == 'pppw_property':
         if not beds or beds <= 0:
-            print(f'  [NO-BEDS][{landlord}] {url}')
             return None
         pppw = val / beds
     elif unit == 'pppm':
         pppw = (val * 12) / 52
     elif unit == 'ppm_property':
         if not beds or beds <= 0:
-            print(f'  [NO-BEDS][{landlord}] {url}')
             return None
         pppw = (val * 12) / 52 / beds
     else:
-        print(f'  [WARN][{landlord}] Unknown unit "{unit}" for {url}')
         return None
 
     if pppw is not None:
         # Sanity check
         if not (MIN_PPPW <= pppw <= MAX_PPPW):
-            print(f'  [PRICE-OUT][{landlord}] raw={val}, unit={unit}, beds={beds}, '
-                  f'calc_pppw=£{pppw:.2f} | {url}')
             return None
-        
-        # Realistic increment check (max 2 decimal places)
-        if round(pppw, 2) != round(pppw, 4):
-            print(f'  [PRICE-WARN][{landlord}] Unrealistic pppw precision: £{pppw} | {url}')
         
         return round(pppw, 2)
     
@@ -470,16 +517,16 @@ def calculate_pppw(raw_value, unit, beds, url, landlord):
 
 # ─── SCRAPERS ────────────────────────────────────────────────────────────────
 
-def scrape_unihomes():
+def scrape_unihomes(search_url, university_id, settings):
     """
     UniHomes – Vue SPA with server-side-rendered HTML fallback.
     """
     BASE = 'https://www.unihomes.co.uk'
     results, seen = [], set()
 
-    for page in range(1, 21):
+    for page in range(1, 11):
         print(f'  [PAGE] UniHomes page {page}')
-        url = f'{BASE}/student-accommodation/exeter' + (f'?page={page}' if page > 1 else '')
+        url = search_url + (f'?page={page}' if page > 1 else '')
         soup, _ = get_page(url)
         if not soup:
             break
@@ -494,7 +541,7 @@ def scrape_unihomes():
             href = card['href']
             ext_url = (href if href.startswith('http') else f'{BASE}{href}').split('?')[0]
             
-            if '/student-accommodation/exeter' in ext_url and '/property/' not in ext_url:
+            if university_id in ext_url and '/property/' not in ext_url:
                 continue
 
             if ext_url in seen:
@@ -527,7 +574,6 @@ def scrape_unihomes():
                     unit = 'pppw_property'
             
             if not unit:
-                print(f'  [SKIP][UniHomes] no unit label: {ext_url}')
                 continue
 
             price_pppw = calculate_pppw(price_raw, unit, beds, ext_url, 'UniHomes')
@@ -539,9 +585,6 @@ def scrape_unihomes():
             baths   = min(int(m_baths.group(1)), beds) if (m_baths and beds > 0) else 1
 
             # ── Address ───────────────────────────────────────────────────────
-            # Cards render: <p><img class="map-pin-grey"> Road Name, Area</p>
-            # The map-pin <img> makes p.string = None so we can't use string=
-            # Instead: find the img by class and get its parent <p>.
             address = ''
             pin_img = card.find('img', class_=re.compile(r'map.?pin|pin.?grey|location', re.I))
             if pin_img:
@@ -550,7 +593,6 @@ def scrape_unihomes():
                     address = re.sub(r'\s+', ' ', addr_el.get_text(' ')).strip()
 
             if not address:
-                # Fallback: first <p> whose text looks like an address (not price)
                 for p in card.find_all('p'):
                     txt = re.sub(r'\s+', ' ', p.get_text(' ')).strip()
                     if (txt and '£' not in txt and
@@ -561,21 +603,15 @@ def scrape_unihomes():
                         break
 
             if not address:
-                # Last resort: URL slug
                 parts   = href.rstrip('/').split('/')
                 address = parts[-1].replace('-', ' ').title() if parts else ''
 
             address = re.sub(r'^\d+\s+Bedroom\s+\S+\s*', '', address, flags=re.I).strip()
 
             img_url = pick_image(card, BASE)
-            if not img_url:
-                print(f'  [NO-PHOTO][UniHomes] {ext_url}')
 
-            # ── Available From ───────────────────────────────────────────────
-            # UniHomes cards often have "Available Sep 2026" or similar
             m_avail = re.search(r'Available\s+([\d\s\w]+)', text, re.I)
             avail_from = m_avail.group(1).strip() if m_avail else None
-            # Basic validation to ensure it looks like a date/month
             if avail_from and not re.search(r'(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|\d{4})', avail_from, re.I):
                 avail_from = None
 
@@ -585,7 +621,7 @@ def scrape_unihomes():
                 'bedrooms':      beds,
                 'bathrooms':     baths,
                 'available_from': avail_from,
-                'area':          detect_area(f'{address} {href}'),
+                'area':          detect_area(f'{address} {href}', settings['area_mappings'], settings['city']),
                 'external_url':  ext_url,
                 'image_url':     img_url,
                 'bills_included': bool(re.search(r'bills?\s+inclu', text, re.I)),
@@ -596,42 +632,35 @@ def scrape_unihomes():
         print(f'  [UniHomes] page {page}: {added} new')
         if added == 0:
             break
-        time.sleep(1.5)
+        time.sleep(1.0)
 
     return results
 
 
-def scrape_sturents():
+def scrape_sturents(search_url, university_id, settings):
     """
     StuRents – embeds schema.org JSON-LD in <script type="application/ld+json">.
     Also scrapes HTML cards directly.
-    Price   : "£XXX pppw" in description/JSON text.
-    Pagination: ?offset=N (12 per page).
     """
     BASE = 'https://sturents.com'
     results, seen = [], set()
 
-    for offset in range(0, 240, 12):
+    for offset in range(0, 120, 12):
         page_num = (offset // 12) + 1
         print(f'  [PAGE] StuRents page {page_num}')
-        url = (f'{BASE}/student-accommodation/exeter/listings'
-               + (f'?offset={offset}' if offset else ''))
+        url = search_url + (f'?offset={offset}' if offset else '')
         soup, _ = get_page(url)
         if not soup:
             break
 
         added = 0
-
-        # Strategy A: HTML cards (Preferred as they contain direct links)
-        # Class is 'new--listing-item'
         cards = soup.find_all('a', class_=re.compile(r'new--listing-item'))
         if not cards:
-            # Fallback to old selector if they use mixed templates
             cards = soup.find_all(['div', 'article', 'li'],
                                  class_=re.compile(r'listing|property|card|result', re.I))
 
         for card in cards:
-            link = card if card.name == 'a' else card.find('a', href=re.compile(r'/student-accommodation/exeter/'))
+            link = card if card.name == 'a' else card.find('a', href=re.compile(fr'/student-accommodation/{university_id}/'))
             if not link:
                 continue
             
@@ -644,19 +673,14 @@ def scrape_sturents():
 
             text = re.sub(r'\s+', ' ', card.get_text(' ')).strip()
             
-            # ── Beds & Baths ─────────────────────────────────────────────────
-            # .new--heading-200 often has "Studio" or "4 Bedroom"
             bm = re.search(r'(\d+)\s+bed(?:room)?', text, re.I)
             beds = int(bm.group(1)) if bm else (1 if 'studio' in text.lower() else 0)
-            baths = 1 # Fallback
+            baths = 1 
 
-            # ── Address ──────────────────────────────────────────────────────
-            # Priority: 1. h2/h3/h4 or .new--listing-title
             title_el = card.select_one('.new--listing-title, h2, h3, h4')
             address = title_el.get_text(strip=True) if title_el else ''
             
             if not address or is_date_str(address) or address.lower() == 'house':
-                # Try finding any text that looks like a street address
                 for el in card.find_all(['p', 'span', 'div']):
                     txt = el.get_text(strip=True)
                     if txt and not is_date_str(txt) and _STREET_TYPE_RE.search(txt):
@@ -664,17 +688,8 @@ def scrape_sturents():
                         break
             
             if not address:
-                address = _sturents_address_from_url(ext_url)
+                address = _sturents_address_from_url(ext_url, university_id)
 
-            # Special case for Verney St pattern in StuRents
-            if '|' in address and 'Verney St' in address:
-                address = 'Verney Street, St Sidwells'
-
-            if not address or is_date_str(address):
-                print(f'  [INVALID][StuRents] {address!r} – address too short/garbage')
-                continue
-
-            # ── Price ────────────────────────────────────────────────────────
             price_raw = 0
             unit = None
             pm = re.search(r'£\s*(\d+(?:\.\d+)?)\s*(pppw|per person per week)', text, re.I)
@@ -682,28 +697,23 @@ def scrape_sturents():
                 price_raw = float(pm.group(1))
                 unit = 'pppw'
             else:
-                # Try JSON data-house if available
                 try:
                     data_house = json.loads(card.get('data-house', '{}'))
                     price_raw = float(data_house.get('rent', 0))
-                    # StuRents rent field is usually pppw but let's check text for safety
                     if 'pppw' in text.lower() or 'per person per week' in text.lower():
                         unit = 'pppw'
                 except:
                     pass
 
             if not unit:
-                print(f'  [SKIP][StuRents] no unit label: {ext_url}')
                 continue
 
             price_pppw = calculate_pppw(price_raw, unit, beds, ext_url, 'StuRents')
             if price_pppw is None:
                 continue
 
-            # ── Image ────────────────────────────────────────────────────────
             img_url = card.get('data-photo') or pick_image(card, BASE)
 
-            # ── Available From ───────────────────────────────────────────────
             m_avail = re.search(r'(?:Available|From)\s+(\d{1,2}\s+[A-Z][a-z]{2,}\s+\d{4})', text, re.I)
             avail_from = m_avail.group(1) if m_avail else None
 
@@ -713,7 +723,7 @@ def scrape_sturents():
                 'bedrooms':      beds,
                 'bathrooms':     baths,
                 'available_from': avail_from,
-                'area':          detect_area(address),
+                'area':          detect_area(address, settings['area_mappings'], settings['city']),
                 'external_url':  ext_url,
                 'image_url':     img_url,
                 'bills_included': bool(re.search(r'bills?\s+inclu', text, re.I)),
@@ -724,32 +734,26 @@ def scrape_sturents():
         print(f'  [StuRents] offset {offset}: {added} found')
         if added == 0 and offset > 0:
             break
-        time.sleep(1.5)
+        time.sleep(1.0)
 
     return results
 
 
-def scrape_accommodationforstudents():
+def scrape_accommodationforstudents(search_url, university_id, settings):
     """
     AccommodationForStudents (AFS) – Next.js app.
-    Strategy A: parse <script id="__NEXT_DATA__"> JSON.
-    Strategy B: scrape HTML links to /property/{id}-{slug}.
-    Price: AFS shows per-person per-week → use directly as pppw.
-    Pagination: ?page=N
     """
     BASE = 'https://www.accommodationforstudents.com'
     results, seen = [], set()
 
-    for page in range(1, 21):
+    for page in range(1, 11):
         print(f'  [PAGE] AFS page {page}')
-        url = f'{BASE}/exeter' + (f'?page={page}' if page > 1 else '')
+        url = search_url + (f'&page={page}' if '?' in search_url else f'?page={page}')
         soup, _ = get_page(url)
         if not soup:
             break
 
         added = 0
-
-        # Strategy A: __NEXT_DATA__
         nd_script = soup.find('script', id='__NEXT_DATA__')
         if nd_script:
             try:
@@ -773,21 +777,16 @@ def scrape_accommodationforstudents():
                     if not ext_url.startswith('http'):
                         ext_url = urljoin(BASE, ext_url)
                     
-                    # [BAD-URL] check: if it's just the search page
-                    if ext_url.endswith('/exeter') or '?page=' in ext_url:
-                        print(f'  [BAD-URL] AFS: {ext_url}')
+                    if university_id in ext_url and ('?page=' in ext_url or ext_url.endswith(f'/{university_id}')):
                         continue
 
                     if ext_url in seen:
                         continue
                     seen.add(ext_url)
 
-                    # ── Beds & Baths ─────────────────────────────────────────────────
                     beds  = max(1, int(prop.get('bedrooms') or prop.get('beds') or 1))
                     baths = max(1, int(prop.get('bathrooms') or prop.get('baths') or 1))
-                    baths = min(baths, beds)
 
-                    # ── Price ────────────────────────────────────────────────────────
                     price_raw = 0
                     unit = None
                     p_val = prop.get('price') or prop.get('weeklyPrice') or prop.get('pricePerWeek') or 0
@@ -796,25 +795,19 @@ def scrape_accommodationforstudents():
                     except:
                         pass
                     
-                    # Determine unit
                     blob = str(prop).lower()
                     if 'pppw' in blob or 'per person' in blob:
                         unit = 'pppw'
                     elif 'pw' in blob or '/week' in blob:
-                        # In AFS halls are usually pppw even if they say /week
                         if prop.get('propertyType', '').lower() == 'hall' or 'hall' in blob:
                             unit = 'pppw'
                         else:
                             unit = 'pppw_property'
-                    elif 'pcm' in blob or 'month' in blob:
-                        unit = 'ppm_property' # Fallback for AFS houses
                     
                     if not unit:
-                        # Final fallback check on the price magnitude
-                        if 100 <= price_raw <= 300:
+                        if 75 <= price_raw <= 300:
                             unit = 'pppw'
                         else:
-                            print(f'  [SKIP][AFS] no unit label: {ext_url}')
                             continue
 
                     price_pppw = calculate_pppw(price_raw, unit, beds, ext_url, 'AccommodationForStudents')
@@ -830,14 +823,8 @@ def scrape_accommodationforstudents():
                     img_raw = (prop.get('image') or prop.get('imageUrl') or
                                prop.get('thumbnail') or '')
                     img = img_raw if (img_raw and str(img_raw).startswith('http')) else None
-                    if not img:
-                        print(f'  [NO-PHOTO][AFS] {ext_url}')
 
-                    # ── Available From ───────────────────────────────────────────────
                     avail_from = prop.get('availableFrom') or prop.get('availableDate')
-                    if not avail_from:
-                        m_avail = re.search(r'(?:Available|From)\s+(\d{1,2}\s+[A-Z][a-z]{2}\s+\d{4})', str(prop), re.I)
-                        avail_from = m_avail.group(1) if m_avail else None
 
                     results.append({
                         'address':       address,
@@ -845,7 +832,7 @@ def scrape_accommodationforstudents():
                         'bedrooms':      beds,
                         'bathrooms':     baths,
                         'available_from': avail_from,
-                        'area':          detect_area(address),
+                        'area':          detect_area(address, settings['area_mappings'], settings['city']),
                         'external_url':  ext_url,
                         'image_url':     img,
                         'bills_included': bool(
@@ -854,40 +841,26 @@ def scrape_accommodationforstudents():
                         'landlord_id':   'AccommodationForStudents',
                     })
                     added += 1
-            except Exception as e:
-                print(f'  [AFS] __NEXT_DATA__ error page {page}: {e}')
+            except:
+                pass
 
-        # Strategy B: HTML link scraping
         if added == 0:
             for link in soup.find_all('a', href=re.compile(r'/property/\d+')):
                 ext_url = urljoin(BASE, link['href']).split('?')[0]
-                
-                # [BAD-URL] check: if it's just the search page
-                if ext_url.endswith('/exeter') or '?page=' in ext_url:
-                    print(f'  [BAD-URL] AFS: {ext_url}')
-                    continue
-
-                if ext_url in seen:
-                    continue
-
-                # Walk up to the card container
+                if ext_url in seen: continue
                 card = link.find_parent(['article', 'div', 'li']) or link
                 seen.add(ext_url)
 
                 text = re.sub(r'\s+', ' ', card.get_text(' ')).strip()
-                if '£' not in text:
-                    continue
+                if '£' not in text: continue
 
-                # ── Beds & Baths ─────────────────────────────────────────────────
                 bm    = re.search(r'(\d+)\s+bed(?:room)?', text, re.I)
                 beds  = int(bm.group(1)) if bm else (1 if 'studio' in text.lower() else 0)
                 btm   = re.search(r'(\d+)\s+bathroom', text, re.I)
                 baths = min(int(btm.group(1)), beds) if (btm and beds > 0) else 1
 
-                # ── Price ────────────────────────────────────────────────────────
                 price_raw = 0
                 unit = None
-                # AFS card format: "£ 215 /week" or "£215 pppw"
                 pm = re.search(r'£\s*(\d+(?:\.\d+)?)', text)
                 if pm:
                     price_raw = float(pm.group(1))
@@ -895,59 +868,28 @@ def scrape_accommodationforstudents():
                     if 'pppw' in lower_text or 'per person' in lower_text:
                         unit = 'pppw'
                     elif '/week' in lower_text or 'per week' in lower_text:
-                        # For AFS halls are usually pppw
-                        if 'hall' in lower_text:
-                            unit = 'pppw'
-                        else:
-                            unit = 'pppw_property'
-                    elif 'pcm' in lower_text or 'per month' in lower_text:
-                        unit = 'ppm_property'
+                        unit = 'pppw_property'
                 
                 if not unit:
-                    # Final fallback check on magnitude
-                    if 100 <= price_raw <= 300:
-                        unit = 'pppw'
-                    else:
-                        print(f'  [SKIP][AFS] no unit label: {ext_url}')
-                        continue
+                    if 75 <= price_raw <= 300: unit = 'pppw'
+                    else: continue
 
                 price_pppw = calculate_pppw(price_raw, unit, beds, ext_url, 'AccommodationForStudents')
-                if price_pppw is None:
-                    continue
+                if price_pppw is None: continue
 
-                # AFS card: h2/h3 contains "N bedroom house/flat" (type, not address).
-                # The real address is in <p class="...address..."> (CardBase__address).
                 addr_el = card.find('p', class_=re.compile(r'address', re.I))
                 if addr_el:
-                    address = re.sub(
-                        r',?\s*Exeter.*$', '',
-                        addr_el.get_text(strip=True), flags=re.I).strip()
+                    address = re.sub(fr',?\s*{settings["city"]}.*$', '', addr_el.get_text(strip=True), flags=re.I).strip()
                 else:
-                    # Fallback: aria-label="N bedroom house - Street, Area, Exeter"
-                    aria = link.get('aria-label', '')
-                    if ' - ' in aria:
-                        address = re.sub(
-                            r',?\s*Exeter.*$', '',
-                            aria.split(' - ', 1)[1].strip(), flags=re.I).strip()
-                    else:
-                        h = card.find(['h2', 'h3', 'h4'])
-                        address = h.get_text(strip=True) if h else link.get_text(strip=True)
+                    address = link.get_text(strip=True)
 
                 afs_img = pick_image(card, BASE)
-                if not afs_img:
-                    print(f'  [NO-PHOTO][AFS] {ext_url}')
-
-                # ── Available From ───────────────────────────────────────────────
-                m_avail = re.search(r'(?:Available|From)\s+(?:from\s+)?(\d{1,2}\s+[A-Z][a-z]{2}\s+\d{4})', text, re.I)
-                avail_from = m_avail.group(1) if m_avail else None
-
                 results.append({
                     'address':       address,
                     'price_pppw':    round(price_pppw, 2),
                     'bedrooms':      beds,
                     'bathrooms':     baths,
-                    'available_from': avail_from,
-                    'area':          detect_area(address),
+                    'area':          detect_area(address, settings['area_mappings'], settings['city']),
                     'external_url':  ext_url,
                     'image_url':     afs_img,
                     'bills_included': bool(re.search(r'bills?\s+inclu', text, re.I)),
@@ -956,620 +898,729 @@ def scrape_accommodationforstudents():
                 added += 1
 
         print(f'  [AFS] page {page}: {added} new')
-        if added == 0:
-            break
-        time.sleep(1.5)
+        if added == 0: break
+        time.sleep(1.0)
 
     return results
 
 
-def scrape_cardens():
+def scrape_cardens(search_url, university_id, settings):
     """
-    Cardens Estate Agents – uses a session and browser-like headers to avoid 403.
+    Cardens Estate Agents – Exeter specific agency.
     """
+    if university_id != 'exeter':
+        return []
+        
     BASE  = 'https://www.cardensestateagents.co.uk'
-    
     session = requests.Session()
     session.headers.update({
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
         'Accept-Language': 'en-GB,en;q=0.9,en;q=0.8',
         'Referer': 'https://www.google.com/',
-        'DNT': '1',
-        'Connection': 'keep-alive',
-        'Upgrade-Insecure-Requests': '1',
     })
     
     results, seen = [], set()
 
-    for page in range(1, 21):
+    for page in range(1, 6):
         print(f'  [PAGE] Cardens page {page}')
-        url  = f'{BASE}/students' + (f'?page={page}' if page > 1 else '')
-        
-        if page > 1:
-            time.sleep(2)
+        url  = search_url + (f'?page={page}' if page > 1 else '')
+        if page > 1: time.sleep(1)
 
         try:
             r = session.get(url, timeout=20)
-            if r.status_code != 200:
-                print(f'  [HTTP {r.status_code}] Cardens: {url}')
-                if r.status_code == 403:
-                    print('  [Cardens] Blocked by 403 – stopping')
-                    break
-                break
+            if r.status_code != 200: break
             soup = BeautifulSoup(r.text, 'html.parser')
-        except Exception as e:
-            print(f'  [ERROR] Cardens: {e}')
-            break
+        except: break
 
         cards = (soup.select('div.property-item, div.property-card, article.property') or
                  soup.find_all('a', href=re.compile(r'/property(?:ies)?/')))
-        if not cards:
-            print(f'  [Cardens] page {page}: no cards – stopping')
-            break
+        if not cards: break
 
         added = 0
         for card in cards:
-            link      = card if card.name == 'a' else card.find('a', href=True)
-            container = card
-            if not link:
-                continue
+            link = card if card.name == 'a' else card.find('a', href=True)
+            if not link: continue
             ext_url = urljoin(BASE, link['href']).split('?')[0]
-            
-            if ext_url.endswith('/students') or '?page=' in ext_url:
-                continue
-
-            if ext_url in seen:
-                continue
+            if ext_url.endswith('/students') or ext_url in seen: continue
             seen.add(ext_url)
 
-            text = re.sub(r'\s+', ' ', container.get_text(' ')).strip()
-            if '£' not in text:
-                continue
+            text = re.sub(r'\s+', ' ', card.get_text(' ')).strip()
+            if '£' not in text: continue
 
-            # ── Beds & Baths ─────────────────────────────────────────────────
             bm   = re.search(r'(\d+)\s+bed(?:room)?', text, re.I)
             beds = int(bm.group(1)) if bm else (1 if 'studio' in text.lower() else 0)
-            btm   = re.search(r'(\d+)\s+bathroom', text, re.I)
-            baths = min(int(btm.group(1)), beds) if (btm and beds > 0) else 1
 
-            # ── Price ────────────────────────────────────────────────────────
             price_raw = 0
             unit = None
             pm_val = re.search(r'£([\d,]+)', text)
             if pm_val:
                 price_raw = float(pm_val.group(1).replace(',', ''))
-                lower_text = text.lower()
-                if 'pppw' in lower_text or 'per person per week' in lower_text:
-                    unit = 'pppw'
-                elif 'pw' in lower_text or 'per week' in lower_text:
-                    unit = 'pppw_property'
-                elif 'pcm' in lower_text or 'per month' in lower_text:
-                    unit = 'ppm_property'
+                if 'pppw' in text.lower() or 'per person per week' in text.lower(): unit = 'pppw'
+                elif 'pw' in text.lower() or 'per week' in text.lower(): unit = 'pppw_property'
+                elif 'pcm' in text.lower(): unit = 'ppm_property'
             
-            if not unit:
-                print(f'  [SKIP][Cardens] no unit label: {ext_url}')
-                continue
-
+            if not unit: continue
             price_pppw = calculate_pppw(price_raw, unit, beds, ext_url, 'Cardens')
-            if price_pppw is None:
-                continue
+            if price_pppw is None: continue
 
-            h       = container.find(['h2', 'h3', 'h4'])
+            h = card.find(['h2', 'h3', 'h4'])
             address = h.get_text(strip=True) if h else ''
-
-            cardens_img = pick_image(container, BASE)
-            if not cardens_img:
-                print(f'  [NO-PHOTO][Cardens] {ext_url}')
-
-            # ── Available From ───────────────────────────────────────────────
-            m_avail = re.search(r'(?:Available|From)\s+(\d{1,2}\s+[A-Z][a-z]{2}\s+\d{4})', text, re.I)
-            avail_from = m_avail.group(1) if m_avail else None
+            img = pick_image(card, BASE)
 
             results.append({
                 'address':       address,
                 'price_pppw':    round(price_pppw, 2),
                 'bedrooms':      beds,
-                'bathrooms':     baths,
-                'available_from': avail_from,
-                'area':          detect_area(address),
+                'bathrooms':     1,
+                'area':          detect_area(address, settings['area_mappings'], settings['city']),
                 'external_url':  ext_url,
-                'image_url':     cardens_img,
+                'image_url':     img,
                 'bills_included': bool(re.search(r'bills?\s+inclu', text, re.I)),
                 'landlord_id':   'Cardens',
             })
             added += 1
-
-        print(f'  [Cardens] page {page}: {added} new')
-        if added == 0:
-            break
-        time.sleep(1.5)
-
+        if added == 0: break
     return results
 
 
-def scrape_rightmove():
+def scrape_rightmove(search_url, university_id, settings):
     """
     Rightmove – student accommodation section.
-    URL       : /student-accommodation/Exeter.html
-    Strategy A: parse __NEXT_DATA__ JSON (props.pageProps.searchResults.properties).
-                Rightmove migrated from window.jsonModel to Next.js in 2025/26.
-    Strategy B: scrape HTML cards with links /properties/{id}.
-    Price     : pcm → (pcm × 12 / 52) / beds = pppw
-                pw/weekly → pw / beds = pppw
-    Pagination: ?index=N (25 per page)
     """
     BASE = 'https://www.rightmove.co.uk'
     results, seen = [], set()
 
-    for page_idx in range(0, 20):
+    for page_idx in range(0, 10):
         index = page_idx * 25
-        print(f'  [PAGE] Rightmove page {page_idx + 1} (index={index})')
-        url   = (f'{BASE}/student-accommodation/Exeter.html'
-                 + (f'?index={index}' if index else ''))
-        soup, raw = get_page(url)
-        if not soup:
-            break
+        print(f'  [PAGE] Rightmove page {page_idx + 1}')
+        url   = search_url + (f'?index={index}' if index else '')
+        soup, _ = get_page(url)
+        if not soup: break
 
         added = 0
-
-        # Strategy A: __NEXT_DATA__ (new Rightmove Next.js structure)
         nd_script = soup.find('script', id='__NEXT_DATA__')
+        model = {}
         if nd_script:
             try:
-                nd    = json.loads(nd_script.string or '{}')
-                model = (nd.get('props', {})
-                           .get('pageProps', {})
-                           .get('searchResults', {}))
-            except Exception:
-                model = {}
-        else:
-            # Legacy fallback: window.jsonModel (pre-2025)
-            model = {}
-            for script in soup.find_all('script'):
-                src = script.string or ''
-                m   = re.search(r'window\.jsonModel\s*=\s*(\{.+\})\s*;?\s*'
-                                r'(?:window\.|</script>)', src, re.S)
-                if m:
-                    try:
-                        model = json.loads(m.group(1))
-                    except Exception:
-                        pass
-                    break
+                nd = json.loads(nd_script.string or '{}')
+                model = nd.get('props', {}).get('pageProps', {}).get('searchResults', {})
+            except: pass
 
         for prop in model.get('properties', []):
-                pid = prop.get('id')
-                if not pid:
-                    continue
-                ext_url = f'{BASE}/properties/{pid}#/?channel=STU_LET'
-                
-                # [BAD-URL] check: if it's just the search page
-                if '/student-accommodation' in ext_url and '/properties/' not in ext_url:
-                    print(f'  [BAD-URL] Rightmove: {ext_url}')
-                    continue
+            pid = prop.get('id')
+            if not pid: continue
+            ext_url = f'{BASE}/properties/{pid}#/?channel=STU_LET'
+            if ext_url in seen: continue
+            seen.add(ext_url)
 
-                if ext_url in seen:
-                    continue
-                seen.add(ext_url)
+            price_info = prop.get('price', {})
+            amount = float(price_info.get('amount') or 0)
+            freq = str(price_info.get('frequency', '')).lower()
+            qualifier = str(prop.get('displayPriceQualifier', '')).lower()
+            beds = max(1, int(prop.get('bedrooms') or 1))
 
-                price_info = prop.get('price', {})
-                amount     = float(price_info.get('amount') or 0)
-                freq       = str(price_info.get('frequency', '')).lower()
-                qualifier  = str(prop.get('displayPriceQualifier', '')).lower()
-                beds       = max(1, int(prop.get('bedrooms') or 1))
-                baths      = max(1, int(prop.get('bathrooms') or 1))
-                baths      = min(baths, beds)
+            unit = None
+            if 'weekly' in freq:
+                unit = 'pppw' if 'per person' in qualifier else 'pppw_property'
+            elif 'monthly' in freq:
+                unit = 'pppm' if 'per person' in qualifier else 'ppm_property'
+            
+            if not unit: continue
+            price_pppw = calculate_pppw(amount, unit, beds, ext_url, 'Rightmove')
+            if price_pppw is None: continue
 
-                # Determine unit
-                unit = None
-                if 'weekly' in freq:
-                    if 'per person' in qualifier:
-                        unit = 'pppw'
-                    else:
-                        unit = 'pppw_property'
-                elif 'monthly' in freq:
-                    if 'per person' in qualifier:
-                        unit = 'pppm'
-                    else:
-                        unit = 'ppm_property'
-                
-                if not unit:
-                    print(f'  [SKIP][Rightmove] no unit detected: amount={amount}, freq={freq}, qual={qualifier} | {ext_url}')
-                    continue
+            display_addr = str(prop.get('displayAddress') or '')
+            address = re.sub(fr',?\s*{settings["city"]}.*$', '', display_addr, flags=re.I).strip()
+            
+            img_info = prop.get('propertyImages', {})
+            imgs = img_info.get('images', [])
+            img = img_info.get('mainImageSrc') or (imgs[0].get('srcUrl') if imgs else None)
 
-                price_pppw = calculate_pppw(amount, unit, beds, ext_url, 'Rightmove')
-                
-                # Detailed audit log for EVERY Rightmove listing
-                print(f'  [Rightmove Audit] pid={pid}, amount={amount}, freq={freq}, qual={qualifier}, beds={beds} -> pppw=£{price_pppw if price_pppw else "FILTERED"}')
+            results.append({
+                'address':       address,
+                'price_pppw':    round(price_pppw, 2),
+                'bedrooms':      beds,
+                'bathrooms':     max(1, int(prop.get('bathrooms') or 1)),
+                'area':          detect_area(address, settings['area_mappings'], settings['city']),
+                'external_url':  ext_url,
+                'image_url':     img,
+                'landlord_id':   'Rightmove',
+            })
+            added += 1
 
-                if price_pppw is None:
-                    continue
-
-                # ── Address Recovery ─────────────────────────────────────────
-                addr_obj = prop.get('address', {})
-                display_addr = str(addr_obj.get('displayAddress') or prop.get('displayAddress') or '')
-                
-                address = re.sub(r',?\s*Exeter.*$', '', display_addr, flags=re.I).strip()
-                
-                # Check for Verney St pattern specifically
-                if 'Verney St' in display_addr:
-                    address = 'Verney Street, St Sidwells'
-                
-                if is_garbage_address(address):
-                    # Attempt recovery
-                    line1 = addr_obj.get('line1') or ''
-                    line2 = addr_obj.get('line2') or ''
-                    outcode = addr_obj.get('outcode') or ''
-                    incode = addr_obj.get('incode') or ''
-                    postcode = f"{outcode} {incode}".strip()
-                    if not postcode: postcode = extract_postcode(display_addr) or ''
-                    
-                    recovered = ''
-                    if line1 and not is_garbage_address(line1):
-                        recovered = line1
-                    elif line2 and not is_garbage_address(line2):
-                        recovered = line2
-                    
-                    if recovered:
-                        if postcode and postcode.startswith('EX'):
-                            address = f"{recovered}, {postcode}"
-                        else:
-                            address = f"{recovered}, Exeter"
-                    elif postcode and postcode.startswith('EX'):
-                        area = prop.get('area') or 'Student Property'
-                        address = f"{area}, {postcode}"
-                    elif not is_garbage_address(display_addr):
-                        address = re.sub(r',?\s*Exeter.*$', '', display_addr, flags=re.I).strip()
-                    else:
-                        title = prop.get('text', {}).get('title') or ''
-                        if title and not is_garbage_address(title):
-                            address = title
-                    
-                if is_garbage_address(address) or len(address.split()) < 2:
-                    print(f'  [RIGHTMOVE-ADDR-WARN] marketing address for pid={pid}: '
-                          f'{display_addr!r} → skipping')
-                    seen.discard(ext_url)
-                    continue
-
-                # Rightmove images: mainImageSrc is most reliable (single URL)
-                prop_imgs = prop.get('propertyImages', {})
-                image_url = None
-                # 1. mainImageSrc — direct CDN URL on the property card
-                main_src = prop_imgs.get('mainImageSrc') or ''
-                if main_src and str(main_src).startswith('http'):
-                    image_url = str(main_src)
-                # 2. images[0].srcUrl array
-                if not image_url:
-                    imgs = (prop_imgs.get('images') or prop.get('images') or [])
-                    if imgs:
-                        first = imgs[0]
-                        src = (first.get('srcUrl') or first.get('url') or '')
-                        if src and str(src).startswith('http'):
-                            image_url = str(src)
-                if not image_url:
-                    print(f'  [NO-PHOTO][Rightmove] pid={pid}')
-
-                # ── Available From ───────────────────────────────────────────────
-                avail_from = prop.get('letAvailableDate')
-                if not avail_from:
-                    m_avail = re.search(r'(?:Available|From)\s+(\d{1,2}\s+[A-Z][a-z]{2}\s+\d{4})', str(prop), re.I)
-                    avail_from = m_avail.group(1) if m_avail else None
-
-                results.append({
-                    'address':       address,
-                    'price_pppw':    round(price_pppw, 2),
-                    'bedrooms':      beds,
-                    'bathrooms':     baths,
-                    'available_from': avail_from,
-                    'area':          detect_area(address),
-                    'external_url':  ext_url,
-                    'image_url':     image_url,
-                    'bills_included': 'bill' in str(prop).lower(),
-                    'landlord_id':   'Rightmove',
-                })
-                added += 1
-
-        # Strategy B: HTML cards
         if added == 0:
             for link in soup.find_all('a', href=re.compile(r'/properties/\d+')):
-                pid     = re.search(r'/properties/(\d+)', link['href']).group(1)
+                pid = re.search(r'/properties/(\d+)', link['href']).group(1)
                 ext_url = f'{BASE}/properties/{pid}#/?channel=STU_LET'
-                
-                # [BAD-URL] check: if it's just the search page
-                if '/student-accommodation' in ext_url and '/properties/' not in ext_url:
-                    print(f'  [BAD-URL] Rightmove: {ext_url}')
-                    continue
-
-                if ext_url in seen:
-                    continue
-
-                # Walk up to card container
-                card = link
-                for _ in range(6):
-                    if card.parent:
-                        card = card.parent
-                    if len(card.get_text()) > 60:
-                        break
+                if ext_url in seen: continue
                 seen.add(ext_url)
-
-                text = re.sub(r'\s+', ' ', card.get_text(' ')).strip()
-                if '£' not in text:
-                    continue
-
-                # ── Beds & Baths ─────────────────────────────────────────────────
-                bm   = re.search(r'(\d+)\s+bed(?:room)?', text, re.I)
-                beds = int(bm.group(1)) if bm else (1 if 'studio' in text.lower() else 0)
-                btm   = re.search(r'(\d+)\s+bath(?:room)?', text, re.I)
-                baths = min(int(btm.group(1)), beds) if (btm and beds > 0) else 1
-
-                # ── Price ────────────────────────────────────────────────────────
-                price_raw = 0
-                unit = None
-                pm_val = re.search(r'£([\d,]+)', text)
-                if pm_val:
-                    price_raw = float(pm_val.group(1).replace(',', ''))
-                    lower_text = text.lower()
-                    if 'pppw' in lower_text or 'per person' in lower_text:
-                        unit = 'pppw'
-                    elif 'pw' in lower_text or 'per week' in lower_text:
-                        unit = 'pppw_property'
-                    elif 'pcm' in lower_text or 'per month' in lower_text:
-                        unit = 'ppm_property'
                 
-                if not unit:
-                    print(f'  [SKIP][Rightmove] no unit label: {ext_url}')
-                    continue
-
-                price_pppw = calculate_pppw(price_raw, unit, beds, ext_url, 'Rightmove')
-                print(f'  [Rightmove B Audit] pid={pid}, amount={price_raw}, unit={unit}, beds={beds} -> pppw=£{price_pppw if price_pppw else "FILTERED"}')
-
-                if price_pppw is None:
-                    continue
-
-                h       = card.find(['h2', 'h3', 'h4', 'address'])
-                address = h.get_text(strip=True) if h else ''
+                card = link.find_parent(['div', 'article']) or link
+                text = card.get_text(' ')
+                pm = re.search(r'£([\d,]+)', text)
+                if not pm: continue
+                price_raw = float(pm.group(1).replace(',', ''))
+                bm = re.search(r'(\d+)\s+bed', text, re.I)
+                beds = int(bm.group(1)) if bm else 1
                 
-                # Check for Verney St pattern specifically
-                if 'Verney St' in address:
-                    address = 'Verney Street, St Sidwells'
-                else:
-                    address = re.sub(r',?\s*Exeter.*$', '', address, flags=re.I).strip()
+                price_pppw = calculate_pppw(price_raw, 'pppw_property', beds, ext_url, 'Rightmove')
+                if price_pppw:
+                    results.append({
+                        'address':       link.get_text(strip=True),
+                        'price_pppw':    price_pppw,
+                        'bedrooms':      beds,
+                        'bathrooms':     1,
+                        'area':          detect_area(link.get_text(), settings['area_mappings'], settings['city']),
+                        'external_url':  ext_url,
+                        'image_url':     pick_image(card, BASE),
+                        'landlord_id':   'Rightmove',
+                    })
+                    added += 1
 
-                rm_img = pick_image(card, BASE)
-                if not rm_img:
-                    print(f'  [NO-PHOTO][Rightmove] pid={pid}')
-
-                # ── Available From ───────────────────────────────────────────────
-                m_avail = re.search(r'(?:Available|From)\s+(\d{1,2}\s+[A-Z][a-z]{2}\s+\d{4})', text, re.I)
-                avail_from = m_avail.group(1) if m_avail else None
-
-                results.append({
-                    'address':       address,
-                    'price_pppw':    round(price_pppw, 2),
-                    'bedrooms':      beds,
-                    'bathrooms':     baths,
-                    'available_from': avail_from,
-                    'area':          detect_area(address),
-                    'external_url':  ext_url,
-                    'image_url':     rm_img,
-                    'bills_included': bool(re.search(r'bills?\s+inclu', text, re.I)),
-                    'landlord_id':   'Rightmove',
-                })
-                added += 1
-
-        print(f'  [Rightmove] page {page_idx + 1} (index={index}): {added} new')
-        if added == 0:
-            break
-        time.sleep(2.0)
-
+        print(f'  [Rightmove] page {page_idx + 1}: {added} new')
+        if added == 0: break
+        time.sleep(1)
     return results
 
 
-def scrape_rsj():
-    """
-    RSJ Investments (Private Landlord)
-    URL: https://rsjinvestments.com/property_tag/exeter/
-    """
+def scrape_rsj(search_url, university_id, settings):
+    if university_id != 'exeter': return []
     BASE = "https://rsjinvestments.com"
-    results = []
-    
-    for page_idx in range(1, 10):
-        url = f"{BASE}/property_tag/exeter/" + (f"page/{page_idx}/" if page_idx > 1 else "")
+    results, seen = [], set()
+    for page in range(1, 10):
+        url = f"{BASE}/property_tag/exeter/" + (f"page/{page}/" if page > 1 else "")
         soup, _ = get_page(url)
         if not soup: break
         
-        cards = soup.select('div.rem_property')
-        if not cards: 
-            # Try alternative selector
-            cards = soup.select('.rem-property-box')
-            if not cards: break
+        # RSJ uses different classes for properties
+        cards = soup.select('div.rem_property, .rem-property-box, [id^="post-"]')
+        if not cards: break
         
         added = 0
         for card in cards:
-            link = card.select_one('h2 a, .property-title a, .img-container a')
+            link = card.select_one('h2 a, .property-title a, a[href*="/property/"]')
             if not link: continue
-            ext_url = urljoin(BASE, link['href'])
+            ext_url = urljoin(BASE, link['href']).split('?')[0]
+            if '/property/' not in ext_url or ext_url in seen: continue
+            seen.add(ext_url)
             
-            if '/property/' not in ext_url or '/author/' in ext_url:
-                continue
+            text = card.get_text(' ')
             
-            # User clarification: 'Let' on RSJ means available for rent.
-            # We will scrape everything.
-                
-            title = link.text.strip()
-            addr_tag = card.select_one('span.address-text')
-            address = addr_tag.text.strip() if addr_tag else title
-            address = re.sub(r',?\s*EX\d.*$', '', address, flags=re.I).strip()
+            price_tag = card.select_one('.rem-price-amount, .price, .amount')
+            price_raw = 0
+            if price_tag:
+                try:
+                    price_raw = float(re.sub(r'[^\d.]', '', price_tag.text))
+                except: pass
             
-            price_tag = card.select_one('span.rem-price-amount')
-            price_pppw = float(price_tag.text.replace(',', '').replace('£', '')) if price_tag else 0
+            if not price_raw:
+                pm = re.search(r'£\s*([\d,.]+)', text)
+                if pm: price_raw = float(pm.group(1).replace(',', ''))
             
-            beds = 0
-            bed_tag = card.find('span', title='Beds')
+            bed_tag = card.find('span', title=re.compile(r'Bed', re.I)) or card.select_one('.beds, .bedrooms')
+            beds = 1
             if bed_tag:
                 m_beds = re.search(r'\d+', bed_tag.text)
                 if m_beds: beds = int(m_beds.group())
             
-            baths = 1
-            bath_tag = card.find('span', title='Baths')
-            if bath_tag:
-                m_baths = re.search(r'\d+', bath_tag.text)
-                if m_baths: baths = int(m_baths.group())
+            address = link.text.strip()
+            addr_tag = card.select_one('.address-text, .location, .address')
+            if addr_tag: address = addr_tag.text.strip()
+
+            results.append({
+                'address': address,
+                'price_pppw': price_raw,
+                'bedrooms': beds,
+                'bathrooms': 1,
+                'area': detect_area(address + " " + text, settings['area_mappings'], settings['city']),
+                'external_url': ext_url,
+                'image_url': pick_image(card, BASE),
+                'landlord_id': 'RSJInvestments',
+            })
+            added += 1
+        if added == 0: break
+        time.sleep(1)
+    return results
+
+
+def scrape_star(search_url, university_id, settings):
+    if university_id != 'exeter': return []
+    BASE = "https://star-students.com"
+    results, seen = [], set()
+    
+    # Try multiple common student search URLs if the provided one fails
+    urls = [search_url, f"{BASE}/property-to-rent", f"{BASE}/student-accommodation-exeter"]
+    
+    for url in urls:
+        soup, _ = get_page(url)
+        if not soup: continue
+        
+        cards = soup.select('div.card, .property-item, .listing-item')
+        if not cards: continue
+        
+        added = 0
+        for card in cards:
+            link = card.select_one('a[href*="/property/"], a.card-image-container')
+            if not link: continue
+            ext_url = urljoin(BASE, link['href']).split('?')[0]
+            if ext_url in seen: continue
+            seen.add(ext_url)
             
-            img_tag = card.select_one('img.rem-f-image')
-            image_url = img_tag['src'] if img_tag else None
+            text = card.get_text(' ')
+            if 'let' in text.lower() and 'let agreed' in text.lower(): continue
+                
+            price_tag = card.select_one('.price-value, .price, .amount')
+            price_raw = 0
+            if price_tag:
+                try: price_raw = float(re.sub(r'[^\d.]', '', price_tag.text))
+                except: pass
+            
+            beds = 1
+            bed_icon = card.select_one('i.fa-bed, .fa-bed')
+            if bed_icon:
+                beds_text = bed_icon.find_next_sibling('span')
+                if beds_text: 
+                    m = re.search(r'\d+', beds_text.text)
+                    if m: beds = int(m.group())
+            
+            content = card.select_one('.card-content, .property-details')
+            address = "Exeter"
+            if content:
+                addr_link = content.select_one('a, .title')
+                if addr_link: address = addr_link.text.strip()
+            
+            results.append({
+                'address': address,
+                'price_pppw': price_raw,
+                'bedrooms': beds,
+                'bathrooms': 1,
+                'area': detect_area(address + " " + text, settings['area_mappings'], settings['city']),
+                'external_url': ext_url,
+                'image_url': pick_image(card, BASE),
+                'landlord_id': 'StarStudents',
+                'bills_included': 'bill' in text.lower()
+            })
+            added += 1
+        if added > 0: break # Found a working page
+        
+    return results
+
+
+def scrape_gillams(search_url, university_id, settings):
+    if university_id != 'exeter': return []
+    BASE = "https://www.gillams-properties.co.uk"
+    results, seen = [], set()
+    
+    # Try a few variations of the URL
+    urls = [search_url, f"{BASE}/student-houses/exeter"]
+    
+    for url in urls:
+        soup, _ = get_page(url)
+        if not soup: continue
+        
+        cards = soup.select('article, .property-card, .ssr-property-card')
+        if not cards: continue
+            
+        added = 0
+        for card in cards:
+            link = card.select_one('a[href*="/property/"], .ssr-card-title a')
+            if not link: continue
+            ext_url = urljoin(BASE, link['href']).split('?')[0]
+            if ext_url in seen: continue
+            seen.add(ext_url)
+                
+            text = card.get_text(' ')
+            if 'let agreed' in text.lower(): continue
+                
+            price_tag = card.select_one('.ssr-card-price, .price, .amount')
+            price_raw = 0
+            if price_tag:
+                m_price = re.search(r'£([\d.]+)', price_tag.text)
+                if m_price: price_raw = float(m_price.group(1))
+            
+            meta = card.select_one('.ssr-card-meta, .meta, .details')
+            beds = 1
+            if meta:
+                m_beds = re.search(r'(\d+)\s+bed', meta.text, re.I)
+                if m_beds: beds = int(m_beds.group(1))
+            
+            address = link.text.strip()
+            if ' - ' in address: address = address.split(' - ')[-1]
+
+            results.append({
+                'address': address,
+                'price_pppw': price_raw,
+                'bedrooms': beds,
+                'bathrooms': 1,
+                'area': detect_area(address + " " + text, settings['area_mappings'], settings['city']),
+                'external_url': ext_url,
+                'image_url': pick_image(card, BASE),
+                'landlord_id': 'Gillams',
+                'bills_included': 'inclusive' in text.lower()
+            })
+            added += 1
+        if added > 0: break
+        
+    return results
+
+
+def scrape_uwestudentpad(search_url, university_id, settings):
+    BASE = 'https://www.uwestudentpad.co.uk'
+    results, seen = [], set()
+    for page in range(1, 6):
+        url = f"{BASE}/SearchResults/{page}"
+        soup, _ = get_page(url)
+        if not soup: break
+        
+        # UWE Studentpad uses .search-result or .property-item depending on version
+        cards = soup.select('.search-result, .property-item, [id^="property-"]')
+        if not cards: break
+        
+        added = 0
+        for card in cards:
+            link = card.select_one('a[href*="/Property/"], a.property-title')
+            if not link: continue
+            ext_url = urljoin(BASE, link['href']).split('?')[0]
+            if ext_url in seen: continue
+            seen.add(ext_url)
+            
+            text = card.get_text(' ')
+            
+            # Price extraction
+            price_raw = 0
+            pm = re.search(r'£\s*([\d,]+)', text)
+            if pm:
+                price_raw = float(pm.group(1).replace(',', ''))
+            else: continue
+            
+            unit = 'pppw' if 'pppw' in text.lower() or 'per person' in text.lower() else 'pppw_property'
+            
+            # Beds
+            bm = re.search(r'(\d+)\s+bed', text, re.I)
+            beds = int(bm.group(1)) if bm else 1
+            
+            price_pppw = calculate_pppw(price_raw, unit, beds, ext_url, 'UWEStudentPad')
+            if not price_pppw: continue
+            
+            address = link.text.strip()
+            if not address or len(address) < 5:
+                # Try finding address in sub-elements
+                addr_el = card.select_one('.address, .location')
+                if addr_el: address = addr_el.text.strip()
+
+            results.append({
+                'address': address,
+                'price_pppw': price_pppw,
+                'bedrooms': beds,
+                'bathrooms': 1,
+                'area': detect_area(address + " " + text, settings['area_mappings'], settings['city']),
+                'external_url': ext_url,
+                'image_url': pick_image(card, BASE),
+                'landlord_id': 'UWEStudentPad',
+            })
+            added += 1
+        if added == 0: break
+    return results
+
+
+def scrape_bristolsul_lettings(search_url, university_id, settings):
+    BASE = 'https://www.bristolsulettings.co.uk'
+    results = []
+    soup, _ = get_page(search_url)
+    if not soup: return []
+    
+    # Bristol SU uses different cards, try several selectors
+    cards = soup.select('.property-item, .property-card, .listing-item')
+    if not cards:
+        # Fallback to links if containers aren't found
+        cards = soup.find_all('a', href=re.compile(r'/properties/'))
+        
+    for card in cards:
+        link = card if card.name == 'a' else card.select_one('a[href*="/properties/"]')
+        if not link: continue
+        ext_url = urljoin(BASE, link['href'])
+        
+        text = card.get_text(' ')
+        pm = re.search(r'£\s*([\d,]+)', text)
+        if not pm: continue
+        price_raw = float(pm.group(1).replace(',', ''))
+        
+        bm = re.search(r'(\d+)\s+bed', text, re.I)
+        beds = int(bm.group(1)) if bm else 1
+        
+        price_pppw = calculate_pppw(price_raw, 'pppw', beds, ext_url, 'BristolSULettings')
+        if not price_pppw: continue
+        
+        address = link.text.strip()
+        if not address or len(address) < 5:
+            addr_el = card.select_one('.address, .title')
+            if addr_el: address = addr_el.text.strip()
+
+        results.append({
+            'address': address,
+            'price_pppw': price_pppw,
+            'bedrooms': beds,
+            'bathrooms': 1,
+            'area': detect_area(address + " " + text, settings['area_mappings'], settings['city']),
+            'external_url': ext_url,
+            'image_url': pick_image(card, BASE),
+            'landlord_id': 'BristolSULettings',
+        })
+    return results
+
+
+def scrape_cjhole(search_url, university_id, settings):
+    BASE = 'https://www.cjhole.co.uk'
+    results = []
+    soup, _ = get_page(search_url)
+    if not soup: return []
+    
+    # CJ Hole uses .property-item, .property-card, or search-result-item
+    cards = soup.select('.property-item, .property-card, .search-result-item')
+    if not cards:
+        cards = soup.find_all('div', class_=re.compile(r'property', re.I))
+        
+    for card in cards:
+        link = card.select_one('a[href*="/property/"], a[href*="/letting/"]')
+        if not link: continue
+        ext_url = urljoin(BASE, link['href'])
+        
+        text = card.get_text(' ')
+        pm = re.search(r'£\s*([\d,]+)', text)
+        if not pm: continue
+        price_raw = float(pm.group(1).replace(',', ''))
+        
+        # CJ Hole usually lists pcm
+        unit = 'pppm' if 'pcm' in text.lower() or 'month' in text.lower() else 'pppw'
+        
+        bm = re.search(r'(\d+)\s+bed', text, re.I)
+        beds = int(bm.group(1)) if bm else 1
+        
+        price_pppw = calculate_pppw(price_raw, unit, beds, ext_url, 'CJHole')
+        if not price_pppw: continue
+        
+        address = link.text.strip()
+        if not address or len(address) < 5:
+            addr_el = card.select_one('.address, .location, h2, h3')
+            if addr_el: address = addr_el.text.strip()
+
+        results.append({
+            'address': address,
+            'price_pppw': price_pppw,
+            'bedrooms': beds,
+            'bathrooms': 1,
+            'area': detect_area(address + " " + text, settings['area_mappings'], settings['city']),
+            'external_url': ext_url,
+            'image_url': pick_image(card, BASE),
+            'landlord_id': 'CJHole',
+        })
+    return results
+
+
+def scrape_bristoldigs(search_url, university_id, settings):
+    BASE = 'https://bristoldigs.co.uk'
+    results = []
+    soup, _ = get_page(search_url)
+    if not soup: return []
+    for card in soup.select('.property-item'):
+        link = card.select_one('a.property-link')
+        if not link: continue
+        ext_url = urljoin(BASE, link['href'])
+        price_raw = float(re.search(r'£([\d,]+)', card.select_one('.price').text).group(1).replace(',', ''))
+        beds = int(re.search(r'\d+', card.select_one('.beds').text).group())
+        
+        price_pppw = calculate_pppw(price_raw, 'pppw', beds, ext_url, 'BristolDigs')
+        if not price_pppw: continue
+        
+        results.append({
+            'address': card.select_one('.address').text.strip(),
+            'price_pppw': price_pppw,
+            'bedrooms': beds,
+            'bathrooms': 1,
+            'area': detect_area(card.select_one('.address').text, settings['area_mappings'], settings['city']),
+            'external_url': ext_url,
+            'image_url': pick_image(card, BASE),
+            'landlord_id': 'BristolDigs',
+        })
+    return results
+
+
+def scrape_studentcrowd(search_url, university_id, settings):
+    BASE = 'https://www.studentcrowd.com'
+    results = []
+    soup, _ = get_page(search_url)
+    if not soup: return []
+    
+    # StudentCrowd uses various card layouts
+    cards = soup.select('.property-card, .search-result, [class*="PropertyCard"]')
+    if not cards:
+        cards = soup.find_all('div', class_=re.compile(r'card', re.I))
+
+    for card in cards:
+        link = card.select_one('a[href*="/student-accommodation-"]')
+        if not link: continue
+        ext_url = urljoin(BASE, link['href'])
+        
+        text = card.get_text(' ')
+        pm = re.search(r'£\s*([\d,]+)', text)
+        if not pm: continue
+        price_raw = float(pm.group(1).replace(',', ''))
+        
+        price_pppw = calculate_pppw(price_raw, 'pppw', 1, ext_url, 'StudentCrowd')
+        if not price_pppw: continue
+        
+        address = card.select_one('.title, .name, h2, h3').text.strip() if card.select_one('.title, .name, h2, h3') else "Bristol"
+
+        results.append({
+            'address': address,
+            'price_pppw': price_pppw,
+            'bedrooms': 1,
+            'bathrooms': 1,
+            'area': detect_area(address + " " + text, settings['area_mappings'], settings['city']),
+            'external_url': ext_url,
+            'image_url': pick_image(card, BASE),
+            'landlord_id': 'StudentCrowd',
+        })
+    return results
+
+
+def scrape_jointliving(search_url, university_id, settings):
+    BASE = 'https://jointliving.co.uk'
+    results = []
+    soup, _ = get_page(search_url)
+    if not soup: return []
+    
+    cards = soup.select('.property-card, .listing, article')
+    if not cards:
+        cards = soup.find_all('div', class_=re.compile(r'property', re.I))
+
+    for card in cards:
+        link = card if card.name == 'a' else card.select_one('a')
+        if not link: continue
+        ext_url = urljoin(BASE, link['href'])
+        if '/cities/' in ext_url: continue
+        
+        text = card.get_text(' ')
+        pm = re.search(r'£\s*([\d,]+)', text)
+        if not pm: continue
+        price_raw = float(pm.group(1).replace(',', ''))
+        
+        price_pppw = calculate_pppw(price_raw, 'pppw', 1, ext_url, 'JointLiving')
+        if not price_pppw: continue
+        
+        addr_el = card.select_one('.address, .title, h2, h3')
+        address = addr_el.text.strip() if addr_el else "Bristol"
+        
+        results.append({
+            'address': address,
+            'price_pppw': price_pppw,
+            'bedrooms': 1,
+            'bathrooms': 1,
+            'area': detect_area(address + " " + text, settings['area_mappings'], settings['city']),
+            'external_url': ext_url,
+            'image_url': pick_image(card, BASE),
+            'landlord_id': 'JointLiving',
+        })
+    return results
+
+
+def scrape_unitestudents(search_url, university_id, settings):
+    BASE = 'https://www.unitestudents.com'
+    results = []
+    # Unite often needs specific headers or loads via JSON, but we'll try robust HTML first
+    soup, _ = get_page(search_url)
+    if not soup: return []
+    
+    cards = soup.select('.property-card, .search-result-card, [data-testid="property-card"]')
+    if not cards:
+        cards = soup.find_all('div', class_=re.compile(r'property', re.I))
+
+    for card in cards:
+        link = card.select_one('a[href*="/bristol/"]')
+        if not link: continue
+        ext_url = urljoin(BASE, link['href'])
+        
+        text = card.get_text(' ')
+        pm = re.search(r'£\s*([\d,]+)', text)
+        if not pm: continue
+        price_raw = float(pm.group(1).replace(',', ''))
+        
+        price_pppw = calculate_pppw(price_raw, 'pppw', 1, ext_url, 'UniteStudents')
+        if not price_pppw: continue
+        
+        title_el = card.select_one('.title, h2, h3, [class*="PropertyName"]')
+        address = title_el.text.strip() if title_el else "Unite Students Bristol"
+        
+        results.append({
+            'address': address,
+            'price_pppw': price_pppw,
+            'bedrooms': 1,
+            'bathrooms': 1,
+            'area': detect_area(address + " " + text, settings['area_mappings'], settings['city']),
+            'external_url': ext_url,
+            'image_url': pick_image(card, BASE),
+            'landlord_id': 'UniteStudents',
+        })
+    return results
+
+
+def scrape_onthemarket(search_url, university_id, settings):
+    """
+    OnTheMarket scraper for student properties.
+    """
+    results, seen = [], set()
+    BASE = 'https://www.onthemarket.com'
+
+    for page in range(1, 4):
+        url = search_url + (f'?page={page}' if page > 1 else '')
+        soup, _ = get_page(url)
+        if not soup: break
+        
+        cards = soup.select('.otm-PropertyCard, .property-card, li.result')
+        if not cards: break
+        
+        added = 0
+        for card in cards:
+            link = card.select_one('a[href*="/details/"]')
+            if not link: continue
+            ext_url = urljoin(BASE, link['href']).split('?')[0]
+            if ext_url in seen: continue
+            seen.add(ext_url)
+            
+            text = card.get_text(' ')
+            
+            price_raw = 0
+            pm = re.search(r'£\s*([\d,]+)', text)
+            if pm:
+                price_raw = float(pm.group(1).replace(',', ''))
+            else: continue
+            
+            unit = 'pppm' if 'pcm' in text.lower() or 'month' in text.lower() else 'pppw'
+            
+            bm = re.search(r'(\d+)\s+bed', text, re.I)
+            beds = int(bm.group(1)) if bm else 1
+            
+            price_pppw = calculate_pppw(price_raw, unit, beds, ext_url, 'OnTheMarket')
+            if not price_pppw: continue
+            
+            address = "Property"
+            addr_el = card.select_one('.address, .otm-PropertyAddress, address')
+            if addr_el: address = addr_el.text.strip()
             
             results.append({
                 'address': address,
                 'price_pppw': price_pppw,
                 'bedrooms': beds,
-                'bathrooms': baths,
-                'area': detect_area(address),
+                'bathrooms': 1,
+                'area': detect_area(address + " " + text, settings['area_mappings'], settings['city']),
                 'external_url': ext_url,
-                'image_url': image_url,
-                'landlord_id': 'RSJInvestments',
-                'bills_included': False 
+                'image_url': pick_image(card, BASE),
+                'landlord_id': 'OnTheMarket',
             })
             added += 1
-        
-        print(f'  [RSJ] page {page_idx}: {added} found')
         if added == 0: break
         time.sleep(1)
-        
-    return results
-
-
-def scrape_star():
-    """
-    Star Students (Agency)
-    URL: https://star-students.com/property-to-rent
-    """
-    BASE = "https://star-students.com"
-    results = []
-    
-    # This site seems to load all on one page or use standard pagination
-    url = f"{BASE}/property-to-rent"
-    soup, _ = get_page(url)
-    if not soup: return []
-    
-    cards = soup.select('div.card')
-    for card in cards:
-        link = card.select_one('a.card-image-container')
-        if not link: continue
-        ext_url = urljoin(BASE, link['href'])
-        
-        # Check if Let
-        img_container = card.select_one('.card-image')
-        if img_container and 'let' in img_container.text.lower():
-            continue
-            
-        price_tag = card.select_one('span.price-value')
-        price_raw = float(price_tag.text.replace('£', '').replace(',', '')) if price_tag else 0
-        
-        # Address/Title
-        content = card.select_one('.card-content')
-        title = content.select_one('a').text.strip() if content else ""
-        address = title
-        if ' in ' in address:
-            address = address.split(' in ')[-1]
-        
-        # Detail extraction
-        beds = 0
-        bed_icon = card.select_one('i.fa-bed')
-        if bed_icon:
-            beds_text = bed_icon.find_next_sibling('span', class_='number')
-            if beds_text: beds = int(beds_text.text.strip())
-            
-        baths = 1
-        bath_icon = card.select_one('i.fa-bathtub')
-        if bath_icon:
-            baths_text = bath_icon.find_next_sibling('span', class_='number')
-            if baths_text: baths = int(baths_text.text.strip())
-            
-        img = card.select_one('img')
-        image_url = img['data-src'] if img and img.has_attr('data-src') else (img['src'] if img else None)
-        
-        # Price unit check - Star usually lists pppw
-        unit = 'pppw'
-        price_pppw = calculate_pppw(price_raw, unit, beds, ext_url, 'StarStudents')
-        
-        results.append({
-            'address': address,
-            'price_pppw': price_pppw,
-            'bedrooms': beds,
-            'bathrooms': baths,
-            'area': detect_area(address),
-            'external_url': ext_url,
-            'image_url': image_url,
-            'landlord_id': 'StarStudents',
-            'bills_included': 'bill' in card.text.lower()
-        })
-        
-    return results
-
-
-def scrape_gillams():
-    """
-    Gillams Properties (Agency)
-    URL: https://www.gillams-properties.co.uk/student-houses/exeter#properties
-    """
-    BASE = "https://www.gillams-properties.co.uk"
-    results = []
-    
-    url = f"{BASE}/student-houses/exeter"
-    soup, _ = get_page(url)
-    if not soup: return []
-    
-    cards = soup.select('article.ssr-property-card')
-    for card in cards:
-        link = card.select_one('h3.ssr-card-title a')
-        if not link: continue
-        ext_url = urljoin(BASE, link['href'])
-        
-        # Status
-        badges = card.select_one('.ssr-card-badges')
-        if badges and 'let' in badges.text.lower():
-            continue
-            
-        title = link.text.strip()
-        # "8 bed house - 64 Danes Road Exeter" -> "64 Danes Road"
-        address = title
-        if ' - ' in address:
-            address = address.split(' - ')[-1]
-        address = re.sub(r',?\s*Exeter.*$', '', address, flags=re.I).strip()
-        
-        # Price - Gillams shows inclusive and rent-only. We prefer rent-only if available for pppw consistency
-        # Or we just take the first primary price.
-        price_tag = card.select_one('.ssr-card-price')
-        price_text = price_tag.text if price_tag else ""
-        price_raw = 0
-        m_price = re.search(r'£([\d\.]+)', price_text)
-        if m_price:
-            price_raw = float(m_price.group(1))
-            
-        # Beds
-        meta = card.select_one('.ssr-card-meta')
-        beds = 0
-        if meta:
-            m_beds = re.search(r'(\d+)\s+bed', meta.text)
-            if m_beds: beds = int(m_beds.group(1))
-            
-        # Image - The SSR version doesn't always have images in the card, but let's check
-        img_tag = card.find_parent('div').select_one('img') # Might be outside article in some layouts
-        image_url = img_tag['src'] if img_tag else None
-        
-        results.append({
-            'address': address,
-            'price_pppw': price_raw, # Gillams price is usually already pppw
-            'bedrooms': beds,
-            'bathrooms': 1, # Default
-            'area': detect_area(address),
-            'external_url': ext_url,
-            'image_url': image_url,
-            'landlord_id': 'Gillams',
-            'bills_included': 'inclusive' in card.text.lower()
-        })
-        
     return results
 
 
@@ -1577,11 +1628,7 @@ def scrape_gillams():
 
 def deduplicate(listings):
     """
-    Pass 1: deduplicate by normalised external_url (strips tracking params,
-            fragments, trailing slashes, www. prefix, lowercased).
-    Pass 2: deduplicate by normalised(address) + bedrooms + price within £10,
-            keeping the entry with the highest completeness score.
-            Logs whenever the secondary check fires.
+    Deduplicate with aggressive address normalization.
     """
     def completeness(l):
         score = 0
@@ -1592,7 +1639,10 @@ def deduplicate(listings):
         return score
 
     def addr_key(l):
-        a = re.sub(r'[^a-z0-9]', '', l['address'].lower())
+        # Remove common property identifiers for more aggressive matching
+        a = l['address'].lower()
+        a = re.sub(r'\b(flat|apartment|apt|unit|room|house|no\.|number|studio)\s*\d+[a-z]?\b', '', a)
+        a = re.sub(r'[^a-z0-9]', '', a)
         return f"{a}_{l['bedrooms']}"
 
     # Pass 1: normalised URL
@@ -1602,9 +1652,9 @@ def deduplicate(listings):
         if key not in by_url:
             by_url[key] = l
         elif completeness(l) > completeness(by_url[key]):
-            by_url[key] = l  # keep more complete record
+            by_url[key] = l
 
-    # Pass 2: addr+beds+price tolerance
+    # Pass 2: Aggressive addr+beds+price
     by_addr = {}
     for l in by_url.values():
         key = addr_key(l)
@@ -1613,18 +1663,10 @@ def deduplicate(listings):
         else:
             existing = by_addr[key]
             price_diff = abs(l['price_pppw'] - existing['price_pppw'])
-            # Reduced tolerance to £2 to keep different units at same building
-            # (e.g. Studio 1 vs Studio 5 with slightly different prices)
-            if price_diff <= 2:
-                # Treat as same physical property/unit
-                print(f'  [DEDUP-ADDR] Same property/unit detected: "{l["address"]}" '
-                      f'{l["bedrooms"]}bed £{l["price_pppw"]} ({l["landlord_id"]}) vs '
-                      f'£{existing["price_pppw"]} ({existing["landlord_id"]}) '
-                      f'– keeping higher-completeness record')
+            if price_diff <= 5: # Increased tolerance to £5 for portal variations
                 if completeness(l) > completeness(existing):
                     by_addr[key] = l
             else:
-                # Different price → keep both (may be different units)
                 by_addr[f"{key}_{int(l['price_pppw'])}"] = l
 
     return list(by_addr.values())
@@ -1633,73 +1675,95 @@ def deduplicate(listings):
 # ─── MAIN ─────────────────────────────────────────────────────────────────────
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--university', default='exeter', help='University ID (e.g. exeter, bristol)')
+    parser.add_argument('--scraper', default=None, help='Run only a specific scraper by name')
+    args = parser.parse_args()
+    
+    university_id = args.university
+    if university_id not in UNIVERSITY_SETTINGS:
+        print(f"[FATAL] Unknown university: {university_id}")
+        return
+        
+    settings = UNIVERSITY_SETTINGS[university_id]
+    
+    # Filter search_urls if --scraper is provided
+    search_urls = settings['search_urls']
+    if args.scraper:
+        if args.scraper in search_urls:
+            search_urls = {args.scraper: search_urls[args.scraper]}
+            print(f"=== RUNNING SINGLE SCRAPER: {args.scraper} FOR {settings['city']} ===")
+        else:
+            print(f"[FATAL] Scraper {args.scraper} not found for {university_id}")
+            return
+    else:
+        print(f"=== SCRAPING ALL FOR {settings['city']} ({university_id}) ===")
+
     SUPABASE_URL = (os.environ.get('SUPABASE_URL') or
                     os.environ.get('EXPO_PUBLIC_SUPABASE_URL'))
     SUPABASE_KEY = (os.environ.get('SUPABASE_SERVICE_ROLE_KEY') or
                     os.environ.get('EXPO_PUBLIC_SUPABASE_ANON_KEY'))
     if not SUPABASE_URL or not SUPABASE_KEY:
-        print('[FATAL] Missing SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY '
-              '(or EXPO_PUBLIC_ equivalents)')
+        print('[FATAL] Missing SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY')
         return
 
     supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-    for name in ('UniHomes', 'StuRents', 'AccommodationForStudents', 'Cardens', 'Rightmove'):
-        try:
-            supabase.table('landlords').upsert(
-                {'id': name, 'name': name, 'type': 'Agency'},
-                on_conflict='id'
-            ).execute()
-        except Exception:
-            pass
-
-    # ── Scrape ──────────────────────────────────────────────────────────────
+    # ── Scrapers ────────────────────────────────────────────────────────────
     stats = {}
     all_raw = []
-    scrapers = [
-        ('UniHomes',               scrape_unihomes),
-        ('StuRents',               scrape_sturents),
-        ('AccommodationForStudents', scrape_accommodationforstudents),
-        ('Cardens',                scrape_cardens),
-        ('Rightmove',              scrape_rightmove),
-        ('RSJInvestments',         scrape_rsj),
-        ('StarStudents',           scrape_star),
-        ('Gillams',                scrape_gillams),
-    ]
+    
+    SCRAPER_MAP = {
+        'UniHomes': scrape_unihomes,
+        'StuRents': scrape_sturents,
+        'AccommodationForStudents': scrape_accommodationforstudents,
+        'Rightmove': scrape_rightmove,
+        'OnTheMarket': scrape_onthemarket,
+        'Cardens': scrape_cardens,
+        'RSJInvestments': scrape_rsj,
+        'StarStudents': scrape_star,
+        'Gillams': scrape_gillams,
+        'UWEStudentPad': scrape_uwestudentpad,
+        'BristolSULettings': scrape_bristolsul_lettings,
+        'CJHole': scrape_cjhole,
+        'BristolDigs': scrape_bristoldigs,
+        'StudentCrowd': scrape_studentcrowd,
+        'JointLiving': scrape_jointliving,
+        'UniteStudents': scrape_unitestudents,
+    }
 
-    for name, fn in scrapers:
+    for name, search_url in search_urls.items():
+        if name not in SCRAPER_MAP:
+            print(f"  [SKIP] No scraper function for {name}")
+            continue
+            
+        fn = SCRAPER_MAP[name]
         print(f'\n=== {name} ===')
         stats[name] = {'raw': 0, 'price_filter': 0, 'bad_url': 0, 'bad_addr': 0, 'inserted': 0}
         try:
-            raw = fn()
+            raw = fn(search_url, university_id, settings)
             stats[name]['raw'] = len(raw)
             print(f'  → {len(raw)} raw listings')
             all_raw.extend(raw)
         except Exception as e:
             print(f'  [CRASH] {name}: {e}')
+            import traceback
+            traceback.print_exc()
 
     # ── Validate ─────────────────────────────────────────────────────────────
     valid = []
     for l in all_raw:
-        ok, reason = validate(l)
+        ok, reason = validate(l, settings)
         landlord = l.get("landlord_id","?")
         if ok:
             valid.append(l)
         else:
             if 'price' in reason:
                 stats[landlord]['price_filter'] += 1
-                print(f'  [PRICE-OUT][{landlord}] '
-                      f'{l.get("address","?")} – {reason} '
-                      f'url={l.get("external_url","?")}')
             elif 'url' in reason:
                 stats[landlord]['bad_url'] += 1
-                print(f'  [INVALID][{landlord}] {reason}')
             elif 'address' in reason or 'GEO-SKIP' in reason:
                 stats[landlord]['bad_addr'] += 1
-                print(f'  [INVALID][{landlord}] {reason}')
-            else:
-                print(f'  [INVALID][{landlord}] '
-                      f'{l.get("address","?")} – {reason}')
 
     print(f'\nValidation: {len(all_raw)} raw → {len(valid)} valid')
 
@@ -1707,110 +1771,53 @@ def main():
     unique = deduplicate(valid)
     print(f'Dedup:      {len(valid)} valid → {len(unique)} unique')
 
-    # ── Upsert Landlords ───────────────────────────────────────────────────────
-    landlord_data = [
-        {'id': 'UniHomes', 'name': 'UniHomes', 'type': 'Portal'},
-        {'id': 'StuRents', 'name': 'StuRents', 'type': 'Portal'},
-        {'id': 'AccommodationForStudents', 'name': 'AccommodationForStudents', 'type': 'Portal'},
-        {'id': 'Cardens', 'name': 'Cardens', 'type': 'Agency'},
-        {'id': 'Rightmove', 'name': 'Rightmove', 'type': 'Portal'},
-        {'id': 'RSJInvestments', 'name': 'RSJ Investments', 'type': 'Landlord'},
-        {'id': 'StarStudents', 'name': 'Star Students', 'type': 'Agency'},
-        {'id': 'Gillams', 'name': 'Gillams Properties', 'type': 'Agency'},
-    ]
-    for ld in landlord_data:
-        try:
-            supabase.table('landlords').upsert(ld).execute()
-        except Exception as e:
-            print(f"  [LANDLORD ERROR] {ld['id']}: {e}")
-
     # ── Upsert Properties ─────────────────────────────────────────────────────
     now      = datetime.now(timezone.utc).isoformat()
     upserted = 0
     total_to_upsert = len(unique)
-    print(f"\nStarting Upsert & Geocoding for {total_to_upsert} properties...")
+    ref_coords = settings['coords']
     
     for i, l in enumerate(unique):
         if (i + 1) % 10 == 0 or i == 0 or i == total_to_upsert - 1:
             print(f"  → Progress: {i+1}/{total_to_upsert}...")
             
-        # ── Geocoding & Distance ─────────────────────────────────────────────
-        postcode = extract_postcode(f"{l['address']} {l['external_url']}")
-        coords = get_coordinates(postcode, l['address'])
+        pc_range = settings['postcode_range']
+        postcode = extract_postcode(f"{l['address']} {l['external_url']}", pc_range)
+        coords = get_coordinates(postcode, l['address'], settings['city'])
         
-        dist_streatham = round(haversine(coords, STREATHAM_COORDS), 1) if coords else None
-        dist_st_lukes  = round(haversine(coords, ST_LUKES_COORDS), 1) if coords else None
-
         row = {
             'address':       l['address'],
             'price_pppw':    l['price_pppw'],
             'bedrooms':      l['bedrooms'],
-            'bathrooms':     l['bathrooms'],
+            'bathrooms':     l.get('bathrooms', 1),
             'available_from': l.get('available_from'),
-            'area':          l['area'],
+            'area':          l.get('area') or detect_area(l['address'], settings['area_mappings'], settings['city']),
             'external_url':  l['external_url'],
             'image_url':     l['image_url'],
             'bills_included': l.get('bills_included', False),
             'landlord_id':   l['landlord_id'],
-            'distance_streatham': dist_streatham,
-            'distance_st_lukes':  dist_st_lukes,
             'latitude':      coords[0] if coords else None,
             'longitude':     coords[1] if coords else None,
             'last_scraped':  now,
             'is_available':  True,
+            'university':    university_id,
         }
+        
+        for c_name, c_val in ref_coords.items():
+            dist = round(haversine(coords, c_val), 1) if coords else None
+            row[f'distance_{c_name}'] = dist
+
         try:
             supabase.table('properties').upsert(row, on_conflict='external_url').execute()
             upserted += 1
             stats[l['landlord_id']]['inserted'] += 1
         except Exception as e:
-            # Only print critical DB errors
             if "schema cache" in str(e):
                 print(f"  [DB ERROR] Schema sync needed: {e}")
                 break
-            # Skip noise for individual records unless it's a crash
             pass
 
-    print(f'\n┌──────────────────────────┬──────┬────────┬──────────┬──────────┬──────────┐')
-    print(f'│ Site                     │ Raw  │ Price  │ Bad URL  │ Bad Addr │ Inserted │')
-    print(f'├──────────────────────────┼──────┼────────┼──────────┼──────────┼──────────┤')
-    total_raw = total_pf = total_bu = total_ba = total_ins = 0
-    for name in ('UniHomes', 'StuRents', 'AccommodationForStudents', 'Cardens', 'Rightmove', 'RSJInvestments', 'StarStudents', 'Gillams'):
-        s = stats.get(name, {'raw':0, 'price_filter':0, 'bad_url':0, 'bad_addr':0, 'inserted':0})
-        print(f'│ {name:24} │ {s["raw"]:4} │ {s["price_filter"]:6} │ {s["bad_url"]:8} │ {s["bad_addr"]:8} │ {s["inserted"]:8} │')
-        total_raw += s['raw']; total_pf += s['price_filter']; total_bu += s['bad_url']; total_ba += s['bad_addr']; total_ins += s['inserted']
-    print(f'├──────────────────────────┼──────┼────────┼──────────┼──────────┼──────────┤')
-    print(f'│ TOTAL                    │ {total_raw:4} │ {total_pf:6} │ {total_bu:8} │ {total_ba:8} │ {total_ins:8} │')
-    print(f'└──────────────────────────┴──────┴────────┴──────────┴──────────┴──────────┘')
-
-    # ── Sample Output Verification ───────────────────────────────────────────
-    print('\n=== Sample Output Verification ===')
-    for name in ('UniHomes', 'StuRents', 'AccommodationForStudents', 'Cardens', 'Rightmove'):
-        samples = [l for l in unique if l['landlord_id'] == name][:3]
-        for l in samples:
-            postcode = extract_postcode(f"{l['address']} {l['external_url']}")
-            coords = get_coordinates(postcode)
-            dist_streatham = round(haversine(coords, STREATHAM_COORDS), 1) if coords else None
-            nearest = f"{dist_streatham}mi from Streatham" if dist_streatham else "Unknown distance"
-            
-            print(f'\n  Site: {l["landlord_id"]}')
-            print(f'  Address: {l["address"]}')
-            print(f'  Bedrooms: {l["bedrooms"]}')
-            print(f'  Price: £{l["price_pppw"]} pppw')
-            print(f'  Photo: {l["image_url"]}')
-            print(f'  URL: {l["external_url"]}')
-            print(f'  Available: {l.get("available_from")}')
-            print(f'  Distance: {nearest}')
-
-    # ── Remove stale listings (>48 h old) ────────────────────────────────────
-    try:
-        cutoff = (datetime.now(timezone.utc) - timedelta(hours=48)).isoformat()
-        supabase.table('properties').delete().lt('last_scraped', cutoff).execute()
-        print('Stale listings purged.')
-    except Exception as e:
-        print(f'[WARN] Stale purge failed: {e}')
-
-    print(f'\nDone. {upserted} listings live.')
+    print(f'\nDone. {upserted} listings live for {university_id}.')
 
 
 if __name__ == '__main__':

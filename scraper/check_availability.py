@@ -1,5 +1,6 @@
 import os
 import requests
+import argparse
 from supabase import create_client, Client
 from urllib.parse import urlparse
 
@@ -38,6 +39,10 @@ def is_redirected_to_homepage(original_url, final_url):
     return False
 
 def check_availability():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--university', default=None, help='Filter by University ID')
+    args = parser.parse_args()
+
     SUPABASE_URL = os.environ.get('SUPABASE_URL') or os.environ.get('EXPO_PUBLIC_SUPABASE_URL')
     SUPABASE_KEY = os.environ.get('SUPABASE_SERVICE_ROLE_KEY') or os.environ.get('EXPO_PUBLIC_SUPABASE_ANON_KEY')
     
@@ -49,11 +54,16 @@ def check_availability():
     
     # 1. Fetch all listings where is_available = true
     try:
-        res = supabase.table('properties').select('id, external_url').eq('is_available', True).execute()
+        query = supabase.table('properties').select('id, external_url').eq('is_available', True)
+        if args.university:
+            query = query.eq('university', args.university)
+            print(f"Checking availability for university: {args.university}")
+        else:
+            print("Checking availability for ALL listings")
+            
+        res = query.execute()
         listings = res.data or []
     except Exception as e:
-        # If is_available column doesn't exist yet, we might get an error
-        # but for this script we assume it exists
         print(f'[ERROR] Could not fetch listings: {e}')
         return
 
@@ -67,20 +77,14 @@ def check_availability():
         url = l['external_url']
         checked += 1
         try:
-            # Step 2: Send HEAD request with realistic headers
             r = requests.head(url, headers=HEADERS, timeout=10, allow_redirects=True)
-            
-            # Step 3: Check for 404 or redirect to homepage
             if r.status_code == 404 or is_redirected_to_homepage(url, r.url):
                 print(f'  [UNAVAILABLE] {url}')
                 supabase.table('properties').update({'is_available': False}).eq('id', l['id']).execute()
                 marked_unavailable += 1
-            # Step 4: 200 is fine (implicit)
-            # Step 5: 403 or 5xx are ignored
             elif r.status_code >= 500 or r.status_code == 403:
                 skipped_errors += 1
         except Exception as e:
-            # print(f'  [ERROR] {url}: {e}')
             skipped_errors += 1
 
     print(f'\nSummary:')

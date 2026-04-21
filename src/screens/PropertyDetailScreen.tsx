@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, useWindowDimensions, Platform, Linking, ActivityIndicator } from 'react-native';
 import { supabase } from '../lib/supabase';
-import { colors, spacing, radii, typography, shadows } from '../utils/theme';
+import { colors, spacing, radii, typography, shadows, getUniversityColors, isDesktop } from '../utils/theme';
 import { AREA_COORDS, CAMPUS_COORDS } from '../data/seeds';
+import UNIVERSITIES from '../../config/universities.json';
 
 const DEFAULT_FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1518780664697-55e3ad937233';
 
@@ -19,7 +20,6 @@ const formatDate = (dateStr: string) => {
   });
 };
 
-// Simple haversine-like distance helper for the UI safety net
 const calculateStraightDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
   const p = 0.017453292519943295;    // Math.PI / 180
   const c = Math.cos;
@@ -30,21 +30,37 @@ const calculateStraightDistance = (lat1: number, lon1: number, lat2: number, lon
   return 12742 * Math.asin(Math.sqrt(a)) * 0.621371; // 2 * R; R = 6371 km -> convert to miles
 };
 
+const CAMPUS_DATA = {
+  exeter: [
+    { id: 'streatham', label: 'Streatham', icon: '🏰' },
+    { id: 'st_lukes', label: "St Luke's", icon: '🏥' }
+  ],
+  bristol: [
+    { id: 'uob', label: 'UoB', icon: '🎓' },
+    { id: 'uwe', label: 'UWE', icon: '🏢' }
+  ]
+};
+
 interface PropertyDetailScreenProps {
   propertyId: string;
+  universityId: string;
   onBack: () => void;
   onSeeReviews: (landlordId: string) => void;
 }
 
-export default function PropertyDetailScreen({ propertyId, onBack, onSeeReviews }: PropertyDetailScreenProps) {
+export default function PropertyDetailScreen({ propertyId, universityId, onBack, onSeeReviews }: PropertyDetailScreenProps) {
   const [property, setProperty] = useState<any>(null);
   const [landlord, setLandlord] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
   
   const { width } = useWindowDimensions();
-  const isDesktop = width >= 768;
+  const desktop = isDesktop(width);
   const isSmallMobile = width < 400;
+  
+  const currentUni = UNIVERSITIES.find(u => u.id === universityId) || UNIVERSITIES[0];
+  const campuses = (CAMPUS_DATA as any)[universityId] || CAMPUS_DATA.exeter;
+  const theme = getUniversityColors(universityId);
 
   useEffect(() => {
     fetchData();
@@ -71,7 +87,7 @@ export default function PropertyDetailScreen({ propertyId, onBack, onSeeReviews 
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator color={colors.primary} />
+        <ActivityIndicator color={theme.primary} />
       </View>
     );
   }
@@ -89,24 +105,31 @@ export default function PropertyDetailScreen({ propertyId, onBack, onSeeReviews 
   const validImg = rawImg && typeof rawImg === 'string' && rawImg.length > 5 && !rawImg.includes('None') && !isSvg;
 
   // ── Commute Logic with Area Safety Net ─────────────────────────────────────
-  let distStreatham = property.distance_streatham;
-  let distStLukes = property.distance_st_lukes;
+  let dists = campuses.map((c: any) => ({
+    id: c.id,
+    label: c.label,
+    icon: c.icon,
+    dist: property[`distance_${c.id}`]
+  }));
+  
   let isEstimate = false;
 
-  // If DB distance is missing, use Area fallback from seeds.ts
-  if (distStreatham === null || distStreatham === undefined) {
-    const areaKey = property.area as keyof typeof AREA_COORDS;
-    const areaCenter = areaKey ? AREA_COORDS[areaKey] : null;
+  if (dists.every((d: any) => d.dist === null || d.dist === undefined)) {
+    const universityAreas = (AREA_COORDS as any)[universityId] || {};
+    const areaCenter = universityAreas[property.area];
+    const universityCampuses = (CAMPUS_COORDS as any)[universityId] || {};
     
     if (areaCenter) {
       isEstimate = true;
-      distStreatham = calculateStraightDistance(areaCenter.latitude, areaCenter.longitude, CAMPUS_COORDS.streatham.latitude, CAMPUS_COORDS.streatham.longitude);
-      distStLukes = calculateStraightDistance(areaCenter.latitude, areaCenter.longitude, CAMPUS_COORDS.stLukes.latitude, CAMPUS_COORDS.stLukes.longitude);
+      dists = dists.map((d: any) => {
+        const campusCoord = universityCampuses[d.id];
+        return {
+          ...d,
+          dist: campusCoord ? calculateStraightDistance(areaCenter.latitude, areaCenter.longitude, campusCoord.latitude, campusCoord.longitude) : null
+        };
+      });
     }
   }
-
-  const walkStreatham = distStreatham ? Math.round(distStreatham * 20) : null;
-  const walkStLukes = distStLukes ? Math.round(distStLukes * 20) : null;
 
   const openInMaps = () => {
     const lat = property.latitude;
@@ -114,7 +137,7 @@ export default function PropertyDetailScreen({ propertyId, onBack, onSeeReviews 
     const addr = encodeURIComponent(property.address);
     const url = (lat && lon) 
       ? `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`
-      : `https://www.google.com/maps/search/?api=1&query=${addr}+Exeter`;
+      : `https://www.google.com/maps/search/?api=1&query=${addr}+${currentUni.city}`;
     
     if (Platform.OS === 'web') window.open(url, '_blank');
     else Linking.openURL(url);
@@ -129,7 +152,7 @@ export default function PropertyDetailScreen({ propertyId, onBack, onSeeReviews 
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      <View style={[styles.hero, { height: isDesktop ? 500 : 320 }]}>
+      <View style={[styles.hero, { height: desktop ? 500 : 320 }]}>
         <Image 
           source={{ uri: (validImg && !imageError) ? rawImg : DEFAULT_FALLBACK_IMAGE }} 
           style={styles.heroImage}
@@ -144,22 +167,22 @@ export default function PropertyDetailScreen({ propertyId, onBack, onSeeReviews 
         </View>
       </View>
 
-      <View style={[styles.content, { padding: isDesktop ? spacing.xl : spacing.lg }]}>
-        <View style={[styles.mainHeader, !isDesktop && styles.mainHeaderMobile]}>
+      <View style={[styles.content, { padding: desktop ? spacing.xl : spacing.lg }]}>
+        <View style={[styles.mainHeader, !desktop && styles.mainHeaderMobile]}>
           <View style={{ flex: 1 }}>
-            <Text style={[styles.address, !isDesktop && { fontSize: 28 }, isSmallMobile && { fontSize: 24 }]}>
-              {property.address || 'Exeter Property'}
+            <Text style={[styles.address, !desktop && { fontSize: 28 }, isSmallMobile && { fontSize: 24 }]}>
+              {property.address || `${currentUni.city} Property`}
             </Text>
             <TouchableOpacity style={styles.areaRow} onPress={openInMaps}>
               <Text style={{ fontSize: 16 }}>📍</Text>
-              <Text style={styles.area}>{property.area || 'Exeter'} (View on Map)</Text>
-              <Text style={{ fontSize: 12, color: colors.primary, marginLeft: 4 }}>↗️</Text>
+              <Text style={styles.area}>{property.area || currentUni.city} (View on Map)</Text>
+              <Text style={{ fontSize: 12, color: theme.primary, marginLeft: 4 }}>↗️</Text>
             </TouchableOpacity>
           </View>
-          <View style={[styles.priceContainer, !isDesktop && styles.priceContainerMobile]}>
-            <Text style={styles.price}>£{Math.round(property.price_pppw)}</Text>
-            <Text style={styles.pppw}>per week</Text>
-            <Text style={styles.priceEstLabel}>per person (est.)</Text>
+          <View style={[styles.priceContainer, !desktop && styles.priceContainerMobile, { backgroundColor: theme.primaryLight }]}>
+            <Text style={[styles.price, { color: theme.primary }]}>£{Math.round(property.price_pppw)}</Text>
+            <Text style={[styles.pppw, { color: theme.primary }]}>per week</Text>
+            <Text style={[styles.priceEstLabel, { color: theme.primary }]}>per person (est.)</Text>
           </View>
         </View>
         <Text style={styles.infoNote}>
@@ -199,36 +222,29 @@ export default function PropertyDetailScreen({ propertyId, onBack, onSeeReviews 
         <View style={styles.commuteHeader}>
           <Text style={styles.sectionTitle}>Campus Commute (Walking)</Text>
           {isEstimate && (
-            <View style={styles.estimateBadge}>
-              <Text style={styles.estimateBadgeText}>AREA ESTIMATE</Text>
+            <View style={[styles.estimateBadge, { backgroundColor: theme.primaryLight, borderColor: theme.primary }]}>
+              <Text style={[styles.estimateBadgeText, { color: theme.primary }]}>AREA ESTIMATE</Text>
             </View>
           )}
         </View>
         <View style={[styles.statsRow, isSmallMobile && { flexDirection: 'column', alignItems: 'stretch', gap: spacing.md }]}>
-          <View style={styles.statBox}>
-            <View style={styles.iconCircle}>
-              <Text style={{ fontSize: 22 }}>🏰</Text>
+          {dists.map((d: any) => (
+            <View key={d.id} style={styles.statBox}>
+              <View style={styles.iconCircle}>
+                <Text style={{ fontSize: 22 }}>{d.icon}</Text>
+              </View>
+              <View style={styles.statTextGroup}>
+                <Text style={styles.statVal}>{d.dist ? Math.round(d.dist * 20) : '?'} mins</Text>
+                <Text style={styles.statLab}>To {d.label}</Text>
+              </View>
             </View>
-            <View style={styles.statTextGroup}>
-              <Text style={styles.statVal}>{walkStreatham || '?'} mins</Text>
-              <Text style={styles.statLab}>To Streatham</Text>
-            </View>
-          </View>
-          <View style={styles.statBox}>
-            <View style={styles.iconCircle}>
-              <Text style={{ fontSize: 22 }}>🏥</Text>
-            </View>
-            <View style={styles.statTextGroup}>
-              <Text style={styles.statVal}>{walkStLukes || '?'} mins</Text>
-              <Text style={styles.statLab}>To St Luke's</Text>
-            </View>
-          </View>
+          ))}
           <TouchableOpacity style={styles.statBox} onPress={openInMaps}>
-            <View style={[styles.iconCircle, { backgroundColor: colors.primaryLight }]}>
+            <View style={[styles.iconCircle, { backgroundColor: theme.primaryLight }]}>
               <Text style={{ fontSize: 22 }}>🗺️</Text>
             </View>
             <View style={styles.statTextGroup}>
-              <Text style={[styles.statVal, { color: colors.primary }]}>Maps</Text>
+              <Text style={[styles.statVal, { color: theme.primary }]}>Maps</Text>
               <Text style={styles.statLab}>Open Route</Text>
             </View>
           </TouchableOpacity>
@@ -248,12 +264,12 @@ export default function PropertyDetailScreen({ propertyId, onBack, onSeeReviews 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>About this Listing</Text>
           <Text style={styles.description}>
-            This premium {property.bedrooms || property.beds}-bedroom property is located in the sought-after {property.area} area of Exeter. 
+            This premium {property.bedrooms || property.beds}-bedroom property is located in the sought-after {property.area} area of {currentUni.city}. 
             Perfectly suited for students, it features {property.bathrooms || property.baths} { (property.bathrooms || property.baths) === 1 ? 'bathroom' : 'bathrooms'} and all necessary modern amenities. 
             Explore the full details and booking information directly on the provider's website.
           </Text>
           <TouchableOpacity 
-            style={[styles.listingBtn, !isDesktop && { width: '100%', justifyContent: 'center' }]} 
+            style={[styles.listingBtn, !desktop && { width: '100%', justifyContent: 'center' }, { backgroundColor: theme.primary }]} 
             onPress={openListing}
           >
             <Text style={styles.listingBtnText}>View on {property.landlord_id || 'Provider Site'}</Text>
@@ -262,20 +278,20 @@ export default function PropertyDetailScreen({ propertyId, onBack, onSeeReviews 
         </View>
 
         {landlord && (
-          <View style={styles.landlordCard}>
-            <View style={[styles.landlordHeader, !isDesktop && styles.landlordHeaderMobile]}>
+          <View style={[styles.landlordCard, { backgroundColor: theme.primaryLight, borderColor: theme.primary }]}>
+            <View style={[styles.landlordHeader, !desktop && styles.landlordHeaderMobile]}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.landlordLabel}>MANAGED BY</Text>
+                <Text style={[styles.landlordLabel, { color: theme.primary }]}>MANAGED BY</Text>
                 <Text style={styles.landlordName}>{landlord.name}</Text>
               </View>
-              <View style={[styles.verifiedBadge, !isDesktop && styles.verifiedBadgeMobile]}>
+              <View style={[styles.verifiedBadge, !desktop && styles.verifiedBadgeMobile]}>
                 <Text style={{ fontSize: 16 }}>✅</Text>
-                <Text style={styles.verifiedText}>Verified Partner</Text>
+                <Text style={[styles.verifiedText, { color: theme.primary }]}>Verified Partner</Text>
               </View>
             </View>
             <TouchableOpacity style={styles.reviewLink} onPress={() => onSeeReviews(landlord.id)}>
-              <Text style={styles.reviewLinkText}>See Student Reviews</Text>
-              <Text style={{ fontSize: 18, color: colors.primary }}>→</Text>
+              <Text style={[styles.reviewLinkText, { color: theme.primary }]}>See Student Reviews</Text>
+              <Text style={{ fontSize: 18, color: theme.primary }}>→</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -299,6 +315,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 10,
+    minHeight: 44,
+    minWidth: 44,
   },
   sourceBadge: { 
     position: 'absolute', 
@@ -322,13 +340,13 @@ const styles = StyleSheet.create({
   mainHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: spacing.xl },
   mainHeaderMobile: { flexDirection: 'column', gap: spacing.md },
   address: { ...typography.h1, color: colors.textPrimary },
-  areaRow: { flexDirection: 'row', alignItems: 'center', marginTop: 6 },
+  areaRow: { flexDirection: 'row', alignItems: 'center', marginTop: 6, minHeight: 44 },
   area: { ...typography.body, color: colors.textSecondary, marginLeft: 6 },
-  priceContainer: { alignItems: 'flex-end', backgroundColor: colors.primaryLight, padding: spacing.md, borderRadius: radii.md },
+  priceContainer: { alignItems: 'flex-end', padding: spacing.md, borderRadius: radii.md },
   priceContainerMobile: { alignItems: 'flex-start', alignSelf: 'flex-start' },
-  price: { ...typography.h2, color: colors.primary },
-  pppw: { ...typography.caption, color: colors.primary, fontWeight: '700', textTransform: 'uppercase' },
-  priceEstLabel: { ...typography.caption, color: colors.primary, fontWeight: '500', textTransform: 'lowercase', marginTop: 2 },
+  price: { ...typography.h2 },
+  pppw: { ...typography.caption, fontWeight: '700', textTransform: 'uppercase' },
+  priceEstLabel: { ...typography.caption, fontWeight: '500', textTransform: 'lowercase', marginTop: 2 },
   infoNote: { ...typography.bodySmall, color: colors.textMuted, fontStyle: 'italic', marginBottom: spacing.xl, marginTop: -spacing.md },
   statsRow: { 
     flexDirection: 'row', 
@@ -338,7 +356,7 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     justifyContent: 'space-around',
   },
-  statBox: { flex: 1, alignItems: 'center', paddingHorizontal: 2, flexDirection: 'row', justifyContent: 'center' },
+  statBox: { flex: 1, alignItems: 'center', paddingHorizontal: 2, flexDirection: 'row', justifyContent: 'center', minHeight: 44 },
   statTextGroup: { marginLeft: 12, flexShrink: 1 },
   iconCircle: {
     width: 44,
@@ -359,16 +377,13 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md 
   },
   estimateBadge: {
-    backgroundColor: colors.primaryLight,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: radii.sm,
     borderWidth: 1,
-    borderColor: colors.primaryMedium,
   },
   estimateBadgeText: {
     ...typography.caption,
-    color: colors.primary,
     fontWeight: '700',
     fontSize: 10,
   },
@@ -384,18 +399,17 @@ const styles = StyleSheet.create({
     alignItems: 'center', 
     alignSelf: 'flex-start',
     ...shadows.medium,
+    minHeight: 56,
   },
   listingBtnText: { color: colors.white, fontWeight: '700', fontSize: 16 },
   landlordCard: { 
-    backgroundColor: colors.primaryLight, 
     borderRadius: radii.lg, 
     padding: spacing.xl, 
     borderWidth: 1, 
-    borderColor: colors.primaryMedium 
   },
   landlordHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 },
   landlordHeaderMobile: { flexDirection: 'column', gap: spacing.md },
-  landlordLabel: { ...typography.label, color: colors.primary },
+  landlordLabel: { ...typography.label },
   landlordName: { ...typography.h3, marginTop: 4 },
   verifiedBadge: { 
     flexDirection: 'row', 
@@ -407,7 +421,7 @@ const styles = StyleSheet.create({
     ...shadows.soft,
   },
   verifiedBadgeMobile: { alignSelf: 'flex-start' },
-  verifiedText: { ...typography.caption, fontWeight: '700', color: colors.primary, marginLeft: 6 },
-  reviewLink: { flexDirection: 'row', alignItems: 'center' },
-  reviewLinkText: { ...typography.body, fontWeight: '700', color: colors.primary, marginRight: 8 }
+  verifiedText: { ...typography.caption, fontWeight: '700', marginLeft: 6 },
+  reviewLink: { flexDirection: 'row', alignItems: 'center', minHeight: 44 },
+  reviewLinkText: { ...typography.body, fontWeight: '700', marginRight: 8 }
 });

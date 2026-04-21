@@ -1,48 +1,44 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import Icon from './Icon';
-import { colors, spacing, radii, shadows, fontFamily } from '../utils/theme';
-
-interface PropertyCardProps {
-  item: any;
-  onPress: () => void;
-  marketAverage: number;
-}
+import { colors, spacing, radii, shadows, fontFamily, getUniversityColors } from '../utils/theme';
 
 const SOURCE_COLORS: Record<string, string> = {
-  'UniHomes': '#4F46E5',
-  'StuRents': '#059669',
-  'AccommodationForStudents': '#D97706',
-  'Rightmove': '#2563EB',
-  'Cardens': '#E11D48',
+  UniHomes: '#10B981',
+  StuRents: '#3B82F6',
+  AccommodationForStudents: '#F59E0B',
+  Rightmove: '#2C3E50',
 };
 
-function timeAgo(dateStr: string) {
-  if (!dateStr) return null;
-  const date = new Date(dateStr);
-  const now = new Date();
-  const diffInMs = now.getTime() - date.getTime();
-  const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
-  if (diffInDays === 0) return 'Updated today';
-  if (diffInDays === 1) return 'Updated yesterday';
-  return `Updated ${diffInDays} days ago`;
-}
-
-const formatDate = (dateStr: string) => {
-  if (!dateStr) return null;
-  const d = new Date(dateStr);
-  if (isNaN(d.getTime())) {
-    return dateStr;
+const timeAgo = (dateStr: string) => {
+  if (!dateStr) return 'Recently';
+  try {
+    const seconds = Math.floor((new Date().getTime() - new Date(dateStr).getTime()) / 1000);
+    let interval = seconds / 31536000;
+    if (interval > 1) return Math.floor(interval) + "y ago";
+    interval = seconds / 2592000;
+    if (interval > 1) return Math.floor(interval) + "mo ago";
+    interval = seconds / 86400;
+    if (interval > 1) return Math.floor(interval) + "d ago";
+    interval = seconds / 3600;
+    if (interval > 1) return Math.floor(interval) + "h ago";
+    interval = seconds / 60;
+    if (interval > 1) return Math.floor(interval) + "m ago";
+    return "Just now";
+  } catch (e) {
+    return 'Recently';
   }
-  return d.toLocaleDateString('en-GB', { 
-    day: 'numeric', 
-    month: 'short', 
-    year: 'numeric' 
-  });
 };
 
-export default function PropertyCard({ item, onPress, marketAverage }: PropertyCardProps) {
+export default function PropertyCard({ item, universityId, onPress, marketAverage }: {
+  item: any;
+  universityId: string;
+  onPress: () => void;
+  marketAverage: number;
+}) {
   const price = parseFloat(item.price_pppw);
+  const theme = getUniversityColors(universityId);
+
   const isVeryGoodValue = price > 0 && price <= marketAverage * 0.9;
   const isGoodValue     = price > 0 && price <= marketAverage && !isVeryGoodValue;
 
@@ -51,111 +47,91 @@ export default function PropertyCard({ item, onPress, marketAverage }: PropertyC
 
   const priceDiff = marketAverage > 0 ? Math.round(((price - marketAverage) / marketAverage) * 100) : 0;
 
-  const distance = (item.distance_streatham !== null && item.distance_st_lukes !== null)
-    ? Math.min(item.distance_streatham, item.distance_st_lukes)
-    : (item.distance_streatham ?? item.distance_st_lukes);
-  const nearestCampus = distance === item.distance_streatham ? 'Streatham' : 'St Lukes';
+  let distance = null;
+  let nearestCampus = '';
+
+  if (universityId === 'exeter') {
+    distance = (item.distance_streatham !== null && item.distance_st_lukes !== null)
+      ? Math.min(item.distance_streatham, item.distance_st_lukes)
+      : (item.distance_streatham ?? item.distance_st_lukes);
+    nearestCampus = distance === item.distance_streatham ? 'Streatham' : 'St Lukes';
+  } else {
+    distance = (item.distance_uob !== null && item.distance_uwe !== null)
+      ? Math.min(item.distance_uob, item.distance_uwe)
+      : (item.distance_uob ?? item.distance_uwe);
+    nearestCampus = distance === item.distance_uob ? 'UoB' : 'UWE';
+  }
 
   const updatedText = timeAgo(item.last_scraped);
-  const sourceColor = SOURCE_COLORS[item.landlord_id] || colors.primary;
+  const sourceColor = SOURCE_COLORS[item.landlord_id] || theme.primary;
 
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.95}>
-      {/* Image */}
-      <View style={styles.imageWrap}>
+      <View style={styles.imageContainer}>
         <Image source={{ uri: imageUrl }} style={styles.image} resizeMode="cover" />
-        <View style={styles.imageGradient} />
-
-        {/* Area badge */}
-        <View style={styles.areaBadge}>
-          <Text style={styles.areaText}>{item.area || 'Exeter'}</Text>
+        
+        {/* Value Badges */}
+        <View style={styles.badgeContainer}>
+          {isVeryGoodValue && (
+            <View style={[styles.valueBadge, { backgroundColor: theme.primary }]}>
+              <Text style={styles.valueBadgeText}>GREAT VALUE</Text>
+            </View>
+          )}
+          {item.bills_included && (
+            <View style={styles.billsBadge}>
+              <Text style={styles.billsBadgeText}>BILLS INC.</Text>
+            </View>
+          )}
         </View>
 
-        {/* Source badge */}
-        <View style={[styles.sourceBadge, { backgroundColor: sourceColor }]}>
-          <Text style={styles.sourceText}>{item.landlord_id}</Text>
+        <View style={[styles.sourceTag, { backgroundColor: sourceColor }]}>
+          <Text style={styles.sourceTagText}>{item.landlord_id}</Text>
         </View>
-
-        {/* Value badge */}
-        {isVeryGoodValue && (
-          <View style={[styles.valueBadge, styles.valueBadgeGold]}>
-            <Icon name="award" size={10} color={colors.accentDark} />
-            <Text style={[styles.valueBadgeText, { color: colors.accentDark }]}>BEST VALUE</Text>
-          </View>
-        )}
-        {isGoodValue && (
-          <View style={[styles.valueBadge, styles.valueBadgeGreen]}>
-            <Icon name="trending-down" size={10} color={colors.white} />
-            <Text style={[styles.valueBadgeText, { color: colors.white }]}>GREAT VALUE</Text>
-          </View>
-        )}
-
-        {/* Bills badge */}
-        {item.bills_included && (
-          <View style={styles.billsBadge}>
-            <Icon name="zap" size={9} color={colors.accent} />
-            <Text style={styles.billsText}>Bills Inc.</Text>
-          </View>
-        )}
       </View>
 
-      {/* Content */}
       <View style={styles.content}>
-        <Text style={styles.address} numberOfLines={1}>{item.address}</Text>
-
-        <View style={styles.detailsRow}>
-          {item.bedrooms !== null && (
-            <View style={styles.detailItem}>
-              <Icon name="home" size={12} color={colors.textMuted} />
-              <Text style={styles.detailText}>{item.bedrooms} bed</Text>
-            </View>
-          )}
-          {item.available_from && (
-            <>
-              <View style={styles.detailDot} />
-              <View style={styles.detailItem}>
-                <Icon name="calendar" size={12} color={colors.textMuted} />
-                <Text style={styles.detailText}>{formatDate(item.available_from)}</Text>
-              </View>
-            </>
-          )}
-          {distance !== null && distance !== undefined && (
-            <>
-              <View style={styles.detailDot} />
-              <View style={styles.detailItem}>
-                <Icon name="map-pin" size={12} color={colors.textMuted} />
-                <Text style={styles.detailText}>{distance} mi from {nearestCampus}</Text>
-              </View>
-            </>
+        <View style={styles.header}>
+          <View style={styles.priceRow}>
+            <Text style={[styles.price, { color: theme.primary }]}>£{Math.round(price)}</Text>
+            <Text style={styles.pppw}>pppw</Text>
+          </View>
+          {priceDiff !== 0 && (
+            <Text style={[styles.diff, { color: priceDiff > 0 ? colors.error : theme.primary }]}>
+              {priceDiff > 0 ? '+' : ''}{priceDiff}% avg
+            </Text>
           )}
         </View>
 
-        <View style={styles.footer}>
-          <View>
-            <View style={styles.priceRow}>
-              <Text style={styles.price}>£{Math.round(item.price_pppw)}</Text>
-              {priceDiff !== 0 && (
-                <View style={[styles.diffBadge, priceDiff < 0 ? styles.diffBadgeGood : styles.diffBadgeBad]}>
-                  <Text style={[styles.diffText, priceDiff < 0 ? styles.diffTextGood : styles.diffTextBad]}>
-                    {priceDiff > 0 ? '+' : ''}{priceDiff}%
-                  </Text>
-                </View>
-              )}
-            </View>
-            <Text style={styles.priceEstLabel}>per person per week (est.)</Text>
+        <Text style={styles.address} numberOfLines={1}>{item.address}</Text>
+        
+        <View style={styles.metaRow}>
+          <View style={styles.metaItem}>
+            <Icon name="map-pin" size={12} color={colors.textMuted} />
+            <Text style={styles.metaText}>{item.area}</Text>
           </View>
-          <TouchableOpacity style={styles.viewBtn} onPress={onPress}>
-            <Text style={styles.viewBtnText}>View Details</Text>
-            <Icon name="arrow-right" size={13} color={colors.white} />
+          <View style={styles.metaItem}>
+            <Icon name="users" size={12} color={colors.textMuted} />
+            <Text style={styles.metaText}>{item.bedrooms} bed</Text>
+          </View>
+        </View>
+
+        <View style={styles.divider} />
+
+        <View style={styles.footer}>
+          <View style={styles.commute}>
+            <Icon name="zap" size={12} color={theme.accent} />
+            <Text style={styles.commuteText}>{distance ? `${Math.round(distance * 20)}m to ${nearestCampus}` : 'Commute unknown'}</Text>
+          </View>
+          
+          <TouchableOpacity style={[styles.viewBtn, { backgroundColor: theme.primaryLight }]} onPress={onPress}>
+            <Text style={[styles.viewBtnText, { color: theme.primary }]}>View</Text>
           </TouchableOpacity>
         </View>
 
-        {updatedText && (
-          <View style={styles.updatedRow}>
-            <Icon name="clock" size={10} color={colors.textMuted} />
-            <Text style={styles.updatedText}>{updatedText}</Text>
-          </View>
-        )}
+        <View style={styles.updatedRow}>
+          <Icon name="clock" size={10} color={colors.textMuted} />
+          <Text style={styles.updatedText}>{updatedText}</Text>
+        </View>
       </View>
     </TouchableOpacity>
   );
@@ -163,160 +139,172 @@ export default function PropertyCard({ item, onPress, marketAverage }: PropertyC
 
 const styles = StyleSheet.create({
   card: {
-    flex: 1,
-    backgroundColor: colors.cardBg,
+    backgroundColor: colors.white,
     borderRadius: radii.lg,
-    margin: spacing.sm,
     overflow: 'hidden',
     ...shadows.card,
+    marginBottom: spacing.md,
     borderWidth: 1,
     borderColor: colors.border,
+    flex: 1,
+    marginHorizontal: 8,
   },
-  imageWrap: {
-    height: 196,
+  imageContainer: {
+    height: 180,
+    width: '100%',
     position: 'relative',
     backgroundColor: colors.surfaceSubtle,
   },
-  image: { width: '100%', height: '100%' },
-  imageGradient: {
+  image: {
+    width: '100%',
+    height: '100%',
+  },
+  badgeContainer: {
     position: 'absolute',
-    bottom: 0, left: 0, right: 0,
-    height: 60,
-    backgroundColor: 'rgba(28,25,23,0.35)',
-  },
-  areaBadge: {
-    position: 'absolute',
-    top: 12, left: 12,
-    backgroundColor: 'rgba(28,25,23,0.72)',
-    paddingHorizontal: 9,
-    paddingVertical: 4,
-    borderRadius: radii.xs,
-  },
-  areaText: {
-    fontFamily,
-    color: colors.white,
-    fontSize: 10,
-    fontWeight: '700' as any,
-    textTransform: 'uppercase' as any,
-    letterSpacing: 0.5,
-  },
-  sourceBadge: {
-    position: 'absolute',
-    top: 40, left: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: radii.xs,
-  },
-  sourceText: {
-    fontFamily,
-    color: colors.white,
-    fontSize: 9,
-    fontWeight: '700' as any,
-    letterSpacing: 0.3,
+    top: 12,
+    left: 12,
+    flexDirection: 'row',
+    gap: 8,
   },
   valueBadge: {
-    position: 'absolute',
-    top: 12, right: 12,
-    paddingHorizontal: 9,
+    paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: radii.xs,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
   },
-  valueBadgeGold: {
-    backgroundColor: colors.accentLight,
-    borderWidth: 1,
-    borderColor: colors.accent,
-  },
-  valueBadgeGreen: { backgroundColor: colors.primary },
   valueBadgeText: {
     fontFamily,
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: '800' as any,
+    color: colors.white,
     letterSpacing: 0.5,
   },
   billsBadge: {
-    position: 'absolute',
-    bottom: 10, left: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(28,25,23,0.72)',
+    backgroundColor: colors.white,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: radii.xs,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  billsText: {
+  billsBadgeText: {
     fontFamily,
-    color: colors.accent,
+    fontSize: 10,
+    fontWeight: '800' as any,
+    color: colors.textPrimary,
+    letterSpacing: 0.5,
+  },
+  sourceTag: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderTopLeftRadius: radii.md,
+  },
+  sourceTagText: {
+    fontFamily,
     fontSize: 10,
     fontWeight: '700' as any,
+    color: colors.white,
+    textTransform: 'uppercase' as any,
   },
-  content: { padding: spacing.md, paddingBottom: 12 },
+  content: {
+    padding: spacing.md,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  priceRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 4,
+  },
+  price: {
+    fontFamily,
+    fontSize: 22,
+    fontWeight: '800' as any,
+  },
+  pppw: {
+    fontFamily,
+    fontSize: 12,
+    color: colors.textMuted,
+    fontWeight: '600' as any,
+  },
+  diff: {
+    fontFamily,
+    fontSize: 11,
+    fontWeight: '700' as any,
+  },
   address: {
     fontFamily,
     fontSize: 15,
     fontWeight: '700' as any,
     color: colors.textPrimary,
-    marginBottom: 8,
-    letterSpacing: -0.1,
+    marginBottom: 10,
   },
-  detailsRow: {
+  metaRow: {
+    flexDirection: 'row',
+    gap: 16,
+    marginBottom: 16,
+  },
+  metaItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    flexWrap: 'wrap',
     gap: 6,
-    marginBottom: spacing.md,
   },
-  detailItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  detailDot: { width: 3, height: 3, borderRadius: 2, backgroundColor: colors.borderDark },
-  detailText: {
+  metaText: {
     fontFamily,
-    fontSize: 12,
-    color: colors.textMuted,
+    fontSize: 13,
+    color: colors.textSecondary,
     fontWeight: '500' as any,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: colors.border,
+    marginBottom: 12,
   },
   footer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    paddingTop: spacing.sm,
-    marginBottom: 8,
+    alignItems: 'center',
   },
-  priceEstLabel: {
+  commute: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flex: 1,
+  },
+  commuteText: {
+    fontFamily,
+    fontSize: 12,
+    color: colors.textSecondary,
+    fontWeight: '600' as any,
+  },
+  viewBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: radii.md,
+    minHeight: 36,
+    justifyContent: 'center',
+  },
+  viewBtnText: {
+    fontFamily,
+    fontWeight: '700' as any,
+    fontSize: 13,
+  },
+  updatedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 12,
+  },
+  updatedText: {
     fontFamily,
     fontSize: 10,
     color: colors.textMuted,
     fontWeight: '500' as any,
-    marginTop: 2,
   },
-  priceRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  price: {
-    fontFamily,
-    fontSize: 22,
-    fontWeight: '800' as any,
-    color: colors.primary,
-    letterSpacing: -0.5,
-  },
-  diffBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: radii.xs },
-  diffBadgeGood: { backgroundColor: colors.primaryLight },
-  diffBadgeBad: { backgroundColor: '#FEF2F2' },
-  diffText: { fontFamily, fontSize: 10, fontWeight: '700' as any },
-  diffTextGood: { color: colors.success },
-  diffTextBad: { color: colors.error },
-  viewBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    backgroundColor: colors.primary,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-    borderRadius: radii.sm,
-  },
-  viewBtnText: { fontFamily, color: colors.white, fontWeight: '700' as any, fontSize: 13 },
-  updatedRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
-  updatedText: { fontFamily, fontSize: 10, color: colors.textMuted, fontWeight: '500' as any },
 });
