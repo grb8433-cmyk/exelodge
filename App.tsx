@@ -113,13 +113,14 @@ function LandingScreen({ onSelect }: { onSelect: (id: string) => void }) {
 }
 
 export default function App() {
-  const [fontsLoaded] = Font.useFonts(Feather.font);
+  const [fontsLoaded, fontError] = Font.useFonts(Feather.font);
   const [activeTab, setActiveTab] = useState('Home');
   const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
   const [landlordIdForReview, setLandlordIdForReview] = useState<string | null>(null);
   const [targetLandlordId, setTargetLandlordId] = useState<string | null>(null);
   const [universityId, setUniversityId] = useState('exeter');
   const [showLanding, setShowLanding] = useState(true); // Always start with landing for hard refresh
+  const [fontLoadingTimedOut, setFontLoadingTimedOut] = useState(false);
 
   const { width } = useWindowDimensions();
   const desktop = isDesktop(width);
@@ -165,6 +166,23 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    if (fontError) {
+      console.error('Error loading fonts:', fontError);
+    }
+  }, [fontError]);
+
+  // Fallback if fonts take too long or fail
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!fontsLoaded) {
+        console.warn('Font loading timed out, proceeding with system fonts');
+        setFontLoadingTimedOut(true);
+      }
+    }, 3000); // 3 seconds timeout
+    return () => clearTimeout(timer);
+  }, [fontsLoaded]);
+
+  useEffect(() => {
     if (Platform.OS === 'web' && !showLanding) {
       const currentPath = window.location.pathname.substring(1).split('/')[0];
       if (currentPath !== universityId) {
@@ -192,7 +210,8 @@ export default function App() {
     }
   };
 
-  if (!fontsLoaded) {
+  // Only block if fonts haven't loaded AND we haven't timed out AND there's no error
+  if (!fontsLoaded && !fontLoadingTimedOut && !fontError) {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" color="#0B6E4F" />
@@ -310,6 +329,7 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   safeArea: { flex: 1 },
   root: { flex: 1, backgroundColor: colors.background },
   main: { flex: 1, overflow: 'hidden' },

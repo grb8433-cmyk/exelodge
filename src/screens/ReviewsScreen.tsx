@@ -224,7 +224,7 @@ export default function ReviewsScreen({ universityId, initialLandlordId, onAddRe
             </View>
           ) : selectedLandlord ? (
             <View style={{ flex: 1 }}>
-              <div className="vibrant-header-placeholder" style={{ display: 'none', color: theme.primary }}></div>
+              <View style={{ display: 'none' }} />
               <View style={[styles.reviewsHero, !desktop && styles.reviewsHeroMobile]}>
                 <View style={styles.reviewsHeroLeft}>
                   <View style={[styles.heroAvatar, { backgroundColor: theme.primaryLight, borderColor: theme.primaryMedium }]}>
