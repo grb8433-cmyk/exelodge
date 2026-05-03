@@ -42,7 +42,7 @@ export default function RightsScreen({ universityId }: { universityId: string })
       desc: 'Your deposit must be protected in a government-backed scheme (TDS, DPS, or MyDeposits) within 30 days of payment.',
     },
     {
-      icon: 'file' as const,
+      icon: 'file-text' as const,
       color: '#7C3AED',
       bg: '#F5F0FF',
       title: 'The Tenant Fees Act 2019',
