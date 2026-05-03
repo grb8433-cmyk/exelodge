@@ -201,7 +201,7 @@ const styles = StyleSheet.create({
   grid: { flexDirection: 'row', gap: 24 },
   gridMobile: { flexDirection: 'column', gap: 0 },
   col: { flex: 1 },
-  colMobile: { flex: 0, width: '100%', marginBottom: 32 },
+  colMobile: { width: '100%', marginBottom: 48, flexGrow: 0, flexShrink: 0 },
 
   sectionLabel: {
     ...typography.eyebrow,
