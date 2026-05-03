@@ -21,28 +21,28 @@ export default function RightsScreen({ universityId }: { universityId: string })
 
   const RIGHTS = [
     {
-      icon: 'file-text' as const,
+      icon: 'file-text',
       color: colors.success,
       bg: '#EFFFF4',
       title: "Renters' Rights Act 2025",
       desc: 'New legislation ending Section 21 "no-fault" evictions, banning mid-tenancy bidding wars, and extending "Awaab’s Law" to the private sector to ensure damp/mould is fixed quickly.',
     },
     {
-      icon: 'shield' as const,
+      icon: 'shield',
       color: colors.accentLegal,
       bg: colors.accentLegalBg,
       title: 'The Right to a Safe Home',
       desc: 'Your home must be fit for human habitation. This includes structural safety, absence of damp, and working utilities and heating.',
     },
     {
-      icon: 'lock' as const,
+      icon: 'lock',
       color: colors.accentPrice,
       bg: colors.accentPriceBg,
       title: 'Tenancy Deposit Protection',
       desc: 'Your deposit must be protected in a government-backed scheme (TDS, DPS, or MyDeposits) within 30 days of payment.',
     },
     {
-      icon: 'file-text' as const,
+      icon: 'file-text',
       color: '#7C3AED',
       bg: '#F5F0FF',
       title: 'The Tenant Fees Act 2019',
@@ -66,33 +66,33 @@ export default function RightsScreen({ universityId }: { universityId: string })
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
 
-      {/* Page header */}
-      <View style={[styles.pageHeader, !desktop && styles.pageHeaderMobile]}>
-        <View style={[styles.headerBadge, { backgroundColor: theme.primaryLight }]}>
-          <View style={{ marginRight: 6 }}>
-            <Icon name="shield" size={14} color={theme.primary} />
-          </View>
-          <Text style={[styles.headerBadgeText, { color: theme.primary }]}>UK TENANT LAW</Text>
+      {/* Page Header */}
+      <View style={[styles.header, !desktop && styles.headerMobile]}>
+        <View style={[styles.badge, { backgroundColor: theme.primaryLight }]}>
+          <Icon name="shield" size={14} color={theme.primary} />
+          <Text style={[styles.badgeText, { color: theme.primary }]}>UK TENANT LAW</Text>
         </View>
-        <Text style={[styles.pageTitle, !desktop && { fontSize: 24 }]}>Your Rights as a Student Renter</Text>
-        <Text style={[styles.pageDesc, !desktop && { fontSize: 13 }]}>
+        <Text style={[styles.title, !desktop && styles.titleMobile]}>Your Rights as a Student Renter</Text>
+        <Text style={[styles.desc, !desktop && styles.descMobile]}>
           A comprehensive guide to UK legislation and student-specific advice for the {currentUni.city} market.
         </Text>
       </View>
 
       <View style={[styles.content, !desktop && styles.contentMobile]}>
-        <View style={[styles.grid, !desktop && styles.gridMobile]}>
-
-          {/* Column 1: Essentials */}
-          <View style={[styles.col, !desktop && styles.colMobile]}>
+        
+        {/* Desktop Grid or Mobile Stack */}
+        <View style={desktop ? styles.desktopGrid : styles.mobileStack}>
+          
+          {/* Column/Section 1: Essentials */}
+          <View style={desktop ? styles.desktopCol : styles.mobileSection}>
             <Text style={styles.sectionLabel}>THE LEGAL ESSENTIALS</Text>
             <View style={styles.card}>
               {RIGHTS.map((right, i) => (
-                <View key={i} style={[styles.rightItem, i < RIGHTS.length - 1 && styles.rightItemBorder]}>
-                  <View style={[styles.rightIconWrap, { backgroundColor: right.bg, marginRight: 16 }]}>
+                <View key={i} style={[styles.rightItem, i < RIGHTS.length - 1 && styles.borderBottom]}>
+                  <View style={[styles.iconBox, { backgroundColor: right.bg }]}>
                     <Icon name={right.icon} size={16} color={right.color} />
                   </View>
-                  <View style={styles.rightText}>
+                  <View style={styles.rightTextContent}>
                     <Text style={styles.rightTitle}>{right.title}</Text>
                     <Text style={styles.rightDesc}>{right.desc}</Text>
                   </View>
@@ -100,54 +100,55 @@ export default function RightsScreen({ universityId }: { universityId: string })
               ))}
             </View>
 
-            <View style={{ marginTop: spacing.xl }}>
+            {/* Official References (inside first col on desktop, or stacked on mobile) */}
+            <View style={{ marginTop: 32 }}>
               <Text style={styles.sectionLabel}>OFFICIAL REFERENCES</Text>
-            </View>
-            <View style={styles.card}>
-              {OFFICIAL_LINKS.map((link, i) => (
-                <TouchableOpacity
-                  key={i}
-                  style={[styles.linkRow, i < OFFICIAL_LINKS.length - 1 && styles.linkRowBorder]}
-                  onPress={() => openLink(link.url)}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[styles.linkText, { color: theme.primary, marginRight: 8 }]}>{link.label}</Text>
-                  <View style={[styles.linkIcon, { backgroundColor: theme.primaryLight }]}>
-                    <Icon name="arrow-up-right" size={13} color={theme.primary} />
-                  </View>
-                </TouchableOpacity>
-              ))}
+              <View style={styles.card}>
+                {OFFICIAL_LINKS.map((link, i) => (
+                  <TouchableOpacity
+                    key={i}
+                    style={[styles.linkRow, i < OFFICIAL_LINKS.length - 1 && styles.borderBottom]}
+                    onPress={() => openLink(link.url)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.linkText, { color: theme.primary }]}>{link.label}</Text>
+                    <View style={[styles.linkIcon, { backgroundColor: theme.primaryLight }]}>
+                      <Icon name="arrow-up-right" size={13} color={theme.primary} />
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
             </View>
           </View>
 
-          {/* Column 2: FAQ */}
-          <View style={[styles.col, !desktop && styles.colMobile, !desktop && { marginTop: 0 }]}>
+          {/* Column/Section 2: FAQ */}
+          <View style={desktop ? styles.desktopCol : styles.mobileSection}>
             <Text style={styles.sectionLabel}>COMMON QUESTIONS</Text>
             <View style={styles.card}>
               {FAQ.map((item, i) => {
                 const isOpen = expandedIndex === i;
                 return (
-                  <View key={i} style={[styles.qaItem, i < FAQ.length - 1 && styles.qaItemBorder]}>
+                  <View key={i} style={[styles.faqItem, i < FAQ.length - 1 && styles.borderBottom]}>
                     <TouchableOpacity
-                      style={styles.qaButton}
+                      style={styles.faqHeader}
                       onPress={() => setExpandedIndex(isOpen ? null : i)}
                       activeOpacity={0.75}
                     >
-                      <View style={[styles.qaChevronWrap, isOpen && { backgroundColor: theme.primaryLight }, { marginRight: 12 }]}>
+                      <View style={[styles.faqChevron, isOpen && { backgroundColor: theme.primaryLight }]}>
                         <Icon
                           name={isOpen ? 'chevron-up' : 'chevron-down'}
                           size={14}
                           color={isOpen ? theme.primary : colors.textMuted}
                         />
                       </View>
-                      <Text style={[styles.qaQuestion, isOpen && { color: theme.primary }]}>{item.q}</Text>
+                      <Text style={[styles.faqQuestion, isOpen && { color: theme.primary }]}>{item.q}</Text>
                     </TouchableOpacity>
 
                     {isOpen && (
-                      <View style={[styles.qaAnswer, !desktop && styles.qaAnswerMobile]}>
-                        <Text style={styles.qaAnswerText}>{item.a}</Text>
-                        <TouchableOpacity onPress={() => openLink(item.link)} style={styles.qaLink}>
-                          <Text style={[styles.qaLinkText, { color: theme.primary, marginRight: 5 }]}>Read official guidance</Text>
+                      <View style={[styles.faqAnswer, !desktop && styles.faqAnswerMobile]}>
+                        <Text style={styles.faqAnswerText}>{item.a}</Text>
+                        <TouchableOpacity onPress={() => openLink(item.link)} style={styles.faqLink}>
+                          <Text style={[styles.faqLinkText, { color: theme.primary }]}>Read official guidance</Text>
                           <Icon name="arrow-up-right" size={12} color={theme.primary} />
                         </TouchableOpacity>
                       </View>
@@ -157,11 +158,12 @@ export default function RightsScreen({ universityId }: { universityId: string })
               })}
             </View>
           </View>
+
         </View>
 
         {/* Disclaimer */}
         <View style={[styles.disclaimer, !desktop && styles.disclaimerMobile, { backgroundColor: theme.primaryLight, borderColor: theme.primaryLight }]}>
-          <View style={[styles.disclaimerIcon, { backgroundColor: theme.primary, marginRight: 12 }]}>
+          <View style={[styles.disclaimerIcon, { backgroundColor: theme.primary }]}>
             <Icon name="info" size={16} color={colors.white} />
           </View>
           <Text style={[styles.disclaimerText, { color: theme.primary }]}>
@@ -176,62 +178,67 @@ export default function RightsScreen({ universityId }: { universityId: string })
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  scroll: { paddingBottom: 48 },
+  scroll: { paddingBottom: 64 },
 
-  pageHeader: {
+  // Header
+  header: {
     padding: 32,
     paddingTop: 48,
     backgroundColor: colors.white,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  pageHeaderMobile: { padding: 16, paddingTop: 40 },
-  headerBadge: {
+  headerMobile: { padding: 16, paddingTop: 40 },
+  badge: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 6,
     alignSelf: 'flex-start',
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: radii.full,
     marginBottom: 14,
   },
-  headerBadgeText: { ...typography.eyebrow, fontSize: 10 },
-  pageTitle: { ...typography.h1Page, color: colors.textPrimary, marginBottom: 10 },
-  pageDesc: { ...typography.bodySubtle, color: colors.textSecondary, maxWidth: 780 },
+  badgeText: { ...typography.eyebrow, fontSize: 10 },
+  title: { ...typography.h1Page, color: colors.textPrimary, marginBottom: 10 },
+  titleMobile: { fontSize: 24 },
+  desc: { ...typography.bodySubtle, color: colors.textSecondary, maxWidth: 780 },
+  descMobile: { fontSize: 13 },
 
+  // Content Structure
   content: { padding: 32, maxWidth: 1152, alignSelf: 'center', width: '100%' },
   contentMobile: { padding: 16 },
-  grid: { flexDirection: 'row' },
-  gridMobile: { flexDirection: 'column' },
-  col: { flex: 1, paddingHorizontal: 12 },
-  colMobile: { flex: 0, width: '100%', paddingHorizontal: 0, marginBottom: 32 },
+  
+  desktopGrid: { flexDirection: 'row', gap: 24 },
+  desktopCol: { flex: 1 },
+  
+  mobileStack: { flexDirection: 'column' },
+  mobileSection: { width: '100%', marginBottom: 32 },
 
-  sectionLabel: {
-    ...typography.eyebrow,
-    color: colors.textMuted,
-    marginBottom: spacing.md,
-  },
+  // Shared Components
+  sectionLabel: { ...typography.eyebrow, color: colors.textMuted, marginBottom: 12 },
   card: {
     backgroundColor: colors.white,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: colors.border,
-    overflow: 'hidden',
     ...shadows.soft,
-    marginBottom: spacing.lg,
+    overflow: 'hidden',
   },
+  borderBottom: { borderBottomWidth: 1, borderBottomColor: colors.border },
 
-  rightItem: { flexDirection: 'row', padding: 24 },
-  rightItemBorder: { borderBottomWidth: 1, borderBottomColor: colors.border },
-  rightIconWrap: {
+  // Rights Items
+  rightItem: { flexDirection: 'row', padding: 24, gap: 16 },
+  iconBox: {
     width: 40, height: 40, borderRadius: 8,
     alignItems: 'center', justifyContent: 'center',
     flexShrink: 0,
   },
-  rightText: { flex: 1, flexShrink: 1 },
+  rightTextContent: { flex: 1 },
   rightTitle: { ...typography.h3Card, color: colors.textPrimary, marginBottom: 5 },
   rightDesc: { ...typography.bodySubtle, color: colors.textSecondary },
 
+  // Links
   linkRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -240,44 +247,36 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     minHeight: 44,
   },
-  linkRowBorder: { borderBottomWidth: 1, borderBottomColor: colors.border },
-  linkText: { ...typography.bodySmall, fontWeight: '600' as any, flex: 1, flexShrink: 1 },
+  linkText: { ...typography.bodySmall, fontWeight: '600' as any, flex: 1, marginRight: 12 },
   linkIcon: {
     width: 28, height: 28, borderRadius: 6,
     alignItems: 'center', justifyContent: 'center',
   },
 
-  qaItem: { overflow: 'hidden' },
-  qaItemBorder: { borderBottomWidth: 1, borderBottomColor: colors.border },
-  qaButton: {
+  // FAQ
+  faqItem: { width: '100%' },
+  faqHeader: {
     flexDirection: 'row',
     alignItems: 'flex-start',
+    gap: 12,
     paddingHorizontal: 24,
     paddingVertical: 16,
     minHeight: 44,
   },
-  qaChevronWrap: {
+  faqChevron: {
     width: 24, height: 24, borderRadius: 4,
     backgroundColor: colors.surfaceSubtle,
     alignItems: 'center', justifyContent: 'center',
     marginTop: 1, flexShrink: 0,
   },
-  qaQuestion: {
-    ...typography.body, fontWeight: '600' as any,
-    color: colors.textPrimary, flex: 1, flexShrink: 1,
-  },
-  qaAnswer: { 
-    paddingHorizontal: 24, 
-    paddingBottom: 16, 
-    paddingLeft: 60,
-  },
-  qaAnswerMobile: {
-    paddingLeft: 24,
-  },
-  qaAnswerText: { ...typography.bodySubtle, color: colors.textSecondary, marginBottom: 12 },
-  qaLink: { flexDirection: 'row', alignItems: 'center', minHeight: 44 },
-  qaLinkText: { ...typography.bodySmall, fontWeight: '700' as any, flexShrink: 1 },
+  faqQuestion: { ...typography.body, fontWeight: '600' as any, color: colors.textPrimary, flex: 1 },
+  faqAnswer: { paddingHorizontal: 24, paddingBottom: 16, paddingLeft: 60 },
+  faqAnswerMobile: { paddingLeft: 24 },
+  faqAnswerText: { ...typography.bodySubtle, color: colors.textSecondary, marginBottom: 12 },
+  faqLink: { flexDirection: 'row', alignItems: 'center', gap: 5, minHeight: 44 },
+  faqLinkText: { ...typography.bodySmall, fontWeight: '700' as any },
 
+  // Disclaimer
   disclaimer: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -285,12 +284,13 @@ const styles = StyleSheet.create({
     padding: 24,
     borderRadius: 16,
     marginTop: 32,
+    gap: 12,
   },
-  disclaimerMobile: { padding: 16 },
+  disclaimerMobile: { padding: 16, marginTop: 8 },
   disclaimerIcon: {
     width: 30, height: 30, borderRadius: 15,
     alignItems: 'center', justifyContent: 'center',
     flexShrink: 0, marginTop: 1,
   },
-  disclaimerText: { ...typography.bodySubtle, flex: 1, flexShrink: 1 },
+  disclaimerText: { ...typography.bodySubtle, flex: 1 },
 });

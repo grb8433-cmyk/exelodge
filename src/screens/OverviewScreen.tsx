@@ -166,7 +166,7 @@ export default function OverviewScreen({ universityId, onSelectUniversity, onNav
         </View>
 
         {/* ── STATS / FEATURES GRID ── */}
-        <View style={styles.sectionHeader}>
+        <View style={[styles.sectionHeader, !desktop && styles.sectionHeaderMobile]}>
           <View>
             <Text style={styles.sectionLabel}>LIVE MARKET DATA</Text>
             <Text style={styles.sectionTitle}>Market Insights & Features</Text>
@@ -389,7 +389,17 @@ const styles = StyleSheet.create({
   guildLink: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   guildLinkText: { fontFamily, fontSize: 14, fontWeight: '700' as any },
 
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: spacing.lg },
+  sectionHeader: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'flex-end', 
+    marginBottom: spacing.lg,
+  },
+  sectionHeaderMobile: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
   sectionLabel: { ...typography.eyebrow, color: colors.textMuted, marginBottom: 4 },
   sectionTitle: { ...typography.h2Section, color: colors.textPrimary },
   liveBadge: {
