@@ -63,6 +63,51 @@ export const baseColors = {
   warning: '#D97706',
 };
 
+export const darkColors = {
+  // Global Background & Surface
+  white: '#FFFFFF',
+  background: '#0D1117',
+  surface: '#161B22',
+  surfaceSubtle: '#21262D',
+  surfaceInput: '#0D1117',
+
+  // Borders
+  border: '#30363D',
+  borderSubtle: 'rgba(255,255,255,0.06)',
+
+  // Feature Card Accents (non-uni)
+  accentPrice: '#58A6FF',
+  accentPriceBg: '#0D1117',
+  accentLegal: '#A371F7',
+  accentLegalBg: '#0D1117',
+  accentReviews: '#F0883E',
+  accentReviewsBg: '#0D1117',
+  accentAmber: '#D29922',
+  accentAmberBg: '#0D1117',
+
+  // Review Scores
+  scoreHigh: '#3FB950',
+  scoreMid: '#D29922',
+  scoreLow: '#F85149',
+
+  // Star Rating
+  starFilled: '#FBBF24',
+  starStroke: '#D29922',
+  starEmpty: '#30363D',
+  starEmptyStroke: '#484F58',
+
+  // Text Colours
+  textPrimary: '#F0F6FC',
+  textSecondary: '#C9D1D9',
+  textMuted: '#8B949E',
+  textDisabled: '#484F58',
+
+  // Status
+  success: '#3FB950',
+  error: '#F85149',
+  warning: '#D29922',
+};
+
 /**
  * Utility to darken or lighten a hex color
  */
@@ -70,26 +115,27 @@ function adjustColor(color: string, amount: number) {
   return '#' + color.replace(/^#/, '').replace(/../g, color => ('0' + Math.min(255, Math.max(0, parseInt(color, 16) + amount)).toString(16)).slice(-2));
 }
 
-export const getUniversityColors = (universityId: string) => {
+export const getUniversityColors = (universityId: string, isDarkMode = false) => {
   const uni = UNIVERSITIES.find(u => u.id === universityId) || UNIVERSITIES[0];
+  const base = isDarkMode ? darkColors : baseColors;
   
   if (universityId === 'bristol') {
     return {
-      ...baseColors,
+      ...base,
       primary: '#BE0F34',
       primaryDark: '#9A0C2A',
-      primaryMedium: '#E0CCD2',
-      primaryLight: '#FDF2F3',
+      primaryMedium: isDarkMode ? '#3A141A' : '#E0CCD2',
+      primaryLight: isDarkMode ? '#1E0D10' : '#FDF2F3',
     };
   }
 
   // Exeter (Default)
   return {
-    ...baseColors,
+    ...base,
     primary: '#0B6E4F',
     primaryDark: '#085240',
-    primaryMedium: '#C8E6DA',
-    primaryLight: '#EFF7F3',
+    primaryMedium: isDarkMode ? '#112D22' : '#C8E6DA',
+    primaryLight: isDarkMode ? '#0D1A15' : '#EFF7F3',
   };
 };
 

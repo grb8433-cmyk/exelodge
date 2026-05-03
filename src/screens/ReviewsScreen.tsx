@@ -17,8 +17,9 @@ const BRISTOL_LANDLORDS = [
   'UniHomes', 'StuRents', 'AccommodationForStudents', 'Rightmove', 'UWEStudentPad', 'BristolSULettings', 'CJHole', 'BristolDigs', 'StudentCrowd', 'JointLiving', 'UniteStudents'
 ];
 
-export default function ReviewsScreen({ universityId, initialLandlordId, onAddReview }: { 
+export default function ReviewsScreen({ universityId, isDarkMode = false, initialLandlordId, onAddReview }: { 
   universityId: string,
+  isDarkMode?: boolean,
   initialLandlordId?: string | null, 
   onAddReview: (landlordId: string) => void 
 }) {
@@ -32,7 +33,7 @@ export default function ReviewsScreen({ universityId, initialLandlordId, onAddRe
   const desktop = isDesktop(width);
   
   const currentUni = UNIVERSITIES.find(u => u.id === universityId) || UNIVERSITIES[0];
-  const theme = getUniversityColors(universityId);
+  const theme = getUniversityColors(universityId, isDarkMode);
 
   useEffect(() => { fetchLandlords(); }, [universityId]);
 
@@ -123,21 +124,21 @@ export default function ReviewsScreen({ universityId, initialLandlordId, onAddRe
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       {/* Header */}
-      <View style={[styles.pageHeader, !desktop && styles.pageHeaderMobile]}>
+      <View style={[styles.pageHeader, { backgroundColor: theme.surface, borderBottomColor: theme.border }, !desktop && styles.pageHeaderMobile]}>
         <View>
           <Text style={[styles.headerEyebrow, { color: theme.primary }]}>TENANT VERIFIED</Text>
-          <Text style={[styles.pageTitle, !desktop && { fontSize: 22 }]}>Landlord Reviews</Text>
+          <Text style={[styles.pageTitle, { color: theme.textPrimary }, !desktop && { fontSize: 22 }]}>Landlord Reviews</Text>
         </View>
-        <Text style={styles.pageDesc}>Transparent feedback from real {currentUni.city} students.</Text>
+        <Text style={[styles.pageDesc, { color: theme.textMuted }]}>Transparent feedback from real {currentUni.city} students.</Text>
       </View>
 
       <View style={[styles.body, !desktop && styles.bodyMobile]}>
         {/* Landlord Sidebar */}
-        <View style={[styles.landlordSidebar, !desktop && styles.landlordSidebarMobile]}>
-          <View style={styles.panelHeader}>
-            <Text style={styles.panelHeaderText}>LANDLORDS</Text>
+        <View style={[styles.landlordSidebar, { backgroundColor: theme.surface, borderRightColor: theme.border, borderBottomColor: theme.border }, !desktop && styles.landlordSidebarMobile]}>
+          <View style={[styles.panelHeader, { borderBottomColor: theme.border }]}>
+            <Text style={[styles.panelHeaderText, { color: theme.textMuted }]}>LANDLORDS</Text>
             <View style={[styles.panelCount, { backgroundColor: theme.primaryLight }]}>
               <Text style={[styles.panelCountText, { color: theme.primary }]}>{landlords.length}</Text>
             </View>
@@ -155,8 +156,9 @@ export default function ReviewsScreen({ universityId, initialLandlordId, onAddRe
                 <TouchableOpacity
                   style={[
                     styles.landlordItem, 
+                    { borderBottomColor: theme.border },
                     isActive && { backgroundColor: theme.primary, borderColor: theme.primary },
-                    !desktop && styles.landlordItemMobile
+                    !desktop && [styles.landlordItemMobile, { borderColor: theme.border }]
                   ]}
                   onPress={() => handleLandlordSelect(item)}
                   activeOpacity={0.75}
@@ -170,10 +172,10 @@ export default function ReviewsScreen({ universityId, initialLandlordId, onAddRe
                     </Text>
                   </View>
                   <View style={styles.landlordMeta}>
-                    <Text style={[styles.landlordName, isActive && { color: colors.white }]} numberOfLines={1}>
+                    <Text style={[styles.landlordName, { color: theme.textPrimary }, isActive && { color: colors.white }]} numberOfLines={1}>
                       {item.name}
                     </Text>
-                    <Text style={[styles.landlordType, { color: isActive ? 'rgba(255,255,255,0.7)' : colors.textMuted }]}>
+                    <Text style={[styles.landlordType, { color: isActive ? 'rgba(255,255,255,0.7)' : theme.textMuted }]}>
                       {item.type || 'Verified Provider'}
                     </Text>
                   </View>
@@ -184,17 +186,17 @@ export default function ReviewsScreen({ universityId, initialLandlordId, onAddRe
         </View>
 
         {/* Reviews Feed */}
-        <View style={styles.reviewsPanel}>
+        <View style={[styles.reviewsPanel, { backgroundColor: theme.background }]}>
           {selectedLandlord ? (
             <View style={{ flex: 1 }}>
-              <View style={[styles.reviewsHero, !desktop && styles.reviewsHeroMobile]}>
+              <View style={[styles.reviewsHero, { backgroundColor: theme.surface, borderBottomColor: theme.border }, !desktop && styles.reviewsHeroMobile]}>
                 <View style={styles.reviewsHeroLeft}>
                   <View style={[styles.heroAvatar, { backgroundColor: theme.primaryLight, borderColor: theme.primaryMedium }]}>
                     <Text style={[styles.heroAvatarText, { color: theme.primary }]}>{getInitials(selectedLandlord.name)}</Text>
                   </View>
                   <View>
-                    <Text style={[styles.heroName, !desktop && { fontSize: 18 }]}>{selectedLandlord.name}</Text>
-                    <Text style={styles.heroType}>{selectedLandlord.type || 'Verified Provider'}</Text>
+                    <Text style={[styles.heroName, { color: theme.textPrimary }, !desktop && { fontSize: 18 }]}>{selectedLandlord.name}</Text>
+                    <Text style={[styles.heroType, { color: theme.textMuted }]}>{selectedLandlord.type || 'Verified Provider'}</Text>
                   </View>
                 </View>
                 <TouchableOpacity
@@ -216,11 +218,11 @@ export default function ReviewsScreen({ universityId, initialLandlordId, onAddRe
                   contentContainerStyle={styles.reviewsList}
                   ListEmptyComponent={
                     <View style={styles.emptyState}>
-                      <View style={styles.emptyIcon}>
-                        <Icon name="message-square" size={28} color={colors.textMuted} />
+                      <View style={[styles.emptyIcon, { backgroundColor: theme.surfaceSubtle }]}>
+                        <Icon name="message-square" size={28} color={theme.textMuted} />
                       </View>
-                      <Text style={styles.emptyTitle}>No reviews yet — be the first to share!</Text>
-                      <Text style={styles.emptyDesc}>Your feedback helps other {currentUni.city} students make informed decisions.</Text>
+                      <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>No reviews yet — be the first to share!</Text>
+                      <Text style={[styles.emptyDesc, { color: theme.textMuted }]}>Your feedback helps other {currentUni.city} students make informed decisions.</Text>
                       <TouchableOpacity style={[styles.emptyBtn, { backgroundColor: theme.primary }]} onPress={() => onAddReview(selectedLandlord.id)}>
                         <Text style={styles.emptyBtnText}>Write the First Review</Text>
                       </TouchableOpacity>
@@ -231,16 +233,16 @@ export default function ReviewsScreen({ universityId, initialLandlordId, onAddRe
                     const dateStr = item.created_at ? new Date(item.created_at).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }) : 'Recently';
 
                     return (
-                      <View style={styles.reviewCard}>
+                      <View style={[styles.reviewCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                         <View style={styles.reviewCardHeader}>
                           <View style={styles.reviewScoreBlock}>
                             <Text style={[styles.reviewScoreNum, { color: getScoreColor(score) }]}>{score.toFixed(1)}</Text>
                             {renderStars(score)}
                           </View>
-                          <Text style={styles.reviewDate}>{dateStr}</Text>
+                          <Text style={[styles.reviewDate, { color: theme.textMuted }]}>{dateStr}</Text>
                         </View>
 
-                        <Text style={styles.reviewText}>{item.review_text || 'No review text provided.'}</Text>
+                        <Text style={[styles.reviewText, { color: theme.textSecondary }]}>{item.review_text || 'No review text provided.'}</Text>
                         
                         <View style={styles.metricsGrid}>
                           {[
@@ -250,8 +252,8 @@ export default function ReviewsScreen({ universityId, initialLandlordId, onAddRe
                             { label: 'DEPOSIT', score: item.deposit_rating || 5 },
                           ].map((metric) => (
                             <View key={metric.label} style={styles.metric}>
-                              <Text style={styles.metricLabel}>{metric.label}</Text>
-                              <View style={styles.metricBar}>
+                              <Text style={[styles.metricLabel, { color: theme.textMuted }]}>{metric.label}</Text>
+                              <View style={[styles.metricBar, { backgroundColor: theme.surfaceSubtle }]}>
                                 <View style={[styles.metricBarFill, { width: `${(metric.score / 5) * 100}%` as any, backgroundColor: theme.primaryMedium }]} />
                               </View>
                             </View>
@@ -265,9 +267,9 @@ export default function ReviewsScreen({ universityId, initialLandlordId, onAddRe
             </View>
           ) : (
             <View style={styles.placeholder}>
-              <Icon name="layers" size={32} color={colors.textMuted} />
-              <Text style={styles.placeholderTitle}>Select a landlord</Text>
-              <Text style={styles.placeholderDesc}>Choose a provider from the list to view their tenant reviews.</Text>
+              <Icon name="layers" size={32} color={theme.textMuted} />
+              <Text style={[styles.placeholderTitle, { color: theme.textSecondary }]}>Select a landlord</Text>
+              <Text style={[styles.placeholderDesc, { color: theme.textMuted }]}>Choose a provider from the list to view their tenant reviews.</Text>
             </View>
           )}
         </View>

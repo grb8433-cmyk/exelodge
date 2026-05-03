@@ -8,11 +8,12 @@ import UNIVERSITIES from '../../config/universities.json';
 interface SubmitReviewScreenProps {
   landlordId: string;
   universityId: string;
+  isDarkMode?: boolean;
   onCancel: () => void;
   onSuccess: () => void;
 }
 
-export default function SubmitReviewScreen({ landlordId, universityId, onCancel, onSuccess }: SubmitReviewScreenProps) {
+export default function SubmitReviewScreen({ landlordId, universityId, isDarkMode = false, onCancel, onSuccess }: SubmitReviewScreenProps) {
   const scrollRef = useRef<ScrollView>(null);
   const [landlord, setLandlord] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -33,7 +34,7 @@ export default function SubmitReviewScreen({ landlordId, universityId, onCancel,
   const [submissionError, setSubmissionError] = useState<string | null>(null);
 
   const currentUni = UNIVERSITIES.find(u => u.id === universityId) || UNIVERSITIES[0];
-  const theme = getUniversityColors(universityId);
+  const theme = getUniversityColors(universityId, isDarkMode);
 
   useEffect(() => {
     if (landlordId !== 'other') {
@@ -155,26 +156,26 @@ export default function SubmitReviewScreen({ landlordId, universityId, onCancel,
   return (
     <ScrollView 
       ref={scrollRef}
-      style={styles.container} 
+      style={[styles.container, { backgroundColor: theme.background }]} 
       contentContainerStyle={styles.content}
     >
-      <View style={styles.formCard}>
+      <View style={[styles.formCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
         <View style={styles.formHeader}>
-          <TouchableOpacity onPress={onCancel} style={styles.backBtn}>
-            <Icon name="arrow-left" size={20} color={colors.textPrimary} />
+          <TouchableOpacity onPress={onCancel} style={[styles.backBtn, { backgroundColor: theme.surfaceSubtle }]}>
+            <Icon name="arrow-left" size={20} color={theme.textPrimary} />
           </TouchableOpacity>
           <View style={{ flex: 1 }}>
-            <Text style={styles.title}>Review: {landlord?.name}</Text>
+            <Text style={[styles.title, { color: theme.textPrimary }]}>Review: {landlord?.name}</Text>
           </View>
         </View>
 
         {showSuccess ? (
           <View style={styles.successContainer}>
-            <View style={styles.successBox}>
+            <View style={[styles.successBox, { backgroundColor: isDarkMode ? '#06170C' : '#f0fdf4', borderColor: isDarkMode ? '#114D24' : '#bcf0da' }]}>
               <Icon name="check-circle" size={28} color={colors.success} />
               <View style={{ flex: 1 }}>
-                <Text style={styles.successTitle}>Review Submitted!</Text>
-                <Text style={styles.successText}>Thank you! Your review is being reviewed and will be live once approved.</Text>
+                <Text style={[styles.successTitle, { color: isDarkMode ? colors.success : '#166534' }]}>Review Submitted!</Text>
+                <Text style={[styles.successText, { color: isDarkMode ? '#88C9A1' : '#166534' }]}>Thank you! Your review is being reviewed and will be live once approved.</Text>
               </View>
             </View>
             <TouchableOpacity 
@@ -186,21 +187,21 @@ export default function SubmitReviewScreen({ landlordId, universityId, onCancel,
           </View>
         ) : (
           <>
-            <Text style={styles.instruction}>Your feedback is anonymous and helps other {currentUni.city} students make informed decisions.</Text>
+            <Text style={[styles.instruction, { color: theme.textSecondary }]}>Your feedback is anonymous and helps other {currentUni.city} students make informed decisions.</Text>
 
             {submissionError && (
-              <View style={styles.errorBox}>
+              <View style={[styles.errorBox, { backgroundColor: isDarkMode ? '#1A0B0B' : '#fef2f2' }]}>
                 <Text style={styles.errorText}>{submissionError}</Text>
               </View>
             )}
 
             {landlordId === 'other' && (
               <View style={styles.commentSection}>
-                <Text style={styles.ratingLabel}>Landlord Name</Text>
+                <Text style={[styles.ratingLabel, { color: theme.textSecondary }]}>Landlord Name</Text>
                 <TextInput 
-                  style={[styles.textArea, { minHeight: 50 }, errors.landlordName && styles.errorInput]}
+                  style={[styles.textArea, { minHeight: 50, backgroundColor: theme.surfaceSubtle, color: theme.textPrimary }, errors.landlordName && styles.errorInput]}
                   placeholder="Enter the name of the landlord or agency"
-                  placeholderTextColor={colors.textMuted}
+                  placeholderTextColor={theme.textMuted}
                   value={landlordName}
                   onChangeText={setLandlordName}
                 />
@@ -224,11 +225,11 @@ export default function SubmitReviewScreen({ landlordId, universityId, onCancel,
             </View>
 
             <View style={styles.commentSection}>
-              <Text style={styles.ratingLabel}>Your Experience</Text>
+              <Text style={[styles.ratingLabel, { color: theme.textSecondary }]}>Your Experience</Text>
               <TextInput 
-                style={[styles.textArea, errors.reviewText && { borderColor: colors.error, borderWidth: 1 }]}
+                style={[styles.textArea, { backgroundColor: theme.surfaceSubtle, color: theme.textPrimary }, errors.reviewText && { borderColor: colors.error, borderWidth: 1 }]}
                 placeholder="Tell us about your time with this landlord. What went well? What could be improved?"
-                placeholderTextColor={colors.textMuted}
+                placeholderTextColor={theme.textMuted}
                 multiline
                 numberOfLines={6}
                 value={reviewText}

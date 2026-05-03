@@ -9,6 +9,7 @@ interface SidebarProps {
   activeTab: string;
   onTabPress: (tab: string) => void;
   universityId: string;
+  isDarkMode?: boolean;
   onSwitchCity: () => void;
 }
 
@@ -19,9 +20,9 @@ const navItems = [
   { id: 'Rights',  label: 'Your Rights',  icon: 'shield'  },
 ];
 
-export default function Sidebar({ activeTab, onTabPress, universityId, onSwitchCity }: SidebarProps) {
+export default function Sidebar({ activeTab, onTabPress, universityId, isDarkMode = false, onSwitchCity }: SidebarProps) {
   const currentUni = UNIVERSITIES.find(u => u.id === universityId) || UNIVERSITIES[0];
-  const theme = getUniversityColors(universityId);
+  const theme = getUniversityColors(universityId, isDarkMode);
 
   return (
     <View style={[styles.sidebar, { backgroundColor: theme.primary }]}>

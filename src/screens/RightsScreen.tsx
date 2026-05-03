@@ -11,13 +11,13 @@ const OFFICIAL_LINKS = [
   { label: 'Citizens Advice — Renting',          url: 'https://www.citizensadvice.org.uk/housing/renting-privately/' },
 ];
 
-export default function RightsScreen({ universityId }: { universityId: string }) {
+export default function RightsScreen({ universityId, isDarkMode = false }: { universityId: string, isDarkMode?: boolean }) {
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
   const { width } = useWindowDimensions();
   const desktop = isDesktop(width);
   
   const currentUni = UNIVERSITIES.find(u => u.id === universityId) || UNIVERSITIES[0];
-  const theme = getUniversityColors(universityId);
+  const theme = getUniversityColors(universityId, isDarkMode);
 
   const RIGHTS = [
     {
@@ -64,16 +64,16 @@ export default function RightsScreen({ universityId }: { universityId: string })
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+    <ScrollView style={[styles.container, { backgroundColor: theme.background }]} contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
 
       {/* Page Header */}
-      <View style={[styles.header, !desktop && styles.headerMobile]}>
+      <View style={[styles.header, { backgroundColor: theme.surface, borderBottomColor: theme.border }, !desktop && styles.headerMobile]}>
         <View style={[styles.badge, { backgroundColor: theme.primaryLight }]}>
           <Icon name="shield" size={14} color={theme.primary} />
           <Text style={[styles.badgeText, { color: theme.primary }]}>UK TENANT LAW</Text>
         </View>
-        <Text style={[styles.title, !desktop && styles.titleMobile]}>Your Rights as a Student Renter</Text>
-        <Text style={[styles.desc, !desktop && styles.descMobile]}>
+        <Text style={[styles.title, { color: theme.textPrimary }, !desktop && styles.titleMobile]}>Your Rights as a Student Renter</Text>
+        <Text style={[styles.desc, { color: theme.textSecondary }, !desktop && styles.descMobile]}>
           A comprehensive guide to UK legislation and student-specific advice for the {currentUni.city} market.
         </Text>
       </View>
@@ -85,16 +85,16 @@ export default function RightsScreen({ universityId }: { universityId: string })
           
           {/* Column/Section 1: Essentials */}
           <View style={desktop ? styles.desktopCol : styles.mobileSection}>
-            <Text style={styles.sectionLabel}>THE LEGAL ESSENTIALS</Text>
-            <View style={styles.card}>
+            <Text style={[styles.sectionLabel, { color: theme.textMuted }]}>THE LEGAL ESSENTIALS</Text>
+            <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
               {RIGHTS.map((right, i) => (
-                <View key={i} style={[styles.rightItem, i < RIGHTS.length - 1 && styles.borderBottom]}>
+                <View key={i} style={[styles.rightItem, i < RIGHTS.length - 1 && [styles.borderBottom, { borderBottomColor: theme.border }]]}>
                   <View style={[styles.iconBox, { backgroundColor: right.bg }]}>
-                    <Icon name={right.icon} size={16} color={right.color} />
+                    <Icon name={right.icon as any} size={16} color={right.color} />
                   </View>
                   <View style={styles.rightTextContent}>
-                    <Text style={styles.rightTitle}>{right.title}</Text>
-                    <Text style={styles.rightDesc}>{right.desc}</Text>
+                    <Text style={[styles.rightTitle, { color: theme.textPrimary }]}>{right.title}</Text>
+                    <Text style={[styles.rightDesc, { color: theme.textSecondary }]}>{right.desc}</Text>
                   </View>
                 </View>
               ))}
@@ -102,12 +102,12 @@ export default function RightsScreen({ universityId }: { universityId: string })
 
             {/* Official References (inside first col on desktop, or stacked on mobile) */}
             <View style={{ marginTop: 32 }}>
-              <Text style={styles.sectionLabel}>OFFICIAL REFERENCES</Text>
-              <View style={styles.card}>
+              <Text style={[styles.sectionLabel, { color: theme.textMuted }]}>OFFICIAL REFERENCES</Text>
+              <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                 {OFFICIAL_LINKS.map((link, i) => (
                   <TouchableOpacity
                     key={i}
-                    style={[styles.linkRow, i < OFFICIAL_LINKS.length - 1 && styles.borderBottom]}
+                    style={[styles.linkRow, i < OFFICIAL_LINKS.length - 1 && [styles.borderBottom, { borderBottomColor: theme.border }]]}
                     onPress={() => openLink(link.url)}
                     activeOpacity={0.7}
                   >
@@ -123,12 +123,12 @@ export default function RightsScreen({ universityId }: { universityId: string })
 
           {/* Column/Section 2: FAQ */}
           <View style={desktop ? styles.desktopCol : styles.mobileSection}>
-            <Text style={styles.sectionLabel}>COMMON QUESTIONS</Text>
-            <View style={styles.card}>
+            <Text style={[styles.sectionLabel, { color: theme.textMuted }]}>COMMON QUESTIONS</Text>
+            <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
               {FAQ.map((item, i) => {
                 const isOpen = expandedIndex === i;
                 return (
-                  <View key={i} style={[styles.faqItem, i < FAQ.length - 1 && styles.borderBottom]}>
+                  <View key={i} style={[styles.faqItem, i < FAQ.length - 1 && [styles.borderBottom, { borderBottomColor: theme.border }]]}>
                     <TouchableOpacity
                       style={styles.faqHeader}
                       onPress={() => setExpandedIndex(isOpen ? null : i)}
@@ -138,15 +138,15 @@ export default function RightsScreen({ universityId }: { universityId: string })
                         <Icon
                           name={isOpen ? 'chevron-up' : 'chevron-down'}
                           size={14}
-                          color={isOpen ? theme.primary : colors.textMuted}
+                          color={isOpen ? theme.primary : theme.textMuted}
                         />
                       </View>
-                      <Text style={[styles.faqQuestion, isOpen && { color: theme.primary }]}>{item.q}</Text>
+                      <Text style={[styles.faqQuestion, { color: theme.textPrimary }, isOpen && { color: theme.primary }]}>{item.q}</Text>
                     </TouchableOpacity>
 
                     {isOpen && (
                       <View style={[styles.faqAnswer, !desktop && styles.faqAnswerMobile]}>
-                        <Text style={styles.faqAnswerText}>{item.a}</Text>
+                        <Text style={[styles.faqAnswerText, { color: theme.textSecondary }]}>{item.a}</Text>
                         <TouchableOpacity onPress={() => openLink(item.link)} style={styles.faqLink}>
                           <Text style={[styles.faqLinkText, { color: theme.primary }]}>Read official guidance</Text>
                           <Icon name="arrow-up-right" size={12} color={theme.primary} />

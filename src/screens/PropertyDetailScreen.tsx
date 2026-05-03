@@ -44,11 +44,12 @@ const CAMPUS_DATA = {
 interface PropertyDetailScreenProps {
   propertyId: string;
   universityId: string;
+  isDarkMode?: boolean;
   onBack: () => void;
   onSeeReviews: (landlordId: string) => void;
 }
 
-export default function PropertyDetailScreen({ propertyId, universityId, onBack, onSeeReviews }: PropertyDetailScreenProps) {
+export default function PropertyDetailScreen({ propertyId, universityId, isDarkMode = false, onBack, onSeeReviews }: PropertyDetailScreenProps) {
   const [property, setProperty] = useState<any>(null);
   const [landlord, setLandlord] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -60,7 +61,7 @@ export default function PropertyDetailScreen({ propertyId, universityId, onBack,
   
   const currentUni = UNIVERSITIES.find(u => u.id === universityId) || UNIVERSITIES[0];
   const campuses = (CAMPUS_DATA as any)[universityId] || CAMPUS_DATA.exeter;
-  const theme = getUniversityColors(universityId);
+  const theme = getUniversityColors(universityId, isDarkMode);
 
   useEffect(() => {
     fetchData();

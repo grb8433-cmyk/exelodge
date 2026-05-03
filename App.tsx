@@ -23,7 +23,7 @@ const TABS = [
   { id: 'Rights',  label: 'Rights',   icon: 'shield' },
 ];
 
-function LandingScreen({ onSelect }: { onSelect: (id: string) => void }) {
+function LandingScreen({ onSelect, isDarkMode, toggleDarkMode }: { onSelect: (id: string) => void, isDarkMode: boolean, toggleDarkMode: () => void }) {
   const { width } = useWindowDimensions();
   const desktop = isDesktop(width);
   const [counts, setCounts] = useState<Record<string, number>>({});
@@ -60,6 +60,21 @@ function LandingScreen({ onSelect }: { onSelect: (id: string) => void }) {
       <View style={styles.blobExeter} />
       <View style={styles.blobBristol} />
       <View style={styles.blobCenter} />
+
+      {/* Dark Mode Toggle */}
+      <View style={styles.themeToggleWrap}>
+        <TouchableOpacity 
+          style={styles.themeToggle} 
+          onPress={toggleDarkMode}
+          activeOpacity={0.8}
+        >
+          <Icon name={isDarkMode ? 'moon' : 'sun'} size={14} color={colors.white} />
+          <Text style={styles.themeToggleText}>{isDarkMode ? 'Dark Mode' : 'Light Mode'}</Text>
+          <View style={[styles.toggleTrack, { backgroundColor: isDarkMode ? '#0B6E4F' : 'rgba(255,255,255,0.2)' }]}>
+            <View style={[styles.toggleThumb, isDarkMode && { transform: [{ translateX: 16 }] }]} />
+          </View>
+        </TouchableOpacity>
+      </View>
 
       <ScrollView contentContainerStyle={styles.landingContent} showsVerticalScrollIndicator={false}>
         <Animated.View 
@@ -128,12 +143,13 @@ export default function App() {
   const [universityId, setUniversityId] = useState('exeter');
   const [showLanding, setShowLanding] = useState(true); // Always start with landing for hard refresh
   const [fontLoadingTimedOut, setFontLoadingTimedOut] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(false);
 
   const { width } = useWindowDimensions();
   const desktop = isDesktop(width);
 
   const currentUni = UNIVERSITIES.find(u => u.id === universityId) || UNIVERSITIES[0];
-  const theme = getUniversityColors(universityId);
+  const theme = getUniversityColors(universityId, isDarkMode);
 
   // Dynamic Favicon & Browser Title
   useEffect(() => {
@@ -157,7 +173,7 @@ export default function App() {
       const faviconColor = theme.primary.replace('#', '%23');
       link.href = `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='25' fill='${faviconColor}'></rect><g transform='translate(20, 20) scale(2.5)' stroke='white' stroke-width='2' fill='none' stroke-linecap='round' stroke-linejoin='round'><path d='M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'></path><path d='M9 22V12h6v10'></path></g></svg>`;
     }
-  }, [currentUni, showLanding, theme]);
+  }, [currentUni, showLanding, theme, isDarkMode]);
 
   // URL Syncing for Web
   useEffect(() => {
@@ -217,6 +233,8 @@ export default function App() {
     }
   };
 
+  const toggleDarkMode = () => setIsDarkMode(!isDarkMode);
+
   // Only block if fonts haven't loaded AND we haven't timed out AND there's no error
   if (!fontsLoaded && !fontLoadingTimedOut && !fontError) {
     return (
@@ -229,7 +247,7 @@ export default function App() {
   if (showLanding) {
     return (
       <SafeAreaProvider>
-        <LandingScreen onSelect={selectUniversity} />
+        <LandingScreen onSelect={selectUniversity} isDarkMode={isDarkMode} toggleDarkMode={toggleDarkMode} />
       </SafeAreaProvider>
     );
   }
@@ -240,6 +258,7 @@ export default function App() {
         <PropertyDetailScreen
           propertyId={selectedPropertyId}
           universityId={universityId}
+          isDarkMode={isDarkMode}
           onBack={() => setSelectedPropertyId(null)}
           onSeeReviews={(id) => {
             setSelectedPropertyId(null);
@@ -254,6 +273,7 @@ export default function App() {
         <SubmitReviewScreen
           landlordId={landlordIdForReview}
           universityId={universityId}
+          isDarkMode={isDarkMode}
           onCancel={() => setLandlordIdForReview(null)}
           onSuccess={() => {
             setLandlordIdForReview(null);
@@ -264,23 +284,23 @@ export default function App() {
       );
     }
     switch (activeTab) {
-      case 'Home':    return <OverviewScreen universityId={universityId} onSelectUniversity={(id) => setUniversityId(id)} onNavigateToHouses={() => setActiveTab('Houses')} />;
-      case 'Houses':  return <HomeScreen universityId={universityId} onSelectProperty={(id) => setSelectedPropertyId(id)} />;
-      case 'Reviews': return <ReviewsScreen universityId={universityId} initialLandlordId={targetLandlordId} onAddReview={(id) => setLandlordIdForReview(id)} />;
-      case 'Rights':  return <RightsScreen universityId={universityId} />;
-      default:        return <OverviewScreen universityId={universityId} onSelectUniversity={(id) => setUniversityId(id)} onNavigateToHouses={() => setActiveTab('Houses')} />;
+      case 'Home':    return <OverviewScreen universityId={universityId} isDarkMode={isDarkMode} onSelectUniversity={(id) => setUniversityId(id)} onNavigateToHouses={() => setActiveTab('Houses')} />;
+      case 'Houses':  return <HomeScreen universityId={universityId} isDarkMode={isDarkMode} onSelectProperty={(id) => setSelectedPropertyId(id)} />;
+      case 'Reviews': return <ReviewsScreen universityId={universityId} isDarkMode={isDarkMode} initialLandlordId={targetLandlordId} onAddReview={(id) => setLandlordIdForReview(id)} />;
+      case 'Rights':  return <RightsScreen universityId={universityId} isDarkMode={isDarkMode} />;
+      default:        return <OverviewScreen universityId={universityId} isDarkMode={isDarkMode} onSelectUniversity={(id) => setUniversityId(id)} onNavigateToHouses={() => setActiveTab('Houses')} />;
     }
   };
 
   return (
     <SafeAreaProvider>
       <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.primary }]}>
-        <View style={[styles.root, { flexDirection: desktop ? 'row' : 'column' }]}>
+        <View style={[styles.root, { flexDirection: desktop ? 'row' : 'column', backgroundColor: theme.background }]}>
 
           {/* Mobile top header */}
           {!desktop && (
             <View style={[styles.mobileHeader, { backgroundColor: theme.primary }]}>
-              <View style={styles.mobileLogoMark}>
+              <View style={[styles.mobileLogoMark, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
                 <Icon name="home" size={12} color={colors.white} />
               </View>
               <View style={styles.mobileHeaderCenter}>
@@ -299,6 +319,7 @@ export default function App() {
               activeTab={activeTab} 
               onTabPress={navigateTab} 
               universityId={universityId} 
+              isDarkMode={isDarkMode}
               onSwitchCity={goToLanding}
             />
           )}
@@ -310,7 +331,7 @@ export default function App() {
 
           {/* Mobile bottom tabs */}
           {!desktop && (
-            <View style={styles.bottomTabs}>
+            <View style={[styles.bottomTabs, { backgroundColor: theme.surface, borderTopColor: theme.border }]}>
               {TABS.map((tab) => {
                 const isActive = activeTab === tab.id;
                 return (
@@ -321,9 +342,9 @@ export default function App() {
                     activeOpacity={0.7}
                   >
                     <View style={[styles.tabIconWrap, isActive && { backgroundColor: theme.primaryLight }]}>
-                      <Icon name={tab.icon} size={18} color={isActive ? theme.primary : colors.textMuted} />
+                      <Icon name={tab.icon} size={18} color={isActive ? theme.primary : theme.textMuted} />
                     </View>
-                    <Text style={[styles.tabLabel, isActive && { color: theme.primary, fontWeight: '700' as any }]}>{tab.label}</Text>
+                    <Text style={[styles.tabLabel, { color: isActive ? theme.primary : theme.textMuted, fontWeight: isActive ? '700' : '600' as any }]}>{tab.label}</Text>
                   </TouchableOpacity>
                 );
               })}
@@ -338,7 +359,7 @@ export default function App() {
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   safeArea: { flex: 1 },
-  root: { flex: 1, backgroundColor: colors.background },
+  root: { flex: 1 },
   main: { flex: 1, overflow: 'hidden' },
 
   mobileHeader: {
@@ -354,7 +375,6 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 8,
-    backgroundColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -397,9 +417,7 @@ const styles = StyleSheet.create({
   bottomTabs: {
     flexDirection: 'row',
     height: 56,
-    backgroundColor: colors.white,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
     ...shadows.medium,
   },
   tabItem: {
@@ -418,8 +436,46 @@ const styles = StyleSheet.create({
   tabLabel: {
     fontFamily,
     fontSize: 10,
-    fontWeight: '600' as any,
-    color: colors.textMuted,
+  },
+
+  // ── Theme Toggle ──────────────────────────────────────────────────────────
+  themeToggleWrap: {
+    position: 'absolute',
+    top: Platform.OS === 'web' ? 24 : 60,
+    right: 24,
+    zIndex: 100,
+  },
+  themeToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
+  },
+  themeToggleText: {
+    fontFamily,
+    fontSize: 12,
+    fontWeight: '700' as any,
+    color: colors.white,
+    marginRight: 4,
+  },
+  toggleTrack: {
+    width: 32,
+    height: 18,
+    borderRadius: 16,
+    padding: 2,
+    justifyContent: 'center',
+  },
+  toggleThumb: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: colors.white,
+    ...shadows.soft,
   },
 
   // ── Landing Revamp ──────────────────────────────────────────────────────────

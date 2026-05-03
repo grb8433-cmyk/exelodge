@@ -28,7 +28,7 @@ const CAMPUS_MAP: Record<string, {id: string, label: string}[]> = {
 
 type SortOption = 'price_asc' | 'price_desc' | 'dist_campus1' | 'dist_campus2' | 'newest';
 
-export default function HomeScreen({ universityId, onSelectProperty }: { universityId: string, onSelectProperty: (id: string) => void }) {
+export default function HomeScreen({ universityId, isDarkMode = false, onSelectProperty }: { universityId: string, isDarkMode?: boolean, onSelectProperty: (id: string) => void }) {
   const [properties, setProperties] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -36,7 +36,7 @@ export default function HomeScreen({ universityId, onSelectProperty }: { univers
   const { width } = useWindowDimensions();
   
   const currentUni = UNIVERSITIES.find(u => u.id === universityId) || UNIVERSITIES[0];
-  const theme = getUniversityColors(universityId);
+  const theme = getUniversityColors(universityId, isDarkMode);
   const AREAS = AREAS_MAP[universityId] || AREAS_MAP.exeter;
   const SOURCES = SOURCES_MAP[universityId] || SOURCES_MAP.exeter;
   const CAMPUSES = CAMPUS_MAP[universityId] || CAMPUS_MAP.exeter;
@@ -178,12 +178,12 @@ export default function HomeScreen({ universityId, onSelectProperty }: { univers
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       {/* Animated Header Wrapper */}
       <Animated.View 
         style={[
           styles.headerContainer, 
-          { transform: [{ translateY: headerTranslate }] }
+          { transform: [{ translateY: headerTranslate }], backgroundColor: theme.surface, borderBottomColor: theme.border }
         ]}
         onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}
       >
@@ -191,37 +191,37 @@ export default function HomeScreen({ universityId, onSelectProperty }: { univers
         <View style={[styles.header, !desktop && styles.headerMobile]}>
           <View>
             <Text style={[styles.headerEyebrow, { color: theme.primary }]}>{currentUni.city} Student Housing</Text>
-            <Text style={[styles.headerTitle, !desktop && { fontSize: 22 }]}>Find Your Next Home</Text>
+            <Text style={[styles.headerTitle, { color: theme.textPrimary }, !desktop && { fontSize: 22 }]}>Find Your Next Home</Text>
           </View>
           <View style={[styles.marketWidget, !desktop && styles.marketWidgetMobile, { backgroundColor: theme.primaryLight }]}>
             <View style={[styles.marketWidgetInner, !desktop && styles.marketWidgetInnerMobile]}>
               <Icon name="trending-up" size={13} color={theme.primary} />
               <Text style={[styles.marketLabel, { color: theme.primary }]}>MARKET AVG</Text>
             </View>
-            <Text style={[styles.marketValue, { color: theme.primary }]}>£{marketAverage}<Text style={styles.marketSub}> pw</Text></Text>
+            <Text style={[styles.marketValue, { color: theme.primary }]}>£{marketAverage}<Text style={[styles.marketSub, { color: theme.textMuted }]}> pw</Text></Text>
           </View>
         </View>
 
         {/* Search + filter */}
-        <View style={styles.searchBar}>
-          <View style={styles.searchWrap}>
-            <Icon name="search" size={16} color={colors.textMuted} />
+        <View style={[styles.searchBar, { borderTopColor: theme.border }]}>
+          <View style={[styles.searchWrap, { backgroundColor: theme.background, borderColor: theme.border }]}>
+            <Icon name="search" size={16} color={theme.textMuted} />
             <TextInput
-              style={styles.searchInput}
+              style={[styles.searchInput, { color: theme.textPrimary }]}
               placeholder="Search by street or area…"
-              placeholderTextColor={colors.textMuted}
+              placeholderTextColor={theme.textMuted}
               value={search}
               onChangeText={setSearch}
             />
             {!!search && (
               <TouchableOpacity onPress={() => setSearch('')} style={styles.clearBtn}>
-                <Icon name="x" size={14} color={colors.textMuted} />
+                <Icon name="x" size={14} color={theme.textMuted} />
               </TouchableOpacity>
             )}
           </View>
 
           <TouchableOpacity
-            style={[styles.filterBtn, activeFilterCount > 0 && { backgroundColor: theme.primary, borderColor: theme.primary }]}
+            style={[styles.filterBtn, { backgroundColor: theme.surface, borderColor: theme.border }, activeFilterCount > 0 && { backgroundColor: theme.primary, borderColor: theme.primary }]}
             onPress={() => setShowFilters(true)}
             activeOpacity={0.8}
           >
@@ -233,10 +233,10 @@ export default function HomeScreen({ universityId, onSelectProperty }: { univers
         </View>
 
         {/* Results count */}
-        <View style={styles.resultsBar}>
-          <Text style={styles.resultsText}>
+        <View style={[styles.resultsBar, { backgroundColor: theme.surfaceSubtle }]}>
+          <Text style={[styles.resultsText, { color: theme.textSecondary }]}>
             <Text style={[styles.resultsCount, { color: theme.primary }]}>{filteredProperties.length}</Text> properties found
-            {lastUpdated && <Text style={styles.lastUpdatedText}> • Listings last updated: {lastUpdated}</Text>}
+            {lastUpdated && <Text style={[styles.lastUpdatedText, { color: theme.textMuted }]}> • Listings last updated: {lastUpdated}</Text>}
           </Text>
         </View>
       </Animated.View>
@@ -258,15 +258,15 @@ export default function HomeScreen({ universityId, onSelectProperty }: { univers
             <View style={[styles.emptyIconWrap, { backgroundColor: theme.primaryLight }]}>
               <Icon name="search" size={32} color={theme.primary} />
             </View>
-            <Text style={styles.emptyTitle}>No matching properties</Text>
-            <Text style={styles.emptyDesc}>Try adjusting your filters or search terms to find more results in {currentUni.city}.</Text>
+            <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>No matching properties</Text>
+            <Text style={[styles.emptyDesc, { color: theme.textMuted }]}>Try adjusting your filters or search terms to find more results in {currentUni.city}.</Text>
             <TouchableOpacity style={[styles.resetBtn, { backgroundColor: theme.primary }]} onPress={resetFilters}>
               <Text style={styles.resetBtnText}>Clear All Filters</Text>
             </TouchableOpacity>
           </View>
         }
         renderItem={({ item }) => (
-          <PropertyCard item={item} universityId={universityId} marketAverage={marketAverage} onPress={() => onSelectProperty(item.id)} />
+          <PropertyCard item={item} universityId={universityId} isDarkMode={isDarkMode} marketAverage={marketAverage} onPress={() => onSelectProperty(item.id)} />
         )}
         onEndReached={() => setDisplayLimit(prev => prev + 12)}
         onEndReachedThreshold={0.5}
@@ -275,132 +275,132 @@ export default function HomeScreen({ universityId, onSelectProperty }: { univers
       {/* Filter Modal */}
       <Modal visible={showFilters} animationType="slide" transparent>
         <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Filters & Sort</Text>
+          <View style={[styles.modalContent, { backgroundColor: theme.surface }]}>
+            <View style={[styles.modalHeader, { borderBottomColor: theme.border }]}>
+              <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>Filters & Sort</Text>
               <TouchableOpacity onPress={() => setShowFilters(false)}>
-                <Icon name="x" size={24} color={colors.textPrimary} />
+                <Icon name="x" size={24} color={theme.textPrimary} />
               </TouchableOpacity>
             </View>
 
             <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
               <View style={styles.filterGroup}>
-                <Text style={styles.filterGroupLabel}>Sort By</Text>
+                <Text style={[styles.filterGroupLabel, { color: theme.textMuted }]}>Sort By</Text>
                 <View style={styles.chipRow}>
-                  <TouchableOpacity style={[styles.chip, sortOption === 'price_asc' && { backgroundColor: theme.primary, borderColor: theme.primary }]} onPress={() => setSortOption('price_asc')}>
-                    <Text style={[styles.chipText, sortOption === 'price_asc' && { color: colors.white }]}>Price: Low to High</Text>
+                  <TouchableOpacity style={[styles.chip, { backgroundColor: theme.surface, borderColor: theme.border }, sortOption === 'price_asc' && { backgroundColor: theme.primary, borderColor: theme.primary }]} onPress={() => setSortOption('price_asc')}>
+                    <Text style={[styles.chipText, { color: theme.textSecondary }, sortOption === 'price_asc' && { color: colors.white }]}>Price: Low to High</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity style={[styles.chip, sortOption === 'price_desc' && { backgroundColor: theme.primary, borderColor: theme.primary }]} onPress={() => setSortOption('price_desc')}>
-                    <Text style={[styles.chipText, sortOption === 'price_desc' && { color: colors.white }]}>Price: High to Low</Text>
+                  <TouchableOpacity style={[styles.chip, { backgroundColor: theme.surface, borderColor: theme.border }, sortOption === 'price_desc' && { backgroundColor: theme.primary, borderColor: theme.primary }]} onPress={() => setSortOption('price_desc')}>
+                    <Text style={[styles.chipText, { color: theme.textSecondary }, sortOption === 'price_desc' && { color: colors.white }]}>Price: High to Low</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity style={[styles.chip, sortOption === 'dist_campus1' && { backgroundColor: theme.primary, borderColor: theme.primary }]} onPress={() => setSortOption('dist_campus1')}>
-                    <Text style={[styles.chipText, sortOption === 'dist_campus1' && { color: colors.white }]}>Distance: {CAMPUSES[0].label}</Text>
+                  <TouchableOpacity style={[styles.chip, { backgroundColor: theme.surface, borderColor: theme.border }, sortOption === 'dist_campus1' && { backgroundColor: theme.primary, borderColor: theme.primary }]} onPress={() => setSortOption('dist_campus1')}>
+                    <Text style={[styles.chipText, { color: theme.textSecondary }, sortOption === 'dist_campus1' && { color: colors.white }]}>Distance: {CAMPUSES[0].label}</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity style={[styles.chip, sortOption === 'dist_campus2' && { backgroundColor: theme.primary, borderColor: theme.primary }]} onPress={() => setSortOption('dist_campus2')}>
-                    <Text style={[styles.chipText, sortOption === 'dist_campus2' && { color: colors.white }]}>Distance: {CAMPUSES[1].label}</Text>
+                  <TouchableOpacity style={[styles.chip, { backgroundColor: theme.surface, borderColor: theme.border }, sortOption === 'dist_campus2' && { backgroundColor: theme.primary, borderColor: theme.primary }]} onPress={() => setSortOption('dist_campus2')}>
+                    <Text style={[styles.chipText, { color: theme.textSecondary }, sortOption === 'dist_campus2' && { color: colors.white }]}>Distance: {CAMPUSES[1].label}</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity style={[styles.chip, sortOption === 'newest' && { backgroundColor: theme.primary, borderColor: theme.primary }]} onPress={() => setSortOption('newest')}>
-                    <Text style={[styles.chipText, sortOption === 'newest' && { color: colors.white }]}>Newest Listed</Text>
+                  <TouchableOpacity style={[styles.chip, { backgroundColor: theme.surface, borderColor: theme.border }, sortOption === 'newest' && { backgroundColor: theme.primary, borderColor: theme.primary }]} onPress={() => setSortOption('newest')}>
+                    <Text style={[styles.chipText, { color: theme.textSecondary }, sortOption === 'newest' && { color: colors.white }]}>Newest Listed</Text>
                   </TouchableOpacity>
                 </View>
               </View>
 
               <View style={styles.filterGroup}>
-                <Text style={styles.filterGroupLabel}>Preferred Areas</Text>
+                <Text style={[styles.filterGroupLabel, { color: theme.textMuted }]}>Preferred Areas</Text>
                 <View style={styles.chipRow}>
                   {AREAS.map(area => (
                     <TouchableOpacity
                       key={area}
-                      style={[styles.chip, selectedAreas.includes(area) && { backgroundColor: theme.primary, borderColor: theme.primary }]}
+                      style={[styles.chip, { backgroundColor: theme.surface, borderColor: theme.border }, selectedAreas.includes(area) && { backgroundColor: theme.primary, borderColor: theme.primary }]}
                       onPress={() => toggleArea(area)}
                     >
-                      <Text style={[styles.chipText, selectedAreas.includes(area) && { color: colors.white }]}>{area}</Text>
+                      <Text style={[styles.chipText, { color: theme.textSecondary }, selectedAreas.includes(area) && { color: colors.white }]}>{area}</Text>
                     </TouchableOpacity>
                   ))}
                 </View>
               </View>
 
               <View style={styles.filterGroup}>
-                <Text style={styles.filterGroupLabel}>Bedrooms</Text>
+                <Text style={[styles.filterGroupLabel, { color: theme.textMuted }]}>Bedrooms</Text>
                 <View style={styles.chipRow}>
                   {[1, 2, 3, 4, 5].map(n => (
-                    <TouchableOpacity key={n} style={[styles.chip, selectedBeds.includes(n) && { backgroundColor: theme.primary, borderColor: theme.primary }]} onPress={() => toggleBed(n)}>
-                      <Text style={[styles.chipText, selectedBeds.includes(n) && { color: colors.white }]}>{n}{n === 5 ? '+' : ''}</Text>
+                    <TouchableOpacity key={n} style={[styles.chip, { backgroundColor: theme.surface, borderColor: theme.border }, selectedBeds.includes(n) && { backgroundColor: theme.primary, borderColor: theme.primary }]} onPress={() => toggleBed(n)}>
+                      <Text style={[styles.chipText, { color: theme.textSecondary }, selectedBeds.includes(n) && { color: colors.white }]}>{n}{n === 5 ? '+' : ''}</Text>
                     </TouchableOpacity>
                   ))}
                 </View>
               </View>
 
               <View style={styles.filterGroup}>
-                <Text style={styles.filterGroupLabel}>Max Price (per person / week)</Text>
+                <Text style={[styles.filterGroupLabel, { color: theme.textMuted }]}>Max Price (per person / week)</Text>
                 <View style={styles.chipRow}>
-                  <TouchableOpacity style={[styles.chip, maxPrice === null && { backgroundColor: theme.primary, borderColor: theme.primary }]} onPress={() => setMaxPrice(null)}>
-                    <Text style={[styles.chipText, maxPrice === null && { color: colors.white }]}>Any</Text>
+                  <TouchableOpacity style={[styles.chip, { backgroundColor: theme.surface, borderColor: theme.border }, maxPrice === null && { backgroundColor: theme.primary, borderColor: theme.primary }]} onPress={() => setMaxPrice(null)}>
+                    <Text style={[styles.chipText, { color: theme.textSecondary }, maxPrice === null && { color: colors.white }]}>Any</Text>
                   </TouchableOpacity>
                   {[100, 120, 150, 180, 200, 250, 300, 400].map(price => (
-                    <TouchableOpacity key={price} style={[styles.chip, maxPrice === price && { backgroundColor: theme.primary, borderColor: theme.primary }]} onPress={() => setMaxPrice(price)}>
-                      <Text style={[styles.chipText, maxPrice === price && { color: colors.white }]}>£{price}</Text>
+                    <TouchableOpacity key={price} style={[styles.chip, { backgroundColor: theme.surface, borderColor: theme.border }, maxPrice === price && { backgroundColor: theme.primary, borderColor: theme.primary }]} onPress={() => setMaxPrice(price)}>
+                      <Text style={[styles.chipText, { color: theme.textSecondary }, maxPrice === price && { color: colors.white }]}>£{price}</Text>
                     </TouchableOpacity>
                   ))}
                 </View>
               </View>
 
               <View style={styles.filterGroup}>
-                <Text style={styles.filterGroupLabel}>Source Site</Text>
+                <Text style={[styles.filterGroupLabel, { color: theme.textMuted }]}>Source Site</Text>
                 <View style={styles.chipRow}>
                   {SOURCES.map(src => (
                     <TouchableOpacity
                       key={src}
-                      style={[styles.chip, selectedSources.includes(src) && { backgroundColor: theme.primary, borderColor: theme.primary }]}
+                      style={[styles.chip, { backgroundColor: theme.surface, borderColor: theme.border }, selectedSources.includes(src) && { backgroundColor: theme.primary, borderColor: theme.primary }]}
                       onPress={() => toggleSource(src)}
                     >
-                      <Text style={[styles.chipText, selectedSources.includes(src) && { color: colors.white }]}>{src}</Text>
+                      <Text style={[styles.chipText, { color: theme.textSecondary }, selectedSources.includes(src) && { color: colors.white }]}>{src}</Text>
                     </TouchableOpacity>
                   ))}
                 </View>
               </View>
 
               <View style={styles.filterGroup}>
-                <Text style={styles.filterGroupLabel}>Utilities</Text>
+                <Text style={[styles.filterGroupLabel, { color: theme.textMuted }]}>Utilities</Text>
                 <View style={styles.chipRow}>
-                  <TouchableOpacity style={[styles.chip, billsIncluded === null && { backgroundColor: theme.primary, borderColor: theme.primary }]} onPress={() => setBillsIncluded(null)}>
-                    <Text style={[styles.chipText, billsIncluded === null && { color: colors.white }]}>Any</Text>
+                  <TouchableOpacity style={[styles.chip, { backgroundColor: theme.surface, borderColor: theme.border }, billsIncluded === null && { backgroundColor: theme.primary, borderColor: theme.primary }]} onPress={() => setBillsIncluded(null)}>
+                    <Text style={[styles.chipText, { color: theme.textSecondary }, billsIncluded === null && { color: colors.white }]}>Any</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity style={[styles.chip, billsIncluded === true && { backgroundColor: theme.primary, borderColor: theme.primary }]} onPress={() => setBillsIncluded(true)}>
-                    <Text style={[styles.chipText, billsIncluded === true && { color: colors.white }]}>Bills Included</Text>
+                  <TouchableOpacity style={[styles.chip, { backgroundColor: theme.surface, borderColor: theme.border }, billsIncluded === true && { backgroundColor: theme.primary, borderColor: theme.primary }]} onPress={() => setBillsIncluded(true)}>
+                    <Text style={[styles.chipText, { color: theme.textSecondary }, billsIncluded === true && { color: colors.white }]}>Bills Included</Text>
                   </TouchableOpacity>
                 </View>
               </View>
 
               <View style={styles.filterGroup}>
-                <Text style={styles.filterGroupLabel}>Campus Distance</Text>
+                <Text style={[styles.filterGroupLabel, { color: theme.textMuted }]}>Campus Distance</Text>
                 <View style={styles.chipRow}>
                   {CAMPUSES.map((c, idx) => (
                     <TouchableOpacity
                       key={c.id}
-                      style={[styles.chip, distanceCampusIdx === idx && { backgroundColor: theme.primary, borderColor: theme.primary }]}
+                      style={[styles.chip, { backgroundColor: theme.surface, borderColor: theme.border }, distanceCampusIdx === idx && { backgroundColor: theme.primary, borderColor: theme.primary }]}
                       onPress={() => setDistanceCampusIdx(idx)}
                     >
-                      <Text style={[styles.chipText, distanceCampusIdx === idx && { color: colors.white }]}>{c.label}</Text>
+                      <Text style={[styles.chipText, { color: theme.textSecondary }, distanceCampusIdx === idx && { color: colors.white }]}>{c.label}</Text>
                     </TouchableOpacity>
                   ))}
                 </View>
                 <View style={[styles.chipRow, { marginTop: 12 }]}>
-                  <TouchableOpacity style={[styles.chip, maxDistance === null && { backgroundColor: theme.primary, borderColor: theme.primary }]} onPress={() => setMaxDistance(null)}>
-                    <Text style={[styles.chipText, maxDistance === null && { color: colors.white }]}>Any Distance</Text>
+                  <TouchableOpacity style={[styles.chip, { backgroundColor: theme.surface, borderColor: theme.border }, maxDistance === null && { backgroundColor: theme.primary, borderColor: theme.primary }]} onPress={() => setMaxDistance(null)}>
+                    <Text style={[styles.chipText, { color: theme.textSecondary }, maxDistance === null && { color: colors.white }]}>Any Distance</Text>
                   </TouchableOpacity>
                   {[0.5, 1, 2, 3].map(d => (
-                    <TouchableOpacity key={d} style={[styles.chip, maxDistance === d && { backgroundColor: theme.primary, borderColor: theme.primary }]} onPress={() => setMaxDistance(d)}>
-                      <Text style={[styles.chipText, maxDistance === d && { color: colors.white }]}>Within {d} mi</Text>
+                    <TouchableOpacity key={d} style={[styles.chip, { backgroundColor: theme.surface, borderColor: theme.border }, maxDistance === d && { backgroundColor: theme.primary, borderColor: theme.primary }]} onPress={() => setMaxDistance(d)}>
+                      <Text style={[styles.chipText, { color: theme.textSecondary }, maxDistance === d && { color: colors.white }]}>Within {d} mi</Text>
                     </TouchableOpacity>
                   ))}
                 </View>
               </View>
             </ScrollView>
 
-            <View style={styles.modalFooter}>
-              <TouchableOpacity style={styles.modalReset} onPress={resetFilters}>
-                <Text style={styles.modalResetText}>Reset All</Text>
+            <View style={[styles.modalFooter, { backgroundColor: theme.surface, borderTopColor: theme.border }]}>
+              <TouchableOpacity style={[styles.modalReset, { borderColor: theme.border }]} onPress={resetFilters}>
+                <Text style={[styles.modalResetText, { color: theme.textSecondary }]}>Reset All</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[styles.modalApply, { backgroundColor: theme.primary }]} onPress={() => setShowFilters(false)}>
                 <Text style={styles.modalApplyText}>Show {filteredProperties.length} Homes</Text>

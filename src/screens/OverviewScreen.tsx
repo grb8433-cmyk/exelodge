@@ -8,8 +8,9 @@ import { supabase } from '../lib/supabase';
 import { colors, spacing, radii, typography, shadows, fontFamily, isDesktop, getUniversityColors } from '../utils/theme';
 import UNIVERSITIES from '../../config/universities.json';
 
-export default function OverviewScreen({ universityId, onSelectUniversity, onNavigateToHouses }: { 
+export default function OverviewScreen({ universityId, isDarkMode = false, onSelectUniversity, onNavigateToHouses }: { 
   universityId: string, 
+  isDarkMode?: boolean,
   onSelectUniversity: (id: string) => void,
   onNavigateToHouses: () => void 
 }) {
@@ -19,7 +20,7 @@ export default function OverviewScreen({ universityId, onSelectUniversity, onNav
   const desktop = isDesktop(width);
   
   const currentUni = UNIVERSITIES.find(u => u.id === universityId) || UNIVERSITIES[0];
-  const theme = getUniversityColors(universityId);
+  const theme = getUniversityColors(universityId, isDarkMode);
 
   useEffect(() => {
     const load = async () => {
@@ -81,7 +82,7 @@ export default function OverviewScreen({ universityId, onSelectUniversity, onNav
   ] as const;
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+    <ScrollView style={[styles.container, { backgroundColor: theme.background }]} contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
 
       {/* ── HERO ── */}
       <View style={[styles.hero, !desktop && styles.heroMobile]}>
@@ -109,7 +110,7 @@ export default function OverviewScreen({ universityId, onSelectUniversity, onNav
           </Text>
 
           <TouchableOpacity 
-            style={[styles.heroCTA, !desktop && styles.heroCTAMobile]} 
+            style={[styles.heroCTA, !desktop && styles.heroCTAMobile, { backgroundColor: theme.surface }]} 
             onPress={onNavigateToHouses} 
             activeOpacity={0.88}
           >
@@ -122,16 +123,16 @@ export default function OverviewScreen({ universityId, onSelectUniversity, onNav
       <View style={styles.inner}>
         {/* ── CITY SELECTOR ── */}
         <View style={[styles.citySelector, !desktop && styles.citySelectorMobile]}>
-          <Text style={styles.citySelectorTitle}>Switch City</Text>
+          <Text style={[styles.citySelectorTitle, { color: theme.textMuted }]}>Switch City</Text>
           <View style={styles.cityCards}>
             {UNIVERSITIES.map(uni => (
               <TouchableOpacity 
                 key={uni.id} 
-                style={[styles.cityCard, universityId === uni.id && { borderColor: uni.primaryColor, backgroundColor: uni.primaryLight }]}
+                style={[styles.cityCard, { backgroundColor: theme.surface, borderColor: theme.border }, universityId === uni.id && { borderColor: uni.primaryColor, backgroundColor: theme.primaryLight }]}
                 onPress={() => onSelectUniversity(uni.id)}
               >
-                <Text style={[styles.cityCardName, universityId === uni.id && { color: uni.primaryColor }]}>{uni.city}</Text>
-                <Text style={styles.cityCardUni}>{uni.name}</Text>
+                <Text style={[styles.cityCardName, { color: theme.textPrimary }, universityId === uni.id && { color: uni.primaryColor }]}>{uni.city}</Text>
+                <Text style={[styles.cityCardUni, { color: theme.textMuted }]}>{uni.name}</Text>
                 {universityId === uni.id && (
                   <View style={[styles.cityActiveDot, { backgroundColor: uni.primaryColor }]} />
                 )}
@@ -141,20 +142,20 @@ export default function OverviewScreen({ universityId, onSelectUniversity, onNav
         </View>
 
         {/* ── GUILD CARD ── */}
-        <View style={[styles.guildCard, !desktop && styles.guildCardMobile, { backgroundColor: theme.primaryLight }]}>
+        <View style={[styles.guildCard, !desktop && styles.guildCardMobile, { backgroundColor: theme.primaryLight, borderColor: theme.primaryMedium }]}>
           <View style={[styles.guildLeft, !desktop && styles.guildLeftMobile]}>
             <View style={[styles.guildIconWrap, { backgroundColor: theme.primary }]}>
               <Icon name="users" size={22} color={colors.white} />
             </View>
-            <Text style={styles.guildTitle}>{universityId === 'exeter' ? "Exeter Students' Guild" : "Bristol SU"} Housing Advice</Text>
-            <Text style={styles.guildSub}>Free, independent guidance for every student.</Text>
-            <TouchableOpacity style={styles.guildBtn} onPress={openGuild} activeOpacity={0.85}>
+            <Text style={[styles.guildTitle, { color: theme.textPrimary }]}>{universityId === 'exeter' ? "Exeter Students' Guild" : "Bristol SU"} Housing Advice</Text>
+            <Text style={[styles.guildSub, { color: theme.textSecondary }]}>Free, independent guidance for every student.</Text>
+            <TouchableOpacity style={[styles.guildBtn, { backgroundColor: theme.surface }]} onPress={openGuild} activeOpacity={0.85}>
               <Text style={[styles.guildBtnText, { color: theme.primary }]}>Book an Appointment</Text>
               <Icon name="external-link" size={13} color={theme.primary} />
             </TouchableOpacity>
           </View>
-          <View style={[styles.guildRight, !desktop && styles.guildRightMobile]}>
-            <Text style={styles.guildDesc}>
+          <View style={[styles.guildRight, !desktop && styles.guildRightMobile, { borderLeftColor: theme.primaryMedium }]}>
+            <Text style={[styles.guildDesc, { color: theme.textSecondary }]}>
               Our housing specialists offer free advice on contracts, landlord disputes, and tenant legislation.
               Whether you're signing your first lease or dealing with an unresponsive landlord — we're here.
             </Text>
@@ -168,8 +169,8 @@ export default function OverviewScreen({ universityId, onSelectUniversity, onNav
         {/* ── STATS / FEATURES GRID ── */}
         <View style={[styles.sectionHeader, !desktop && styles.sectionHeaderMobile]}>
           <View>
-            <Text style={styles.sectionLabel}>LIVE MARKET DATA</Text>
-            <Text style={styles.sectionTitle}>Market Insights & Features</Text>
+            <Text style={[styles.sectionLabel, { color: theme.textMuted }]}>LIVE MARKET DATA</Text>
+            <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Market Insights & Features</Text>
           </View>
           <View style={[styles.liveBadge, { backgroundColor: theme.primaryLight }]}>
             <View style={[styles.livePulse, { backgroundColor: theme.primary }]} />
@@ -179,54 +180,54 @@ export default function OverviewScreen({ universityId, onSelectUniversity, onNav
 
         <View style={[styles.grid, !desktop && styles.gridMobile]}>
 
-          <View style={[styles.statCard, !desktop && styles.cardFull]}>
+          <View style={[styles.statCard, !desktop && styles.cardFull, { backgroundColor: theme.surface, borderColor: theme.border }]}>
             <View style={[styles.statIcon, { backgroundColor: theme.primaryLight }]}>
               <Icon name="trending-up" size={18} color={theme.primary} />
             </View>
             <Text style={[styles.statValue, { color: theme.primary }]}>£{stats.avg}</Text>
-            <Text style={styles.statUnit}>per person / week</Text>
-            <Text style={styles.cardDesc}>Current {currentUni.city} market average across {stats.sources} sources.</Text>
+            <Text style={[styles.statUnit, { color: theme.textMuted }]}>per person / week</Text>
+            <Text style={[styles.cardDesc, { color: theme.textMuted }]}>Current {currentUni.city} market average across {stats.sources} sources.</Text>
           </View>
 
-          <View style={[styles.statCard, !desktop && styles.cardFull]}>
+          <View style={[styles.statCard, !desktop && styles.cardFull, { backgroundColor: theme.surface, borderColor: theme.border }]}>
             <View style={[styles.statIcon, { backgroundColor: theme.accentAmberBg }]}>
               <Icon name="home" size={18} color={theme.accentAmber} />
             </View>
             <Text style={[styles.statValue, { color: theme.accentAmber }]}>{stats.count}</Text>
-            <Text style={styles.statUnit}>unique homes listed</Text>
-            <Text style={styles.cardDesc}>Aggregated and deduplicated daily from all major portals.</Text>
+            <Text style={[styles.statUnit, { color: theme.textMuted }]}>unique homes listed</Text>
+            <Text style={[styles.cardDesc, { color: theme.textMuted }]}>Aggregated and deduplicated daily from all major portals.</Text>
           </View>
 
-          <View style={[styles.featureCard, !desktop && styles.cardFull]}>
+          <View style={[styles.featureCard, !desktop && styles.cardFull, { backgroundColor: theme.surface, borderColor: theme.border }]}>
             <View style={[styles.statIcon, { backgroundColor: theme.accentPriceBg }]}>
               <Icon name="layers" size={18} color={theme.accentPrice} />
             </View>
-            <Text style={styles.featureTitle}>Price Comparison</Text>
-            <Text style={styles.cardDesc}>Compare listings side-by-side to find hidden value and avoid overpaying.</Text>
+            <Text style={[styles.featureTitle, { color: theme.textPrimary }]}>Price Comparison</Text>
+            <Text style={[styles.cardDesc, { color: theme.textMuted }]}>Compare listings side-by-side to find hidden value and avoid overpaying.</Text>
           </View>
 
-          <View style={[styles.featureCard, !desktop && styles.cardFull]}>
+          <View style={[styles.featureCard, !desktop && styles.cardFull, { backgroundColor: theme.surface, borderColor: theme.border }]}>
             <View style={[styles.statIcon, { backgroundColor: theme.accentReviewsBg }]}>
               <Icon name="message-circle" size={18} color={theme.accentReviews} />
             </View>
-            <Text style={styles.featureTitle}>Landlord Reviews</Text>
-            <Text style={styles.cardDesc}>Authentic tenant experiences from {currentUni.city} students across all providers.</Text>
+            <Text style={[styles.featureTitle, { color: theme.textPrimary }]}>Landlord Reviews</Text>
+            <Text style={[styles.cardDesc, { color: theme.textMuted }]}>Authentic tenant experiences from {currentUni.city} students across all providers.</Text>
           </View>
 
-          <View style={[styles.featureCard, !desktop && styles.cardFull]}>
+          <View style={[styles.featureCard, !desktop && styles.cardFull, { backgroundColor: theme.surface, borderColor: theme.border }]}>
             <View style={[styles.statIcon, { backgroundColor: theme.accentLegalBg }]}>
               <Icon name="file-text" size={18} color={theme.accentLegal} />
             </View>
-            <Text style={styles.featureTitle}>Legal Checklist</Text>
-            <Text style={styles.cardDesc}>Plain-English guide to your rights under the 2025 Renters' Rights Act.</Text>
+            <Text style={[styles.featureTitle, { color: theme.textPrimary }]}>Legal Checklist</Text>
+            <Text style={[styles.cardDesc, { color: theme.textMuted }]}>Plain-English guide to your rights under the 2025 Renters' Rights Act.</Text>
           </View>
 
-          <View style={[styles.featureCard, !desktop && styles.cardFull]}>
+          <View style={[styles.featureCard, !desktop && styles.cardFull, { backgroundColor: theme.surface, borderColor: theme.border }]}>
             <View style={[styles.statIcon, { backgroundColor: theme.primaryLight }]}>
               <Icon name="map-pin" size={18} color={theme.primary} />
             </View>
-            <Text style={styles.featureTitle}>Full {currentUni.city} Coverage</Text>
-            <Text style={styles.cardDesc}>Comprehensive monitoring of all student-friendly areas in {currentUni.city}.</Text>
+            <Text style={[styles.featureTitle, { color: theme.textPrimary }]}>Full {currentUni.city} Coverage</Text>
+            <Text style={[styles.cardDesc, { color: theme.textMuted }]}>Comprehensive monitoring of all student-friendly areas in {currentUni.city}.</Text>
           </View>
 
         </View>

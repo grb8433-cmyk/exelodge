@@ -30,14 +30,15 @@ const timeAgo = (dateStr: string) => {
   }
 };
 
-export default function PropertyCard({ item, universityId, onPress, marketAverage }: {
+export default function PropertyCard({ item, universityId, isDarkMode = false, onPress, marketAverage }: {
   item: any;
   universityId: string;
+  isDarkMode?: boolean;
   onPress: () => void;
   marketAverage: number;
 }) {
   const price = parseFloat(item.price_pppw);
-  const theme = getUniversityColors(universityId);
+  const theme = getUniversityColors(universityId, isDarkMode);
 
   const fallbackImage = 'https://images.unsplash.com/photo-1518780664697-55e3ad937233?w=600&q=80';
   const imageUrl = item.image_url && item.image_url !== 'None' ? item.image_url : fallbackImage;
@@ -48,8 +49,8 @@ export default function PropertyCard({ item, universityId, onPress, marketAverag
   const updatedText = timeAgo(item.last_scraped);
 
   return (
-    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.95}>
-      <View style={styles.imageContainer}>
+    <TouchableOpacity style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]} onPress={onPress} activeOpacity={0.95}>
+      <View style={[styles.imageContainer, { backgroundColor: theme.surfaceSubtle }]}>
         <Image source={{ uri: imageUrl }} style={styles.image} resizeMode="cover" />
         
         {/* Price Badge */}
@@ -59,23 +60,23 @@ export default function PropertyCard({ item, universityId, onPress, marketAverag
 
         {/* Bills Badge */}
         {item.bills_included && (
-          <View style={styles.billsBadge}>
+          <View style={[styles.billsBadge, { backgroundColor: isDarkMode ? 'rgba(0,0,0,0.7)' : 'rgba(255,255,255,0.9)' }]}>
             <Text style={[styles.billsBadgeText, { color: theme.primary }]}>BILLS INC.</Text>
           </View>
         )}
       </View>
 
       <View style={styles.content}>
-        <Text style={styles.address} numberOfLines={1}>{item.address}</Text>
+        <Text style={[styles.address, { color: theme.textPrimary }]} numberOfLines={1}>{item.address}</Text>
         
         <View style={styles.metaRow}>
           <View style={styles.metaItem}>
-            <Icon name="map-pin" size={12} color={colors.textMuted} />
-            <Text style={styles.metaText}>{item.area}</Text>
+            <Icon name="map-pin" size={12} color={theme.textMuted} />
+            <Text style={[styles.metaText, { color: theme.textSecondary }]}>{item.area}</Text>
           </View>
           <View style={styles.metaItem}>
-            <Icon name="users" size={12} color={colors.textMuted} />
-            <Text style={styles.metaText}>{item.bedrooms} bed</Text>
+            <Icon name="users" size={12} color={theme.textMuted} />
+            <Text style={[styles.metaText, { color: theme.textSecondary }]}>{item.bedrooms} bed</Text>
           </View>
         </View>
 
@@ -83,22 +84,22 @@ export default function PropertyCard({ item, universityId, onPress, marketAverag
           <View style={styles.valueRow}>
             {isCheaper ? (
               <View style={styles.valueIndicator}>
-                <Icon name="trending-down" size={14} color="#059669" />
-                <Text style={[styles.valueText, { color: '#059669' }]}>Below average</Text>
+                <Icon name="trending-down" size={14} color={theme.success} />
+                <Text style={[styles.valueText, { color: theme.success }]}>Below average</Text>
               </View>
             ) : isMoreExpensive ? (
               <View style={styles.valueIndicator}>
-                <Icon name="trending-up" size={14} color="#D97706" />
-                <Text style={[styles.valueText, { color: '#D97706' }]}>Above average</Text>
+                <Icon name="trending-up" size={14} color={theme.warning} />
+                <Text style={[styles.valueText, { color: theme.warning }]}>Above average</Text>
               </View>
             ) : (
-              <Text style={styles.valueTextMuted}>Market average</Text>
+              <Text style={[styles.valueTextMuted, { color: theme.textMuted }]}>Market average</Text>
             )}
           </View>
           
           <View style={styles.updatedRow}>
-            <Icon name="clock" size={10} color={colors.textMuted} />
-            <Text style={styles.updatedText}>{updatedText}</Text>
+            <Icon name="clock" size={10} color={theme.textMuted} />
+            <Text style={[styles.updatedText, { color: theme.textMuted }]}>{updatedText}</Text>
           </View>
         </View>
       </View>
