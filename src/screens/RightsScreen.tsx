@@ -199,9 +199,9 @@ const styles = StyleSheet.create({
   content: { padding: 32, maxWidth: 1152, alignSelf: 'center', width: '100%' },
   contentMobile: { padding: 16 },
   grid: { flexDirection: 'row', gap: 24 },
-  gridMobile: { flexDirection: 'column', gap: 0 },
+  gridMobile: { flexDirection: 'column', gap: 24 },
   col: { flex: 1 },
-  colMobile: { flex: 0, width: '100%', marginBottom: 32 },
+  colMobile: { width: '100%' },
 
   sectionLabel: {
     ...typography.eyebrow,
@@ -213,7 +213,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     borderColor: colors.border,
-    overflow: 'hidden',
     ...shadows.soft,
     marginBottom: spacing.lg,
   },
