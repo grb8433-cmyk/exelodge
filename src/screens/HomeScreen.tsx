@@ -194,7 +194,7 @@ export default function HomeScreen({ universityId, onSelectProperty }: { univers
             <Text style={[styles.headerTitle, !desktop && { fontSize: 22 }]}>Find Your Next Home</Text>
           </View>
           <View style={[styles.marketWidget, !desktop && styles.marketWidgetMobile, { backgroundColor: theme.primaryLight }]}>
-            <View style={styles.marketWidgetInner}>
+            <View style={[styles.marketWidgetInner, !desktop && styles.marketWidgetInnerMobile]}>
               <Icon name="trending-up" size={13} color={theme.primary} />
               <Text style={[styles.marketLabel, { color: theme.primary }]}>MARKET AVG</Text>
             </View>
@@ -433,7 +433,13 @@ const styles = StyleSheet.create({
     paddingTop: 48,
     paddingBottom: spacing.md,
   },
-  headerMobile: { paddingHorizontal: 16, paddingTop: 40 },
+  headerMobile: { 
+    paddingHorizontal: 16, 
+    paddingTop: 32,
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
   headerEyebrow: { ...typography.eyebrow, marginBottom: 2 },
   headerTitle: { ...typography.h1Page, color: colors.textPrimary },
   
@@ -444,8 +450,12 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 12,
   },
-  marketWidgetMobile: { paddingHorizontal: spacing.md },
+  marketWidgetMobile: { 
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
   marketWidgetInner: { flexDirection: 'row', alignItems: 'center', gap: 6, marginRight: 16 },
+  marketWidgetInnerMobile: { marginRight: 8 },
   marketLabel: { ...typography.eyebrow, fontSize: 9, letterSpacing: 1 },
   marketValue: { ...typography.priceLarge, fontSize: 18 },
   marketSub: { fontSize: 11, fontWeight: '400' as any, color: colors.textMuted },
