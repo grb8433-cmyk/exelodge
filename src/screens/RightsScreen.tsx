@@ -21,6 +21,13 @@ export default function RightsScreen({ universityId }: { universityId: string })
 
   const RIGHTS = [
     {
+      icon: 'file-text' as const,
+      color: colors.success,
+      bg: '#EFFFF4',
+      title: "Renters' Rights Act 2025",
+      desc: 'New legislation ending Section 21 "no-fault" evictions, banning mid-tenancy bidding wars, and extending "Awaab’s Law" to the private sector to ensure damp/mould is fixed quickly.',
+    },
+    {
       icon: 'shield' as const,
       color: colors.accentLegal,
       bg: colors.accentLegalBg,
@@ -35,7 +42,7 @@ export default function RightsScreen({ universityId }: { universityId: string })
       desc: 'Your deposit must be protected in a government-backed scheme (TDS, DPS, or MyDeposits) within 30 days of payment.',
     },
     {
-      icon: 'file-text' as const,
+      icon: 'file' as const,
       color: '#7C3AED',
       bg: '#F5F0FF',
       title: 'The Tenant Fees Act 2019',
@@ -44,8 +51,9 @@ export default function RightsScreen({ universityId }: { universityId: string })
   ];
 
   const FAQ = [
+    { q: "What does the 2025 Act mean for my rolling contract?", a: "The 2025 Act transitions all tenancies to a single periodic system. This means fixed-terms are being phased out, giving you more flexibility to leave with 2 months' notice if your circumstances change.", link: 'https://www.gov.uk/government/publications/renters-rights-bill-2024-to-2025' },
     { q: "What do I do if my landlord won't fix the heating?", a: `Landlords are legally required to keep the supply of water, gas, electricity, and space heating in good repair. First, notify them in writing. If they don't respond, contact ${currentUni.city} City Council's Environmental Health team.`, link: universityId === 'exeter' ? 'https://www.exeter.gov.uk/housing/private-sector-housing/repairs-and-maintenance/' : 'https://www.bristol.gov.uk/residents/housing/private-renting/problems-with-your-landlord/report-a-repair-problem' },
-    { q: "What do I do if I want to leave my contract early?", a: "You are usually bound by a fixed-term contract. You can only leave early if there is a 'break clause' or if you find a replacement student to take over your tenancy (assignment). Always get the landlord's consent in writing.", link: 'https://england.shelter.org.uk/housing_advice/private_renting/how_to_end_a_fixed_term_tenancy_early' },
+    { q: "What do I do if I want to leave my contract early?", a: "Under the new 2025 rules, you can end your tenancy by giving two months' notice. You are no longer 'trapped' in a 12-month fixed term if the property is substandard or your situation changes.", link: 'https://england.shelter.org.uk/housing_advice/private_renting/how_to_end_a_fixed_term_tenancy_early' },
     { q: "What do I do if my deposit hasn't been protected?", a: "Your landlord must place your deposit in a government-backed scheme within 30 days. If they haven't, you can claim compensation of 1–3 times the deposit amount through the county court.", link: 'https://www.gov.uk/tenancy-deposit-protection/if-your-landlord-doesnt-protect-your-deposit' },
     { q: "What do I do if the landlord enters without notice?", a: "Unless it is an emergency, landlords must give at least 24 hours' notice in writing before entering. You have the right to 'quiet enjoyment' of your home and can refuse entry if the time is inconvenient.", link: 'https://www.citizensadvice.org.uk/housing/renting-privately/during-your-tenancy/your-landlord-needs-to-come-into-your-home/' },
   ];
@@ -132,7 +140,7 @@ export default function RightsScreen({ universityId }: { universityId: string })
                     </TouchableOpacity>
 
                     {isOpen && (
-                      <View style={styles.qaAnswer}>
+                      <View style={[styles.qaAnswer, !desktop && styles.qaAnswerMobile]}>
                         <Text style={styles.qaAnswerText}>{item.a}</Text>
                         <TouchableOpacity onPress={() => openLink(item.link)} style={styles.qaLink}>
                           <Text style={[styles.qaLinkText, { color: theme.primary }]}>Read official guidance</Text>
@@ -256,9 +264,16 @@ const styles = StyleSheet.create({
     ...typography.body, fontWeight: '600' as any,
     color: colors.textPrimary, flex: 1,
   },
-  qaAnswer: { paddingHorizontal: 24, paddingBottom: 16, paddingLeft: 60 },
+  qaAnswer: { 
+    paddingHorizontal: 24, 
+    paddingBottom: 16, 
+    paddingLeft: 60,
+  },
+  qaAnswerMobile: {
+    paddingLeft: 24,
+  },
   qaAnswerText: { ...typography.bodySubtle, color: colors.textSecondary, marginBottom: 12 },
-  qaLink: { flexDirection: 'row', alignItems: 'center', gap: 5, minHeight: 44 },
+  qaLink: { flexDirection: 'row', alignItems: 'center', gap: 5, minHeight: 44, flexWrap: 'wrap' },
   qaLinkText: { ...typography.bodySmall, fontWeight: '700' as any },
 
   disclaimer: {
