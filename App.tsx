@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, useWindowDimensions, TouchableOpacity, Platform, Animated, Image, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, useWindowDimensions, TouchableOpacity, Platform, Image, ScrollView, ActivityIndicator } from 'react-native';
+import Animated, { FadeInUp, FadeInDown } from 'react-native-reanimated';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import * as Font from 'expo-font';
 import { Feather } from '@expo/vector-icons';
@@ -12,7 +13,7 @@ import ReviewsScreen from './src/screens/ReviewsScreen';
 import RightsScreen from './src/screens/RightsScreen';
 import PropertyDetailScreen from './src/screens/PropertyDetailScreen';
 import SubmitReviewScreen from './src/screens/SubmitReviewScreen';
-import { colors, shadows, radii, fontFamily, getUniversityColors, isDesktop, spacing } from './src/utils/theme';
+import { colors, shadows, radii, fontFamily, getUniversityColors, isDesktop, spacing, typography } from './src/utils/theme';
 import UNIVERSITIES from './config/universities.json';
 
 const TABS = [
@@ -31,82 +32,76 @@ function LandingScreen({ onSelect }: { onSelect: (id: string) => void }) {
   useEffect(() => {
     async function fetchCounts() {
       try {
-        const { data, error } = await supabase
-          .from('properties')
-          .select('university')
-          .eq('is_available', true);
-        
+        const { data, error } = await supabase.from('properties').select('university').eq('is_available', true);
         if (error) throw error;
-        
         const newCounts: Record<string, number> = {};
-        data.forEach(p => {
-          newCounts[p.university] = (newCounts[p.university] || 0) + 1;
-        });
+        data.forEach(p => { newCounts[p.university] = (newCounts[p.university] || 0) + 1; });
         setCounts(newCounts);
-      } catch (err) {
-        console.error('Error fetching property counts:', err);
-      } finally {
-        setLoading(false);
-      }
+      } catch (err) { console.error(err); } finally { setLoading(false); }
     }
     fetchCounts();
   }, []);
 
   return (
     <View style={styles.landingContainer}>
+      {/* Decorative Blobs */}
+      <View style={styles.blobExeter} />
+      <View style={styles.blobBristol} />
+      <View style={styles.blobCenter} />
+
       <ScrollView contentContainerStyle={styles.landingContent} showsVerticalScrollIndicator={false}>
-        <View style={styles.landingHero}>
-          <View style={[styles.landingLogoMark, { backgroundColor: '#0B6E4F' }]}>
+        <Animated.View 
+          entering={FadeInUp.duration(600).springify()}
+          style={styles.landingHero}
+        >
+          <View style={styles.landingIconBox}>
             <Icon name="home" size={32} color={colors.white} />
           </View>
           <Text style={styles.landingLogoText}>ExeLodge</Text>
-          <Text style={styles.landingQuestion}>Where are you studying?</Text>
-        </View>
+          <Text style={styles.landingTitle}>The Student Housing{'\n'}Platform for Exeter & Bristol</Text>
+          <Text style={styles.landingSub}>Verified listings, real reviews, and tenant legal empowerment.</Text>
+        </Animated.View>
 
         <View style={[styles.cityCards, !desktop && styles.cityCardsMobile]}>
-          {UNIVERSITIES.map(uni => (
-            <TouchableOpacity
+          {UNIVERSITIES.map((uni, i) => (
+            <Animated.View
               key={uni.id}
-              style={[styles.cityCard, { borderColor: uni.primaryColor }]}
-              onPress={() => onSelect(uni.id)}
-              activeOpacity={0.9}
+              entering={FadeInDown.duration(500).delay(150 + i * 100).springify()}
+              style={{ flex: 1 }}
             >
-              <View style={[styles.cityCardHero, { backgroundColor: uni.primaryColor }]}>
-                <Text style={styles.cityCardName}>{uni.city}</Text>
-              </View>
-              <View style={styles.cityCardFooter}>
-                <Text style={styles.cityCardUni}>{uni.name}</Text>
-                {loading ? (
-                  <ActivityIndicator size="small" color={uni.primaryColor} />
-                ) : (
-                  <Text style={[styles.cityCount, { color: uni.primaryColor }]}>
-                    {counts[uni.id] || 0} properties available
-                  </Text>
-                )}
-                <View style={[styles.cityCardBtn, { backgroundColor: uni.primaryColor }]}>
-                  <Text style={styles.cityCardBtnText}>Explore Homes</Text>
-                  <Icon name="arrow-right" size={14} color={colors.white} />
+              <TouchableOpacity
+                style={[styles.cityCard, { borderColor: 'rgba(255,255,255,0.1)' }]}
+                onPress={() => onSelect(uni.id)}
+                activeOpacity={0.9}
+              >
+                <View style={[styles.cityCardHero, { backgroundColor: uni.primaryColor }]}>
+                  <Text style={styles.cityCardName}>{uni.city}</Text>
                 </View>
-              </View>
-            </TouchableOpacity>
+                <View style={styles.cityCardFooter}>
+                  <Text style={styles.cityCardUni}>{uni.name}</Text>
+                  {loading ? (
+                    <ActivityIndicator size="small" color={uni.primaryColor} />
+                  ) : (
+                    <Text style={[styles.cityCount, { color: uni.primaryColor }]}>
+                      {counts[uni.id] || 0} properties available
+                    </Text>
+                  )}
+                  <View style={[styles.cityCardBtn, { backgroundColor: uni.primaryColor }]}>
+                    <Text style={styles.cityCardBtnText}>Explore {uni.city}</Text>
+                    <Icon name="arrow-right" size={14} color={colors.white} />
+                  </View>
+                </View>
+              </TouchableOpacity>
+            </Animated.View>
           ))}
-
-          {/* Cardiff Coming Soon */}
-          <View style={[styles.cityCard, styles.cityCardDisabled]}>
-            <View style={[styles.cityCardHero, { backgroundColor: '#A8A29E' }]}>
-              <Text style={styles.cityCardName}>Cardiff</Text>
-            </View>
-            <View style={styles.cityCardFooter}>
-              <Text style={styles.cityCardUni}>Cardiff University</Text>
-              <View style={styles.comingSoonBadge}>
-                <Text style={styles.comingSoonText}>COMING SOON</Text>
-              </View>
-              <View style={[styles.cityCardBtn, { backgroundColor: '#E7E5E4' }]}>
-                <Text style={[styles.cityCardBtnText, { color: '#A8A29E' }]}>Not available yet</Text>
-              </View>
-            </View>
-          </View>
         </View>
+        
+        <Animated.View 
+          entering={FadeInDown.duration(800).delay(600)}
+          style={styles.landingFooter}
+        >
+          <Text style={styles.landingFooterText}>Exeter & Bristol Student Housing Platform • 2026</Text>
+        </Animated.View>
       </ScrollView>
     </View>
   );
@@ -338,7 +333,7 @@ const styles = StyleSheet.create({
     height: 56,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: 16,
     gap: 10,
     ...shadows.soft,
     zIndex: 10,
@@ -346,7 +341,7 @@ const styles = StyleSheet.create({
   mobileLogoMark: {
     width: 28,
     height: 28,
-    borderRadius: radii.xs,
+    borderRadius: 8,
     backgroundColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center',
     justifyContent: 'center',
@@ -357,22 +352,20 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   mobileLogoText: {
-    fontFamily,
-    fontSize: 18,
-    fontWeight: '800' as any,
+    ...typography.wordmark,
+    fontSize: 16,
     color: colors.white,
-    letterSpacing: -0.3,
   },
   mobileSwitchCity: {
     flexDirection: 'row',
     alignItems: 'center',
     marginLeft: 4,
     height: '100%',
-    paddingRight: spacing.md,
+    paddingRight: 16,
   },
   mobileCityName: {
     fontFamily,
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '400' as any,
     color: 'rgba(255,255,255,0.85)',
   },
@@ -387,29 +380,26 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     borderRadius: 4,
     textTransform: 'uppercase' as any,
-    overflow: 'hidden',
   },
 
   bottomTabs: {
     flexDirection: 'row',
-    height: Platform.OS === 'ios' ? 84 : 68,
+    height: 56,
     backgroundColor: colors.white,
     borderTopWidth: 1,
     borderTopColor: colors.border,
-    paddingBottom: Platform.OS === 'ios' ? 20 : 0,
     ...shadows.medium,
   },
   tabItem: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 3,
-    minHeight: 48,
+    gap: 2,
   },
   tabIconWrap: {
     width: 44,
-    height: 32,
-    borderRadius: radii.sm,
+    height: 28,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -420,113 +410,130 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
   },
 
-  // ── Landing ─────────────────────────────────────────────────────────────────
+  // ── Landing Revamp ──────────────────────────────────────────────────────────
   landingContainer: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: '#0D1117',
+    overflow: 'hidden',
+  },
+  blobExeter: {
+    position: 'absolute',
+    top: -100,
+    left: -100,
+    width: 400,
+    height: 400,
+    borderRadius: 200,
+    backgroundColor: '#0B6E4F',
+    opacity: 0.20,
+  },
+  blobBristol: {
+    position: 'absolute',
+    bottom: -150,
+    right: -150,
+    width: 500,
+    height: 500,
+    borderRadius: 250,
+    backgroundColor: '#BE0F34',
+    opacity: 0.15,
+  },
+  blobCenter: {
+    position: 'absolute',
+    top: '30%',
+    left: '25%',
+    width: 600,
+    height: 600,
+    borderRadius: 300,
+    backgroundColor: '#FFFFFF',
+    opacity: 0.05,
   },
   landingContent: {
-    padding: spacing.xl,
+    padding: 32,
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: '100%',
   },
   landingHero: {
     alignItems: 'center',
-    marginBottom: spacing.xxl,
+    marginBottom: 48,
   },
-  landingLogoMark: {
+  landingIconBox: {
     width: 64,
     height: 64,
-    borderRadius: radii.md,
+    borderRadius: 16,
     backgroundColor: '#0B6E4F',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: spacing.md,
+    marginBottom: 16,
     ...shadows.medium,
   },
   landingLogoText: {
     fontFamily,
-    fontSize: 32,
+    fontSize: 18,
     fontWeight: '900' as any,
-    color: colors.textPrimary,
-    letterSpacing: -1,
+    color: colors.white,
+    letterSpacing: -0.5,
+    marginBottom: 24,
   },
-  landingQuestion: {
-    fontFamily,
-    fontSize: 20,
-    fontWeight: '600' as any,
-    color: colors.textSecondary,
-    marginTop: spacing.sm,
+  landingTitle: {
+    ...typography.h1Landing,
+    color: colors.white,
+    textAlign: 'center',
+  },
+  landingSub: {
+    ...typography.body,
+    color: 'rgba(255,255,255,0.6)',
+    textAlign: 'center',
+    marginTop: 16,
+    maxWidth: 480,
   },
   cityCards: {
     flexDirection: 'row',
-    gap: spacing.lg,
+    gap: 24,
     width: '100%',
-    maxWidth: 900,
+    maxWidth: 800,
   },
   cityCardsMobile: {
     flexDirection: 'column',
-    maxWidth: 400,
+    maxWidth: 360,
   },
   cityCard: {
     flex: 1,
-    backgroundColor: colors.white,
-    borderRadius: radii.lg,
-    borderWidth: 2,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderRadius: 16,
+    borderWidth: 1,
     overflow: 'hidden',
     ...shadows.medium,
-    minHeight: 240,
-  },
-  cityCardDisabled: {
-    opacity: 0.6,
-    borderColor: '#D6D3D1',
+    minHeight: 280,
   },
   cityCardHero: {
-    height: 100,
+    height: 120,
     alignItems: 'center',
     justifyContent: 'center',
   },
   cityCardName: {
     fontFamily,
     fontSize: 32,
-    fontWeight: '800' as any,
+    fontWeight: '900' as any,
     color: colors.white,
-    letterSpacing: -0.5,
+    letterSpacing: -1,
   },
   cityCardFooter: {
-    padding: spacing.lg,
+    padding: 24,
     alignItems: 'center',
-    gap: spacing.xs,
+    gap: 8,
   },
   cityCardUni: {
     fontFamily,
     fontSize: 14,
     fontWeight: '600' as any,
-    color: colors.textSecondary,
+    color: colors.white,
     textAlign: 'center',
   },
   cityCount: {
     fontFamily,
     fontSize: 12,
     fontWeight: '700' as any,
-    marginBottom: spacing.sm,
-  },
-  comingSoonBadge: {
-    backgroundColor: '#F5F5F4',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: radii.full,
-    borderWidth: 1,
-    borderColor: '#D6D3D1',
-    marginBottom: spacing.sm,
-  },
-  comingSoonText: {
-    fontFamily,
-    fontSize: 10,
-    fontWeight: '800' as any,
-    color: '#78716C',
-    letterSpacing: 0.5,
+    marginBottom: 8,
   },
   cityCardBtn: {
     flexDirection: 'row',
@@ -534,13 +541,25 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingVertical: 12,
     paddingHorizontal: 20,
-    borderRadius: radii.md,
-    minHeight: 44,
+    borderRadius: 12,
+    marginTop: 8,
   },
   cityCardBtnText: {
     fontFamily,
     fontSize: 14,
     fontWeight: '700' as any,
     color: colors.white,
+  },
+  landingFooter: {
+    marginTop: 64,
+    opacity: 0.25,
+  },
+  landingFooterText: {
+    fontFamily,
+    fontSize: 10,
+    fontWeight: '600' as any,
+    color: colors.white,
+    letterSpacing: 1,
+    textTransform: 'uppercase' as any,
   },
 });

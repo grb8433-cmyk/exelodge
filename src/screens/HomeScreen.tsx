@@ -247,7 +247,7 @@ export default function HomeScreen({ universityId, onSelectProperty }: { univers
         keyExtractor={(item) => item.id.toString()}
         numColumns={desktop ? 3 : 1}
         key={desktop ? 'desktop' : 'mobile'}
-        contentContainerStyle={[styles.list, { paddingTop: headerHeight + 20 }]}
+        contentContainerStyle={[styles.list, { paddingTop: headerHeight + 20, paddingHorizontal: desktop ? 32 : 16 }]}
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
           { useNativeDriver: false }
@@ -429,31 +429,30 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: 32,
     paddingTop: 48,
     paddingBottom: spacing.md,
   },
-  headerMobile: { paddingHorizontal: spacing.md, paddingTop: 40 },
-  headerEyebrow: { ...typography.label, marginBottom: 2 },
-  headerTitle: { ...typography.h2, color: colors.textPrimary },
+  headerMobile: { paddingHorizontal: 16, paddingTop: 40 },
+  headerEyebrow: { ...typography.eyebrow, marginBottom: 2 },
+  headerTitle: { ...typography.h1Page, color: colors.textPrimary },
   
   marketWidget: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
     paddingVertical: 12,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
+    borderRadius: 12,
   },
   marketWidgetMobile: { paddingHorizontal: spacing.md },
   marketWidgetInner: { flexDirection: 'row', alignItems: 'center', gap: 6, marginRight: 16 },
-  marketLabel: { ...typography.label, fontSize: 9, letterSpacing: 1 },
-  marketValue: { ...typography.h4, fontSize: 15 },
+  marketLabel: { ...typography.eyebrow, fontSize: 9, letterSpacing: 1 },
+  marketValue: { ...typography.priceLarge, fontSize: 18 },
   marketSub: { fontSize: 11, fontWeight: '400' as any, color: colors.textMuted },
 
   searchBar: {
     flexDirection: 'row',
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: 32,
     paddingVertical: spacing.md,
     gap: 12,
     borderTopWidth: 1,
@@ -464,7 +463,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.background,
-    borderRadius: radii.md,
+    borderRadius: 12,
     paddingHorizontal: spacing.md,
     height: 48,
     borderWidth: 1,
@@ -484,7 +483,7 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingHorizontal: 16,
     height: 48,
-    borderRadius: radii.md,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.white,
@@ -492,7 +491,7 @@ const styles = StyleSheet.create({
   filterBtnText: { fontFamily, fontSize: 14, fontWeight: '700' as any },
 
   resultsBar: {
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: 32,
     paddingVertical: 10,
     backgroundColor: colors.surfaceSubtle,
   },
@@ -501,7 +500,7 @@ const styles = StyleSheet.create({
   lastUpdatedText: { color: colors.textMuted },
 
   list: {
-    paddingHorizontal: spacing.lg,
+    gap: 20,
     paddingBottom: 40,
   },
   
@@ -516,7 +515,7 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
     marginBottom: 8,
   },
-  emptyTitle: { ...typography.h3, color: colors.textPrimary },
+  emptyTitle: { ...typography.h2Section, color: colors.textPrimary },
   emptyDesc: { ...typography.body, color: colors.textMuted, textAlign: 'center', maxWidth: 300 },
   resetBtn: {
     marginTop: 12,
@@ -533,8 +532,8 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: colors.white,
-    borderTopLeftRadius: radii.xl,
-    borderTopRightRadius: radii.xl,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     height: '90%',
   },
   modalHeader: {
@@ -545,20 +544,20 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  modalTitle: { ...typography.h3 },
+  modalTitle: { ...typography.h2Section },
   modalBody: { padding: spacing.lg },
   filterGroup: { marginBottom: 32 },
-  filterGroupLabel: { ...typography.label, marginBottom: spacing.md, color: colors.textMuted },
+  filterGroupLabel: { ...typography.eyebrow, marginBottom: spacing.md, color: colors.textMuted },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   chip: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: radii.full,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.white,
   },
-  chipText: { fontFamily, fontSize: 13, fontWeight: '600' as any, color: colors.textSecondary },
+  chipText: { fontFamily, fontSize: 14, fontWeight: '600' as any, color: colors.textSecondary },
   
   modalFooter: {
     flexDirection: 'row',
@@ -571,7 +570,7 @@ const styles = StyleSheet.create({
   modalReset: {
     flex: 1,
     paddingVertical: 14,
-    borderRadius: radii.md,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
@@ -581,7 +580,7 @@ const styles = StyleSheet.create({
   modalApply: {
     flex: 2,
     paddingVertical: 14,
-    borderRadius: radii.md,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
     ...shadows.soft,

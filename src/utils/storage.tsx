@@ -87,6 +87,23 @@ export async function getLandlordById(id) {
   }
 }
 
+export interface PropertyFilters {
+  search?: string;
+  areas?: string[];
+  minBeds?: number;
+  maxPrice?: number;
+  billsIncluded?: boolean | null;
+}
+
+export interface RatingBreakdown {
+  overallRating: number;
+  maintenance: number;
+  deposit: number;
+  condition: number;
+  communication: number;
+  wouldRentAgain: number;
+}
+
 export async function getLandlordsWithStats() {
   const [landlords, reviews] = await Promise.all([
     getLandlords(),
@@ -94,8 +111,8 @@ export async function getLandlordsWithStats() {
   ]);
 
   return landlords.map((l) => {
-    const landlordReviews = reviews.filter((r) => r.landlordId === l.id);
-    const breakdown = computeRatingBreakdown(landlordReviews);
+    const landlordReviews = reviews.filter((r: any) => r.landlordId === l.id);
+    const breakdown = computeRatingBreakdown(landlordReviews) as RatingBreakdown | null;
     return {
       ...l,
       avgRating: landlordReviews.length > 0 ? (breakdown?.overallRating || 0) : 0,
@@ -107,7 +124,7 @@ export async function getLandlordsWithStats() {
 
 // ─── Properties ───────────────────────────────────────────────────────────────
 
-export async function getProperties(filters = {}, page = 0) {
+export async function getProperties(filters: PropertyFilters = {}, page = 0) {
   const pageSize = 24;
   if (!supabase) return [];
   try {
@@ -118,7 +135,8 @@ export async function getProperties(filters = {}, page = 0) {
     
     // Search Query (address or area)
     if (filters.search && filters.search.trim() !== '') {
-      query = query.or(`address.ilike.%${filters.search.trim()}%,area.ilike.%${filters.search.trim()}%`);
+      const s = filters.search.trim();
+      query = query.or(`address.ilike.%${s}%,area.ilike.%${s}%`);
     }
 
     // Areas

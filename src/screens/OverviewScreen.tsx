@@ -93,11 +93,10 @@ export default function OverviewScreen({ universityId, onSelectUniversity, onNav
           resizeMode="cover"
         />
         
-        {/* FULL COLOR OVERLAY REVERTED */}
         <View style={[styles.heroOverlayVibrant, { backgroundColor: theme.primary }]} />
 
         <View style={[styles.heroContent, !desktop && styles.heroContentMobile]}>
-          <View style={[styles.heroPill, { backgroundColor: 'rgba(255,255,255,0.15)', borderColor: 'rgba(255,255,255,0.3)' }]}>
+          <View style={styles.heroPill}>
             <View style={styles.heroPillDot} />
             <Text style={styles.heroPillText}>{getGreeting()} — {stats.count} homes listed live</Text>
           </View>
@@ -120,38 +119,26 @@ export default function OverviewScreen({ universityId, onSelectUniversity, onNav
         </View>
       </View>
 
-      {/* ── CITY SELECTOR ── */}
-      <View style={[styles.citySelector, !desktop && styles.citySelectorMobile]}>
-        <Text style={styles.citySelectorTitle}>Switch City</Text>
-        <View style={styles.cityCards}>
-          {UNIVERSITIES.map(uni => (
-            <TouchableOpacity 
-              key={uni.id} 
-              style={[styles.cityCard, universityId === uni.id && { borderColor: uni.primaryColor, backgroundColor: uni.primaryLight }]}
-              onPress={() => onSelectUniversity(uni.id)}
-            >
-              <Text style={[styles.cityCardName, universityId === uni.id && { color: uni.primaryColor }]}>{uni.city}</Text>
-              <Text style={styles.cityCardUni}>{uni.name}</Text>
-              {universityId === uni.id && (
-                <View style={[styles.cityActiveDot, { backgroundColor: uni.primaryColor }]} />
-              )}
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
-
       <View style={styles.inner}>
-        {/* ── TRUST BAR ── */}
-        {desktop ? (
-          <View style={styles.trustBar}>
-            {trustItems.map((item, i) => (
-              <View key={i} style={styles.trustItem}>
-                <Icon name={item.icon as any} size={14} color={theme.primary} />
-                <Text style={[styles.trustLabel, { color: theme.primary }]}>{item.label}</Text>
-              </View>
+        {/* ── CITY SELECTOR ── */}
+        <View style={[styles.citySelector, !desktop && styles.citySelectorMobile]}>
+          <Text style={styles.citySelectorTitle}>Switch City</Text>
+          <View style={styles.cityCards}>
+            {UNIVERSITIES.map(uni => (
+              <TouchableOpacity 
+                key={uni.id} 
+                style={[styles.cityCard, universityId === uni.id && { borderColor: uni.primaryColor, backgroundColor: uni.primaryLight }]}
+                onPress={() => onSelectUniversity(uni.id)}
+              >
+                <Text style={[styles.cityCardName, universityId === uni.id && { color: uni.primaryColor }]}>{uni.city}</Text>
+                <Text style={styles.cityCardUni}>{uni.name}</Text>
+                {universityId === uni.id && (
+                  <View style={[styles.cityActiveDot, { backgroundColor: uni.primaryColor }]} />
+                )}
+              </TouchableOpacity>
             ))}
           </View>
-        ) : null}
+        </View>
 
         {/* ── GUILD CARD ── */}
         <View style={[styles.guildCard, !desktop && styles.guildCardMobile, { backgroundColor: theme.primaryLight }]}>
@@ -202,33 +189,33 @@ export default function OverviewScreen({ universityId, onSelectUniversity, onNav
           </View>
 
           <View style={[styles.statCard, !desktop && styles.cardFull]}>
-            <View style={[styles.statIcon, { backgroundColor: colors.accentLight }]}>
-              <Icon name="home" size={18} color={colors.accent} />
+            <View style={[styles.statIcon, { backgroundColor: theme.accentAmberBg }]}>
+              <Icon name="home" size={18} color={theme.accentAmber} />
             </View>
-            <Text style={[styles.statValue, { color: colors.accent }]}>{stats.count}</Text>
+            <Text style={[styles.statValue, { color: theme.accentAmber }]}>{stats.count}</Text>
             <Text style={styles.statUnit}>unique homes listed</Text>
             <Text style={styles.cardDesc}>Aggregated and deduplicated daily from all major portals.</Text>
           </View>
 
           <View style={[styles.featureCard, !desktop && styles.cardFull]}>
-            <View style={[styles.statIcon, { backgroundColor: '#F0F4FF' }]}>
-              <Icon name="layers" size={18} color="#4B6CF5" />
+            <View style={[styles.statIcon, { backgroundColor: theme.accentPriceBg }]}>
+              <Icon name="layers" size={18} color={theme.accentPrice} />
             </View>
             <Text style={styles.featureTitle}>Price Comparison</Text>
             <Text style={styles.cardDesc}>Compare listings side-by-side to find hidden value and avoid overpaying.</Text>
           </View>
 
           <View style={[styles.featureCard, !desktop && styles.cardFull]}>
-            <View style={[styles.statIcon, { backgroundColor: '#FFF8F0' }]}>
-              <Icon name="message-circle" size={18} color="#E07B20" />
+            <View style={[styles.statIcon, { backgroundColor: theme.accentReviewsBg }]}>
+              <Icon name="message-circle" size={18} color={theme.accentReviews} />
             </View>
             <Text style={styles.featureTitle}>Landlord Reviews</Text>
             <Text style={styles.cardDesc}>Authentic tenant experiences from {currentUni.city} students across all providers.</Text>
           </View>
 
           <View style={[styles.featureCard, !desktop && styles.cardFull]}>
-            <View style={[styles.statIcon, { backgroundColor: '#F5F0FF' }]}>
-              <Icon name="file-text" size={18} color="#7C3AED" />
+            <View style={[styles.statIcon, { backgroundColor: theme.accentLegalBg }]}>
+              <Icon name="file-text" size={18} color={theme.accentLegal} />
             </View>
             <Text style={styles.featureTitle}>Legal Checklist</Text>
             <Text style={styles.cardDesc}>Plain-English guide to your rights under the 2025 Renters' Rights Act.</Text>
@@ -253,11 +240,11 @@ const styles = StyleSheet.create({
   scroll: { paddingBottom: 48 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
   loadingText: { fontFamily, fontSize: 14, fontWeight: '700' as any },
-  inner: { paddingHorizontal: 52, maxWidth: 1200, alignSelf: 'center', width: '100%' },
+  inner: { paddingHorizontal: 48, maxWidth: 1152, alignSelf: 'center', width: '100%', paddingBottom: spacing.xl },
 
   // ── Hero ────────────────────────────────────────────────────────────────────
   hero: { width: '100%', height: 520, position: 'relative', overflow: 'hidden' },
-  heroMobile: { height: 420 },
+  heroMobile: { height: 360 },
   heroImage: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' },
   
   heroOverlayVibrant: { 
@@ -269,8 +256,7 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 48,
-    paddingTop: spacing.xl,
+    paddingHorizontal: spacing.lg,
   },
   heroContentMobile: { paddingHorizontal: spacing.lg },
   heroPill: {
@@ -278,6 +264,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
+    backgroundColor: 'rgba(255,255,255,0.15)',
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: radii.full,
@@ -286,18 +274,14 @@ const styles = StyleSheet.create({
   heroPillDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#FFFFFF' },
   heroPillText: { fontFamily, color: '#FFFFFF', fontSize: 13, fontWeight: '700' as any },
   heroTitle: {
-    fontFamily,
-    fontSize: 52,
-    fontWeight: '900' as any,
+    ...typography.h1Overview,
     color: colors.white,
     textAlign: 'center',
-    lineHeight: 60,
-    letterSpacing: -1,
-    textShadowColor: 'rgba(0,0,0,0.3)',
+    textShadowColor: 'rgba(0,0,0,0.2)',
     textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 12,
+    textShadowRadius: 8,
   },
-  heroTitleMobile: { fontSize: 32, lineHeight: 38 },
+  heroTitleMobile: { fontSize: 29, lineHeight: 32 },
   heroSub: {
     fontFamily,
     fontSize: 18,
@@ -324,23 +308,15 @@ const styles = StyleSheet.create({
   heroCTAText: { fontFamily, fontSize: 16, fontWeight: '800' as any, letterSpacing: -0.1 },
 
   citySelector: {
-    paddingHorizontal: 52,
-    paddingTop: 32,
-    paddingBottom: 0,
-    maxWidth: 1200,
-    alignSelf: 'center',
+    paddingVertical: 32,
     width: '100%',
   },
   citySelectorMobile: {
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: 0,
   },
   citySelectorTitle: {
-    fontFamily,
-    fontSize: 14,
-    fontWeight: '700' as any,
+    ...typography.eyebrow,
     color: colors.textMuted,
-    textTransform: 'uppercase' as any,
-    letterSpacing: 1,
     marginBottom: 16,
   },
   cityCards: {
@@ -352,7 +328,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     padding: 20,
     borderRadius: radii.lg,
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: colors.border,
     ...shadows.soft,
     position: 'relative',
@@ -380,34 +356,26 @@ const styles = StyleSheet.create({
     borderRadius: 5,
   },
 
-  trustBar: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 32,
-    paddingVertical: spacing.xl,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  trustItem: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  trustLabel: { fontFamily, fontSize: 12, fontWeight: '700' as any, letterSpacing: 0.2 },
-
   guildCard: {
     flexDirection: 'row',
     borderRadius: radii.lg,
     padding: spacing.xl,
-    marginTop: spacing.xl,
+    marginTop: spacing.md,
     marginBottom: spacing.xxl,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
     ...shadows.soft,
   },
   guildCardMobile: { flexDirection: 'column', gap: spacing.lg, padding: spacing.lg },
   guildLeft: { flex: 1 },
+  guildLeftMobile: { marginBottom: 12 },
   guildIconWrap: {
     width: 44, height: 44, borderRadius: radii.md,
     alignItems: 'center', justifyContent: 'center',
     marginBottom: spacing.md,
   },
-  guildTitle: { fontFamily, fontSize: 24, fontWeight: '800' as any, color: colors.textPrimary, marginBottom: 8, letterSpacing: -0.5 },
-  guildSub: { fontFamily, fontSize: 15, color: colors.textSecondary, marginBottom: 20 },
+  guildTitle: { ...typography.h2Section, color: colors.textPrimary, marginBottom: 8 },
+  guildSub: { ...typography.body, color: colors.textSecondary, marginBottom: 20 },
   guildBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     backgroundColor: colors.white, alignSelf: 'flex-start',
@@ -415,23 +383,23 @@ const styles = StyleSheet.create({
     ...shadows.soft,
   },
   guildBtnText: { fontFamily, fontSize: 14, fontWeight: '700' as any },
-  guildRight: { flex: 1.2, borderLeftWidth: 1, borderLeftColor: 'rgba(0,0,0,0.05)', paddingLeft: spacing.xl, justifyContent: 'center' },
+  guildRight: { flex: 1.2, borderLeftWidth: 1, borderLeftColor: colors.borderSubtle, paddingLeft: spacing.xl, justifyContent: 'center' },
   guildRightMobile: { borderLeftWidth: 0, paddingLeft: 0 },
-  guildDesc: { fontFamily, fontSize: 15, color: colors.textSecondary, lineHeight: 24, marginBottom: 16 },
+  guildDesc: { ...typography.body, color: colors.textSecondary, marginBottom: 16 },
   guildLink: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   guildLinkText: { fontFamily, fontSize: 14, fontWeight: '700' as any },
 
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: spacing.lg },
-  sectionLabel: { fontFamily, fontSize: 11, fontWeight: '700' as any, color: colors.textMuted, letterSpacing: 1, marginBottom: 4 },
-  sectionTitle: { fontFamily, fontSize: 24, fontWeight: '800' as any, color: colors.textPrimary, letterSpacing: -0.5 },
+  sectionLabel: { ...typography.eyebrow, color: colors.textMuted, marginBottom: 4 },
+  sectionTitle: { ...typography.h2Section, color: colors.textPrimary },
   liveBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 10, paddingVertical: 5, borderRadius: radii.full,
   },
   livePulse: { width: 6, height: 6, borderRadius: 3 },
-  liveText: { fontFamily, fontSize: 10, fontWeight: '800' as any, letterSpacing: 0.5 },
+  liveText: { ...typography.eyebrow, fontSize: 10, letterSpacing: 0.5 },
 
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 16 },
   gridMobile: { flexDirection: 'column' },
   statCard: {
     flex: 1, minWidth: 240, backgroundColor: colors.white,
@@ -448,8 +416,8 @@ const styles = StyleSheet.create({
     width: 40, height: 40, borderRadius: radii.sm,
     alignItems: 'center', justifyContent: 'center', marginBottom: spacing.md,
   },
-  statValue: { fontFamily, fontSize: 32, fontWeight: '800' as any, letterSpacing: -1 },
-  statUnit: { fontFamily, fontSize: 12, fontWeight: '600' as any, color: colors.textMuted, marginTop: 2, marginBottom: 12 },
-  featureTitle: { fontFamily, fontSize: 17, fontWeight: '700' as any, color: colors.textPrimary, marginBottom: 8, marginTop: 2 },
-  cardDesc: { fontFamily, fontSize: 13, color: colors.textMuted, lineHeight: 20 },
+  statValue: { ...typography.priceLarge },
+  statUnit: { ...typography.eyebrow, color: colors.textMuted, marginTop: 2, marginBottom: 12 },
+  featureTitle: { ...typography.h3Card, color: colors.textPrimary, marginBottom: 8, marginTop: 2 },
+  cardDesc: { ...typography.bodySubtle, color: colors.textMuted },
 });

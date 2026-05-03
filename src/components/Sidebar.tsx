@@ -24,48 +24,49 @@ export default function Sidebar({ activeTab, onTabPress, universityId, onSwitchC
   const theme = getUniversityColors(universityId);
 
   return (
-    <View style={styles.sidebar}>
+    <View style={[styles.sidebar, { backgroundColor: theme.primary }]}>
       {/* Brand */}
       <View style={styles.brand}>
-        <View style={[styles.logoMark, { backgroundColor: theme.primary }]}>
-          <Icon name="home" size={14} color={colors.white} />
-        </View>
-        <View style={{ flex: 1 }}>
+        <View style={styles.logoRow}>
+          <View style={styles.logoMark}>
+            <Icon name="home" size={14} color={theme.primary} />
+          </View>
           <Text style={styles.logoText}>ExeLodge</Text>
-          <Text style={styles.logoSub}>{currentUni.city} Student Housing</Text>
         </View>
+        <Text style={styles.logoSub}>{currentUni.city} Student Housing</Text>
       </View>
 
       <TouchableOpacity onPress={onSwitchCity} style={styles.switchCityBtn}>
-        <Icon name="refresh-cw" size={12} color={theme.primary} />
-        <Text style={[styles.switchCityText, { color: theme.primary }]}>Switch City</Text>
+        <View style={styles.switchIconBox}>
+          <Icon name="refresh-cw" size={10} color={colors.white} />
+        </View>
+        <Text style={styles.switchCityText}>Switch City</Text>
       </TouchableOpacity>
-
-      <View style={styles.divider} />
 
       {/* Nav */}
       <View style={styles.nav}>
-        <Text style={styles.navSection}>NAVIGATION</Text>
         {navItems.map((item) => {
           const isActive = activeTab === item.id;
           return (
             <TouchableOpacity
               key={item.id}
-              style={[styles.navItem, isActive && { backgroundColor: theme.primaryLight }]}
+              style={[
+                styles.navItem, 
+                isActive && { backgroundColor: 'rgba(255,255,255,0.18)' }
+              ]}
               onPress={() => onTabPress(item.id)}
-              activeOpacity={0.7}
+              activeOpacity={0.8}
             >
-              <View style={[styles.accentBar, isActive && { backgroundColor: theme.primary }]} />
-              <View style={[styles.iconWrap, isActive && { backgroundColor: 'rgba(255,255,255,0.5)' }]}>
-                <Icon
-                  name={item.icon}
-                  size={16}
-                  color={isActive ? theme.primary : colors.textMuted}
-                />
-              </View>
-              <Text style={[styles.navLabel, isActive && { color: theme.primary, fontWeight: '700' as any }]}>
+              <Icon
+                name={item.icon}
+                size={18}
+                color={colors.white}
+                style={{ opacity: isActive ? 1 : 0.7 }}
+              />
+              <Text style={[styles.navLabel, { opacity: isActive ? 1 : 0.7, fontWeight: isActive ? '700' : '500' as any }]}>
                 {item.label}
               </Text>
+              {isActive && <View style={styles.activeDot} />}
             </TouchableOpacity>
           );
         })}
@@ -75,9 +76,9 @@ export default function Sidebar({ activeTab, onTabPress, universityId, onSwitchC
       <View style={styles.footer}>
         <View style={styles.footerBadge}>
           <View style={styles.liveDot} />
-          <Text style={styles.footerText}>Live Data</Text>
+          <Text style={styles.footerText}>Live Market Data</Text>
         </View>
-        <Text style={styles.footerCopy}>© 2026 ExeLodge</Text>
+        <Text style={styles.footerCopy}>© 2026 ExeLodge Platform</Text>
       </View>
     </View>
   );
@@ -85,131 +86,102 @@ export default function Sidebar({ activeTab, onTabPress, universityId, onSwitchC
 
 const styles = StyleSheet.create({
   sidebar: {
-    width: 256,
-    backgroundColor: colors.white,
-    borderRightWidth: 1,
-    borderRightColor: colors.border,
+    width: 240,
     height: '100%',
-    paddingTop: spacing.xl,
-    paddingBottom: spacing.lg,
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: 12,
+    paddingTop: 28,
+    paddingBottom: 24,
+    ...shadows.medium,
   },
   brand: {
+    paddingHorizontal: 12,
+    marginBottom: 20,
+    paddingBottom: 20,
+  },
+  logoRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    paddingHorizontal: spacing.sm,
-    marginBottom: spacing.lg,
+    marginBottom: 4,
   },
   logoMark: {
-    width: 36,
-    height: 36,
-    borderRadius: radii.sm,
-    backgroundColor: colors.primary,
+    width: 32,
+    height: 32,
+    borderRadius: 12,
+    backgroundColor: colors.white,
     alignItems: 'center',
     justifyContent: 'center',
+    ...shadows.soft,
   },
   logoText: {
-    fontFamily,
-    fontSize: 17,
-    fontWeight: '800' as any,
-    color: colors.textPrimary,
-    letterSpacing: -0.3,
+    ...typography.wordmark,
+    color: colors.white,
   },
   logoSub: {
-    fontFamily,
-    fontSize: 10,
-    fontWeight: '500' as any,
-    color: colors.textMuted,
-    letterSpacing: 0.3,
-    marginTop: 1,
+    ...typography.caption,
+    color: 'rgba(255,255,255,0.6)',
+    fontWeight: '600' as any,
+    marginLeft: 44, // Align with text after logoMark
   },
   switchCityBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: spacing.sm,
-    marginBottom: spacing.md,
-    opacity: 0.8,
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 12,
+    marginBottom: 32,
+    marginHorizontal: 12,
+  },
+  switchIconBox: {
+    width: 20,
+    height: 20,
+    borderRadius: 6,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   switchCityText: {
     fontFamily,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700' as any,
+    color: colors.white,
     textTransform: 'uppercase' as any,
     letterSpacing: 0.5,
   },
-  divider: {
-    height: 1,
-    backgroundColor: colors.border,
-    marginBottom: spacing.lg,
-    marginHorizontal: spacing.sm,
-  },
   nav: {
     flex: 1,
-    gap: 2,
-  },
-  navSection: {
-    fontFamily,
-    fontSize: 10,
-    fontWeight: '700' as any,
-    color: colors.textMuted,
-    letterSpacing: 1,
-    paddingHorizontal: spacing.sm,
-    marginBottom: spacing.sm,
+    gap: 4,
+    paddingHorizontal: 12,
   },
   navItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 11,
-    paddingRight: spacing.md,
-    borderRadius: radii.md,
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  navItemActive: {
-    backgroundColor: colors.primaryLight,
-  },
-  accentBar: {
-    width: 3,
-    height: '100%',
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    borderRadius: 2,
-    backgroundColor: 'transparent',
-  },
-  accentBarActive: {
-    backgroundColor: colors.primary,
-  },
-  iconWrap: {
-    width: 32,
-    height: 32,
-    borderRadius: radii.sm,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: spacing.sm,
-    marginRight: spacing.sm,
-  },
-  iconWrapActive: {
-    backgroundColor: colors.primaryMedium,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    gap: 12,
+    minHeight: 44,
   },
   navLabel: {
     fontFamily,
     fontSize: 14,
-    fontWeight: '500' as any,
-    color: colors.textSecondary,
+    color: colors.white,
   },
-  navLabelActive: {
-    color: colors.primary,
-    fontWeight: '700' as any,
+  activeDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.white,
+    marginLeft: 'auto',
   },
   footer: {
-    paddingHorizontal: spacing.sm,
-    gap: 8,
+    paddingHorizontal: 12,
+    gap: 6,
+    paddingTop: 20,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
-    paddingTop: spacing.md,
+    borderTopColor: 'rgba(255,255,255,0.1)',
   },
   footerBadge: {
     flexDirection: 'row',
@@ -217,21 +189,22 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   liveDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-    backgroundColor: colors.success,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#0B9B6E', // scoreHigh
   },
   footerText: {
     fontFamily,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600' as any,
-    color: colors.textSecondary,
+    color: 'rgba(255,255,255,0.7)',
   },
   footerCopy: {
     fontFamily,
     fontSize: 10,
-    color: colors.textMuted,
+    color: 'rgba(255,255,255,0.4)',
     fontWeight: '400' as any,
+    marginLeft: 12,
   },
 });

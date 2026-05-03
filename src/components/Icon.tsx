@@ -246,10 +246,11 @@ interface IconProps {
   name: string;
   size?: number;
   color?: string;
+  fill?: string;
   style?: any;
 }
 
-export default function Icon({ name, size = 24, color = '#000', style }: IconProps) {
+export default function Icon({ name, size = 24, color = '#000', fill, style }: IconProps) {
   if (Platform.OS !== 'web') {
     return <Feather name={name as any} size={size} color={color} style={style} />;
   }
@@ -268,7 +269,7 @@ export default function Icon({ name, size = 24, color = '#000', style }: IconPro
       width: size,
       height: size,
       viewBox: '0 0 24 24',
-      fill: 'none',
+      fill: fill || 'none',
       stroke: color,
       strokeWidth: 2,
       strokeLinecap: 'round',

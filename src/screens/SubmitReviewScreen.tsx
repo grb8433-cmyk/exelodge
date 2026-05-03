@@ -131,9 +131,12 @@ export default function SubmitReviewScreen({ landlordId, universityId, onCancel,
             style={styles.starTouch}
             activeOpacity={0.7}
           >
-            <Text style={[styles.starIcon, { color: star <= value ? colors.accent : colors.borderDark }]}>
-              {star <= value ? '★' : '☆'}
-            </Text>
+            <Icon 
+              name="star" 
+              size={24} 
+              color={star <= value ? colors.starFilled : colors.starEmpty} 
+              fill={star <= value ? colors.starFilled : 'transparent'}
+            />
           </TouchableOpacity>
         ))}
       </View>
@@ -144,7 +147,7 @@ export default function SubmitReviewScreen({ landlordId, universityId, onCancel,
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator color={colors.primary} />
+        <ActivityIndicator color={theme.primary} />
       </View>
     );
   }
@@ -158,9 +161,9 @@ export default function SubmitReviewScreen({ landlordId, universityId, onCancel,
       <View style={styles.formCard}>
         <View style={styles.formHeader}>
           <TouchableOpacity onPress={onCancel} style={styles.backBtn}>
-            <Text style={{ fontSize: 24, color: "#374151" }}>←</Text>
+            <Icon name="arrow-left" size={20} color={colors.textPrimary} />
           </TouchableOpacity>
-          <View>
+          <View style={{ flex: 1 }}>
             <Text style={styles.title}>Review: {landlord?.name}</Text>
           </View>
         </View>
@@ -175,10 +178,10 @@ export default function SubmitReviewScreen({ landlordId, universityId, onCancel,
               </View>
             </View>
             <TouchableOpacity 
-              style={styles.backHomeBtn}
+              style={[styles.backHomeBtn, { backgroundColor: theme.primary }]}
               onPress={onCancel}
             >
-              <Text style={styles.backHomeBtnText}>Back to Home</Text>
+              <Text style={styles.backHomeBtnText}>Back to Reviews</Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -197,6 +200,7 @@ export default function SubmitReviewScreen({ landlordId, universityId, onCancel,
                 <TextInput 
                   style={[styles.textArea, { minHeight: 50 }, errors.landlordName && styles.errorInput]}
                   placeholder="Enter the name of the landlord or agency"
+                  placeholderTextColor={colors.textMuted}
                   value={landlordName}
                   onChangeText={setLandlordName}
                 />
@@ -224,6 +228,7 @@ export default function SubmitReviewScreen({ landlordId, universityId, onCancel,
               <TextInput 
                 style={[styles.textArea, errors.reviewText && { borderColor: colors.error, borderWidth: 1 }]}
                 placeholder="Tell us about your time with this landlord. What went well? What could be improved?"
+                placeholderTextColor={colors.textMuted}
                 multiline
                 numberOfLines={6}
                 value={reviewText}
@@ -258,31 +263,30 @@ const styles = StyleSheet.create({
   formCard: { 
     width: '100%', 
     maxWidth: 600, 
-    backgroundColor: '#fff', 
-    borderRadius: 24, 
-    padding: 24,
+    backgroundColor: colors.white, 
+    borderRadius: 16, 
+    padding: 32,
     ...shadows.medium,
   },
-  formHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 24 },
-  backBtn: { marginRight: 16, minHeight: 44, minWidth: 44, justifyContent: 'center' },
-  title: { fontSize: 22, fontWeight: '700', color: '#111827', fontFamily, flex: 1 },
-  instruction: { fontSize: 15, color: '#6b7280', marginBottom: 32, lineHeight: 22, fontFamily },
+  formHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 32, gap: 16 },
+  backBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.surfaceSubtle, alignItems: 'center', justifyContent: 'center' },
+  title: { ...typography.h2Section, fontSize: 22, color: colors.textPrimary },
+  instruction: { ...typography.body, color: colors.textSecondary, marginBottom: 32 },
   ratingsSection: { marginBottom: 32 },
   ratingInputGroup: { marginBottom: 24 },
-  ratingLabel: { fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 12, fontFamily },
-  starsRow: { flexDirection: 'row' },
-  starTouch: { paddingVertical: 8, paddingRight: 12, minWidth: 44, minHeight: 44 },
-  starIcon: { fontSize: 32 },
+  ratingLabel: { ...typography.eyebrow, marginBottom: 12, color: colors.textSecondary },
+  starsRow: { flexDirection: 'row', gap: 8 },
+  starTouch: { paddingVertical: 4 },
   commentSection: { marginBottom: 40 },
   textArea: { 
-    backgroundColor: '#f3f4f6', 
+    backgroundColor: colors.surfaceSubtle, 
     borderRadius: 12, 
     padding: 16, 
-    fontSize: 15, 
-    color: '#111827', 
+    ...typography.body,
+    color: colors.textPrimary, 
     minHeight: 150,
-    fontFamily,
   },
+  errorInput: { borderColor: colors.error, borderWidth: 1 },
   honeypot: { position: 'absolute', width: 0, height: 0, opacity: 0, left: -9999 },
   submitBtn: { paddingVertical: 16, borderRadius: 12, alignItems: 'center', minHeight: 56, justifyContent: 'center' },
   disabledBtn: { opacity: 0.7 },
@@ -302,8 +306,8 @@ const styles = StyleSheet.create({
     borderColor: '#bcf0da',
     width: '100%',
   },
-  successTitle: { fontSize: 18, fontWeight: '700', color: '#166534', marginBottom: 4, fontFamily },
-  successText: { color: '#166534', fontSize: 15, lineHeight: 22, flex: 1, fontFamily },
+  successTitle: { ...typography.h3Card, color: '#166534', marginBottom: 4 },
+  successText: { ...typography.body, color: '#166534', flex: 1 },
   backHomeBtn: {
     paddingVertical: 14,
     paddingHorizontal: 32,

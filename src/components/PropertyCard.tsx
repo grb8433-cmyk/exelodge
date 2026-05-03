@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import Icon from './Icon';
-import { colors, spacing, radii, shadows, fontFamily, getUniversityColors } from '../utils/theme';
+import { colors, spacing, radii, shadows, fontFamily, getUniversityColors, typography } from '../utils/theme';
 
 const SOURCE_COLORS: Record<string, string> = {
   UniHomes: '#10B981',
@@ -39,69 +39,33 @@ export default function PropertyCard({ item, universityId, onPress, marketAverag
   const price = parseFloat(item.price_pppw);
   const theme = getUniversityColors(universityId);
 
-  const isVeryGoodValue = price > 0 && price <= marketAverage * 0.9;
-  const isGoodValue     = price > 0 && price <= marketAverage && !isVeryGoodValue;
-
   const fallbackImage = 'https://images.unsplash.com/photo-1518780664697-55e3ad937233?w=600&q=80';
   const imageUrl = item.image_url && item.image_url !== 'None' ? item.image_url : fallbackImage;
 
-  const priceDiff = marketAverage > 0 ? Math.round(((price - marketAverage) / marketAverage) * 100) : 0;
-
-  let distance = null;
-  let nearestCampus = '';
-
-  if (universityId === 'exeter') {
-    distance = (item.distance_streatham !== null && item.distance_st_lukes !== null)
-      ? Math.min(item.distance_streatham, item.distance_st_lukes)
-      : (item.distance_streatham ?? item.distance_st_lukes);
-    nearestCampus = distance === item.distance_streatham ? 'Streatham' : 'St Lukes';
-  } else {
-    distance = (item.distance_uob !== null && item.distance_uwe !== null)
-      ? Math.min(item.distance_uob, item.distance_uwe)
-      : (item.distance_uob ?? item.distance_uwe);
-    nearestCampus = distance === item.distance_uob ? 'UoB' : 'UWE';
-  }
+  const isCheaper = price > 0 && price < marketAverage;
+  const isMoreExpensive = price > marketAverage;
 
   const updatedText = timeAgo(item.last_scraped);
-  const sourceColor = SOURCE_COLORS[item.landlord_id] || theme.primary;
 
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.95}>
       <View style={styles.imageContainer}>
         <Image source={{ uri: imageUrl }} style={styles.image} resizeMode="cover" />
         
-        {/* Value Badges */}
-        <View style={styles.badgeContainer}>
-          {isVeryGoodValue && (
-            <View style={[styles.valueBadge, { backgroundColor: theme.primary }]}>
-              <Text style={styles.valueBadgeText}>GREAT VALUE</Text>
-            </View>
-          )}
-          {item.bills_included && (
-            <View style={styles.billsBadge}>
-              <Text style={styles.billsBadgeText}>BILLS INC.</Text>
-            </View>
-          )}
+        {/* Price Badge */}
+        <View style={[styles.priceBadge, { backgroundColor: theme.primary }]}>
+          <Text style={styles.priceText}>£{Math.round(price)}<Text style={styles.priceUnit}> pppw</Text></Text>
         </View>
 
-        <View style={[styles.sourceTag, { backgroundColor: sourceColor }]}>
-          <Text style={styles.sourceTagText}>{item.landlord_id}</Text>
-        </View>
+        {/* Bills Badge */}
+        {item.bills_included && (
+          <View style={styles.billsBadge}>
+            <Text style={[styles.billsBadgeText, { color: theme.primary }]}>BILLS INC.</Text>
+          </View>
+        )}
       </View>
 
       <View style={styles.content}>
-        <View style={styles.header}>
-          <View style={styles.priceRow}>
-            <Text style={[styles.price, { color: theme.primary }]}>£{Math.round(price)}</Text>
-            <Text style={styles.pppw}>pppw</Text>
-          </View>
-          {priceDiff !== 0 && (
-            <Text style={[styles.diff, { color: priceDiff > 0 ? colors.error : theme.primary }]}>
-              {priceDiff > 0 ? '+' : ''}{priceDiff}% avg
-            </Text>
-          )}
-        </View>
-
         <Text style={styles.address} numberOfLines={1}>{item.address}</Text>
         
         <View style={styles.metaRow}>
@@ -115,22 +79,27 @@ export default function PropertyCard({ item, universityId, onPress, marketAverag
           </View>
         </View>
 
-        <View style={styles.divider} />
-
         <View style={styles.footer}>
-          <View style={styles.commute}>
-            <Icon name="zap" size={12} color={theme.accent} />
-            <Text style={styles.commuteText}>{distance ? `${Math.round(distance * 20)}m to ${nearestCampus}` : 'Commute unknown'}</Text>
+          <View style={styles.valueRow}>
+            {isCheaper ? (
+              <View style={styles.valueIndicator}>
+                <Icon name="trending-down" size={14} color="#059669" />
+                <Text style={[styles.valueText, { color: '#059669' }]}>Below average</Text>
+              </View>
+            ) : isMoreExpensive ? (
+              <View style={styles.valueIndicator}>
+                <Icon name="trending-up" size={14} color="#D97706" />
+                <Text style={[styles.valueText, { color: '#D97706' }]}>Above average</Text>
+              </View>
+            ) : (
+              <Text style={styles.valueTextMuted}>Market average</Text>
+            )}
           </View>
           
-          <TouchableOpacity style={[styles.viewBtn, { backgroundColor: theme.primaryLight }]} onPress={onPress}>
-            <Text style={[styles.viewBtnText, { color: theme.primary }]}>View</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.updatedRow}>
-          <Icon name="clock" size={10} color={colors.textMuted} />
-          <Text style={styles.updatedText}>{updatedText}</Text>
+          <View style={styles.updatedRow}>
+            <Icon name="clock" size={10} color={colors.textMuted} />
+            <Text style={styles.updatedText}>{updatedText}</Text>
+          </View>
         </View>
       </View>
     </TouchableOpacity>
@@ -140,17 +109,17 @@ export default function PropertyCard({ item, universityId, onPress, marketAverag
 const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.white,
-    borderRadius: radii.lg,
+    borderRadius: radii.lg, // 16px
     overflow: 'hidden',
     ...shadows.card,
     marginBottom: spacing.md,
     borderWidth: 1,
     borderColor: colors.border,
     flex: 1,
-    marginHorizontal: 8,
+    marginHorizontal: 10,
   },
   imageContainer: {
-    height: 180,
+    height: 192,
     width: '100%',
     position: 'relative',
     backgroundColor: colors.surfaceSubtle,
@@ -159,96 +128,53 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  badgeContainer: {
+  priceBadge: {
     position: 'absolute',
-    top: 12,
+    bottom: 12,
     left: 12,
-    flexDirection: 'row',
-    gap: 8,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    ...shadows.soft,
   },
-  valueBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: radii.xs,
-  },
-  valueBadgeText: {
+  priceText: {
     fontFamily,
-    fontSize: 10,
-    fontWeight: '800' as any,
+    fontSize: 18,
+    fontWeight: '700' as any,
     color: colors.white,
-    letterSpacing: 0.5,
+  },
+  priceUnit: {
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.8)',
+    fontWeight: '400' as any,
   },
   billsBadge: {
-    backgroundColor: colors.white,
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    borderRadius: 8,
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: radii.xs,
-    borderWidth: 1,
-    borderColor: colors.border,
+    // backdropBlur: 4 (handled via rgba bg in simple RN, or blur component if needed)
   },
   billsBadgeText: {
     fontFamily,
     fontSize: 10,
-    fontWeight: '800' as any,
-    color: colors.textPrimary,
-    letterSpacing: 0.5,
-  },
-  sourceTag: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderTopLeftRadius: radii.md,
-  },
-  sourceTagText: {
-    fontFamily,
-    fontSize: 10,
     fontWeight: '700' as any,
-    color: colors.white,
-    textTransform: 'uppercase' as any,
   },
   content: {
-    padding: spacing.md,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  priceRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: 4,
-  },
-  price: {
-    fontFamily,
-    fontSize: 22,
-    fontWeight: '800' as any,
-  },
-  pppw: {
-    fontFamily,
-    fontSize: 12,
-    color: colors.textMuted,
-    fontWeight: '600' as any,
-  },
-  diff: {
-    fontFamily,
-    fontSize: 11,
-    fontWeight: '700' as any,
+    padding: 16,
+    gap: 8,
   },
   address: {
-    fontFamily,
-    fontSize: 15,
-    fontWeight: '700' as any,
+    ...typography.h3Card,
     color: colors.textPrimary,
-    marginBottom: 10,
   },
   metaRow: {
     flexDirection: 'row',
     gap: 16,
-    marginBottom: 16,
+    marginBottom: 4,
   },
   metaItem: {
     flexDirection: 'row',
@@ -256,55 +182,42 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   metaText: {
-    fontFamily,
-    fontSize: 13,
+    ...typography.bodySmall, // Map to bodySubtle if needed
     color: colors.textSecondary,
     fontWeight: '500' as any,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: colors.border,
-    marginBottom: 12,
   },
   footer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginTop: 4,
   },
-  commute: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
+  valueRow: {
     flex: 1,
   },
-  commuteText: {
+  valueIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  valueText: {
     fontFamily,
     fontSize: 12,
-    color: colors.textSecondary,
     fontWeight: '600' as any,
   },
-  viewBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: radii.md,
-    minHeight: 36,
-    justifyContent: 'center',
-  },
-  viewBtnText: {
+  valueTextMuted: {
     fontFamily,
-    fontWeight: '700' as any,
-    fontSize: 13,
+    fontSize: 12,
+    color: colors.textMuted,
+    fontWeight: '500' as any,
   },
   updatedRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    marginTop: 12,
   },
   updatedText: {
-    fontFamily,
-    fontSize: 10,
+    ...typography.caption,
     color: colors.textMuted,
-    fontWeight: '500' as any,
   },
 });

@@ -19,33 +19,48 @@ export const fontFamily =
     : undefined;
 
 export const baseColors = {
-  // Warm Off-White — feels expensive
+  // Global Background & Surface
   white: '#FFFFFF',
   background: '#FAFAF8',
-  cardBg: '#FFFFFF',
+  surface: '#FFFFFF',
+  surfaceSubtle: '#F4F7F5',
+  surfaceInput: '#F4F7F5',
 
-  // Gold Accent — depth and premium signal
-  accent: '#C9A84C',
-  accentLight: '#FBF5EA',
-  accentDark: '#9B7A2F',
+  // Borders
+  border: '#E8EDE9',
+  borderSubtle: 'rgba(0,0,0,0.06)',
 
-  // Text — warm dark instead of cold slate
-  textPrimary: '#1C1917',   // warm-stone 900
-  textSecondary: '#57534E', // warm-stone 600
-  textMuted: '#A8A29E',     // warm-stone 400
+  // Feature Card Accents (non-uni)
+  accentPrice: '#4B6CF5',
+  accentPriceBg: '#F0F4FF',
+  accentLegal: '#7C3AED',
+  accentLegalBg: '#F5F0FF',
+  accentReviews: '#E07B20',
+  accentReviewsBg: '#FFF8F0',
+  accentAmber: '#F59E0B',
+  accentAmberBg: '#FFFBEB',
+
+  // Review Scores
+  scoreHigh: '#0B9B6E',
+  scoreMid: '#D97706',
+  scoreLow: '#DC2626',
+
+  // Star Rating
+  starFilled: '#FBBF24',
+  starStroke: '#F59E0B',
+  starEmpty: '#E8EDE9',
+  starEmptyStroke: '#D1D0CE',
+
+  // Text Colours
+  textPrimary: '#1C1917',
+  textSecondary: '#57534E',
+  textMuted: '#A8A29E',
+  textDisabled: '#A8A29E',
 
   // Status
   success: '#0F9B6E',
   error: '#DC2626',
   warning: '#D97706',
-
-  // Borders — warm tinted grey-green
-  border: '#E8EDE9',
-  borderDark: '#C9D4CC',
-
-  // Surface tiers
-  surfaceSubtle: '#F4F7F5',
-  surfaceHover: '#EDF3EF',
 };
 
 /**
@@ -57,9 +72,7 @@ function adjustColor(color: string, amount: number) {
 
 export const getUniversityColors = (universityId: string) => {
   const uni = UNIVERSITIES.find(u => u.id === universityId) || UNIVERSITIES[0];
-  const primary = uni.primaryColor || '#0B6E4F';
   
-  // Bristol Red specifically needs to be vibrant
   if (universityId === 'bristol') {
     return {
       ...baseColors,
@@ -70,7 +83,7 @@ export const getUniversityColors = (universityId: string) => {
     };
   }
 
-  // Exeter Green
+  // Exeter (Default)
   return {
     ...baseColors,
     primary: '#0B6E4F',
@@ -91,25 +104,32 @@ export const colors = {
 
 export const shadows = {
   soft: {
-    shadowColor: '#000',
+    shadowColor: 'rgba(0,0,0,1)',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
     elevation: 2,
   },
   medium: {
-    shadowColor: '#1C1917',
+    shadowColor: 'rgba(0,0,0,1)',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.08,
     shadowRadius: 24,
     elevation: 5,
   },
   card: {
-    shadowColor: '#1C1917',
-    shadowOffset: { width: 0, height: 4 },
+    shadowColor: 'rgba(0,0,0,1)',
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
-    shadowRadius: 16,
+    shadowRadius: 12,
     elevation: 3,
+  },
+  cardHover: {
+    shadowColor: 'rgba(0,0,0,1)',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.10,
+    shadowRadius: 30,
+    elevation: 8,
   },
 };
 
@@ -132,14 +152,19 @@ export const radii = {
 };
 
 export const typography = {
-  h1: { fontFamily, fontSize: 32, fontWeight: '800' as any, letterSpacing: -0.5 },
-  h2: { fontFamily, fontSize: 24, fontWeight: '700' as any, letterSpacing: -0.3 },
-  h3: { fontFamily, fontSize: 20, fontWeight: '700' as any },
-  h4: { fontFamily, fontSize: 17, fontWeight: '600' as any },
-  body: { fontFamily, fontSize: 15, fontWeight: '400' as any, lineHeight: 22 },
-  bodySmall: { fontFamily, fontSize: 13, fontWeight: '400' as any },
-  label: { fontFamily, fontSize: 12, fontWeight: '700' as any, letterSpacing: 0.5, textTransform: 'uppercase' as any },
-  caption: { fontFamily, fontSize: 11, fontWeight: '500' as any },
+  wordmark: { fontFamily, fontSize: 18, fontWeight: '900' as any, letterSpacing: -0.5 },
+  h1Landing: { fontFamily, fontSize: 48, fontWeight: '900' as any, letterSpacing: -2, lineHeight: 48 },
+  h1Page: { fontFamily, fontSize: 24, fontWeight: '900' as any, letterSpacing: -0.5, lineHeight: 36 },
+  h1Overview: { fontFamily, fontSize: 36, fontWeight: '900' as any, letterSpacing: -1.5, lineHeight: 36 },
+  h2Section: { fontFamily, fontSize: 24, fontWeight: '900' as any, letterSpacing: -0.5, lineHeight: 36 },
+  h2ReviewScore: { fontFamily, fontSize: 30, fontWeight: '900' as any, letterSpacing: -1, lineHeight: 30 },
+  h3Card: { fontFamily, fontSize: 16, fontWeight: '700' as any, lineHeight: 24 },
+  priceLarge: { fontFamily, fontSize: 32, fontWeight: '900' as any, letterSpacing: -1, lineHeight: 32 },
+  eyebrow: { fontFamily, fontSize: 10, fontWeight: '700' as any, letterSpacing: 1.5, textTransform: 'uppercase' as any },
+  body: { fontFamily, fontSize: 14, fontWeight: '400' as any, lineHeight: 22.75 },
+  bodySubtle: { fontFamily, fontSize: 13, fontWeight: '400' as any, lineHeight: 19.5 },
+  bodySmall: { fontFamily, fontSize: 12, fontWeight: '500' as any, lineHeight: 18 },
+  caption: { fontFamily, fontSize: 11, fontWeight: '400' as any, lineHeight: 16 },
 };
 
 export const BREAKPOINTS = {

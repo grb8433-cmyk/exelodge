@@ -22,15 +22,15 @@ export default function RightsScreen({ universityId }: { universityId: string })
   const RIGHTS = [
     {
       icon: 'shield' as const,
-      color: theme.primary,
-      bg: theme.primaryLight,
+      color: colors.accentLegal,
+      bg: colors.accentLegalBg,
       title: 'The Right to a Safe Home',
       desc: 'Your home must be fit for human habitation. This includes structural safety, absence of damp, and working utilities and heating.',
     },
     {
       icon: 'lock' as const,
-      color: '#4B6CF5',
-      bg: '#F0F4FF',
+      color: colors.accentPrice,
+      bg: colors.accentPriceBg,
       title: 'Tenancy Deposit Protection',
       desc: 'Your deposit must be protected in a government-backed scheme (TDS, DPS, or MyDeposits) within 30 days of payment.',
     },
@@ -39,7 +39,7 @@ export default function RightsScreen({ universityId }: { universityId: string })
       color: '#7C3AED',
       bg: '#F5F0FF',
       title: 'The Tenant Fees Act 2019',
-      desc: 'Landlords cannot charge for references, credit checks, or admin. Permitted fees are strictly limited to rent, deposits, and minor contract changes (£50 cap).',
+      desc: 'Landlords cannot charge for references, credit checks, or admin. Permitted fees are strictly limited to rent, deposits, and minor contract changes.',
     },
   ];
 
@@ -48,12 +48,6 @@ export default function RightsScreen({ universityId }: { universityId: string })
     { q: "What do I do if I want to leave my contract early?", a: "You are usually bound by a fixed-term contract. You can only leave early if there is a 'break clause' or if you find a replacement student to take over your tenancy (assignment). Always get the landlord's consent in writing.", link: 'https://england.shelter.org.uk/housing_advice/private_renting/how_to_end_a_fixed_term_tenancy_early' },
     { q: "What do I do if my deposit hasn't been protected?", a: "Your landlord must place your deposit in a government-backed scheme within 30 days. If they haven't, you can claim compensation of 1–3 times the deposit amount through the county court.", link: 'https://www.gov.uk/tenancy-deposit-protection/if-your-landlord-doesnt-protect-your-deposit' },
     { q: "What do I do if the landlord enters without notice?", a: "Unless it is an emergency, landlords must give at least 24 hours' notice in writing before entering. You have the right to 'quiet enjoyment' of your home and can refuse entry if the time is inconvenient.", link: 'https://www.citizensadvice.org.uk/housing/renting-privately/during-your-tenancy/your-landlord-needs-to-come-into-your-home/' },
-    { q: "What do I do if I am being harassed by my landlord?", a: `Harassment is a criminal offence. Keep a log of all incidents. You can contact the police or ${currentUni.city} City Council for help with illegal eviction and harassment.`, link: 'https://www.gov.uk/private-renting-evictions/harassment-and-illegal-evictions' },
-    { q: "What do I do if my housemates aren't paying their rent?", a: `If you have a 'joint and several' tenancy, you are all responsible for the total rent. The landlord can ask any tenant (or their guarantor) for the missing money. Communicate with your housemates and the ${universityId === 'exeter' ? "Student Guild" : "SU"} immediately.`, link: universityId === 'exeter' ? 'https://www.exeterguild.com/advice' : 'https://www.bristolsu.org.uk/advice-support' },
-    { q: "What do I do if the inventory is wrong?", a: "Take photos of everything on the day you move in. Note any damage on the inventory, sign it, and send a copy to the landlord/agent within 7 days. This is your primary defence against deposit deductions.", link: 'https://england.shelter.org.uk/housing_advice/tentancy_deposits/tenancy_inventories' },
-    { q: "What do I do if my landlord charges for professional cleaning?", a: "The Tenant Fees Act 2019 banned most fees. A landlord cannot force you to pay for professional cleaning — you only need to leave the property at the same standard of cleanliness as when you moved in.", link: 'https://www.gov.uk/government/publications/tenant-fees-act-2019-guidance' },
-    { q: "What do I do if I have damp and mould?", a: "Determine if it's due to structural issues (leaky roof/pipes) or condensation. Report structural damp to the landlord immediately. If they ignore it and it affects your health, contact Environmental Health.", link: 'https://www.gov.uk/government/publications/health-and-safety-standards-in-the-private-rented-sector-help-for-tenants' },
-    { q: "What do I do if I don't have a guarantor?", a: "Many student landlords require a UK-based guarantor. If you don't have one, you might need to pay 6–12 months of rent upfront or use a commercial guarantor service like Housing Hand.", link: 'https://www.housinghand.co.uk' },
   ];
 
   const openLink = (url: string) => {
@@ -68,7 +62,7 @@ export default function RightsScreen({ universityId }: { universityId: string })
       <View style={[styles.pageHeader, !desktop && styles.pageHeaderMobile]}>
         <View style={[styles.headerBadge, { backgroundColor: theme.primaryLight }]}>
           <Icon name="shield" size={14} color={theme.primary} />
-          <Text style={[styles.headerBadgeText, { color: theme.primary }]}>UK Tenant Law</Text>
+          <Text style={[styles.headerBadgeText, { color: theme.primary }]}>UK TENANT LAW</Text>
         </View>
         <Text style={[styles.pageTitle, !desktop && { fontSize: 24 }]}>Your Rights as a Student Renter</Text>
         <Text style={[styles.pageDesc, !desktop && { fontSize: 13 }]}>
@@ -79,7 +73,7 @@ export default function RightsScreen({ universityId }: { universityId: string })
       <View style={[styles.content, !desktop && styles.contentMobile]}>
         <View style={[styles.grid, !desktop && styles.gridMobile]}>
 
-          {/* Column 1: Essentials + Links */}
+          {/* Column 1: Essentials */}
           <View style={[styles.col, !desktop && styles.colMobile]}>
             <Text style={styles.sectionLabel}>THE LEGAL ESSENTIALS</Text>
             <View style={styles.card}>
@@ -173,13 +167,13 @@ const styles = StyleSheet.create({
   scroll: { paddingBottom: 48 },
 
   pageHeader: {
-    padding: spacing.xl,
-    paddingTop: 40,
+    padding: 32,
+    paddingTop: 48,
     backgroundColor: colors.white,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  pageHeaderMobile: { padding: spacing.lg, paddingTop: spacing.xl },
+  pageHeaderMobile: { padding: 16, paddingTop: 40 },
   headerBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -190,29 +184,25 @@ const styles = StyleSheet.create({
     borderRadius: radii.full,
     marginBottom: 14,
   },
-  headerBadgeText: { fontFamily, fontSize: 11, fontWeight: '700' as any, letterSpacing: 0.3 },
-  pageTitle: { fontFamily, fontSize: 30, fontWeight: '800' as any, color: colors.textPrimary, letterSpacing: -0.5, marginBottom: 10 },
-  pageDesc: { fontFamily, fontSize: 15, color: colors.textSecondary, lineHeight: 24, maxWidth: 780 },
+  headerBadgeText: { ...typography.eyebrow, fontSize: 10 },
+  pageTitle: { ...typography.h1Page, color: colors.textPrimary, marginBottom: 10 },
+  pageDesc: { ...typography.bodySubtle, color: colors.textSecondary, maxWidth: 780 },
 
-  content: { padding: spacing.xl, maxWidth: 1200, alignSelf: 'center', width: '100%' },
-  contentMobile: { padding: spacing.md },
-  grid: { flexDirection: 'row', gap: spacing.xl },
+  content: { padding: 32, maxWidth: 1152, alignSelf: 'center', width: '100%' },
+  contentMobile: { padding: 16 },
+  grid: { flexDirection: 'row', gap: 24 },
   gridMobile: { flexDirection: 'column', gap: 0 },
   col: { flex: 1 },
-  colMobile: { marginBottom: spacing.xl },
+  colMobile: { marginBottom: 24 },
 
   sectionLabel: {
-    fontFamily,
-    fontSize: 11,
-    fontWeight: '700' as any,
+    ...typography.eyebrow,
     color: colors.textMuted,
-    letterSpacing: 1,
     marginBottom: spacing.md,
-    textTransform: 'uppercase' as any,
   },
   card: {
     backgroundColor: colors.white,
-    borderRadius: radii.lg,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: colors.border,
     overflow: 'hidden',
@@ -220,29 +210,29 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
 
-  rightItem: { flexDirection: 'row', gap: spacing.md, padding: spacing.lg },
+  rightItem: { flexDirection: 'row', gap: 16, padding: 24 },
   rightItemBorder: { borderBottomWidth: 1, borderBottomColor: colors.border },
   rightIconWrap: {
-    width: 38, height: 38, borderRadius: radii.sm,
+    width: 40, height: 40, borderRadius: 8,
     alignItems: 'center', justifyContent: 'center',
     flexShrink: 0,
   },
   rightText: { flex: 1 },
-  rightTitle: { fontFamily, fontSize: 15, fontWeight: '700' as any, color: colors.textPrimary, marginBottom: 5 },
-  rightDesc: { fontFamily, fontSize: 13, color: colors.textSecondary, lineHeight: 20 },
+  rightTitle: { ...typography.h3Card, color: colors.textPrimary, marginBottom: 5 },
+  rightDesc: { ...typography.bodySubtle, color: colors.textSecondary },
 
   linkRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: 24,
     paddingVertical: 16,
     minHeight: 44,
   },
   linkRowBorder: { borderBottomWidth: 1, borderBottomColor: colors.border },
-  linkText: { fontFamily, fontSize: 14, fontWeight: '600' as any, flex: 1, marginRight: spacing.sm },
+  linkText: { ...typography.bodySmall, fontWeight: '600' as any, flex: 1, marginRight: spacing.sm },
   linkIcon: {
-    width: 28, height: 28, borderRadius: radii.sm,
+    width: 28, height: 28, borderRadius: 6,
     alignItems: 'center', justifyContent: 'center',
   },
 
@@ -252,39 +242,39 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 12,
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: 24,
     paddingVertical: 16,
     minHeight: 44,
   },
   qaChevronWrap: {
-    width: 24, height: 24, borderRadius: radii.xs,
+    width: 24, height: 24, borderRadius: 4,
     backgroundColor: colors.surfaceSubtle,
     alignItems: 'center', justifyContent: 'center',
     marginTop: 1, flexShrink: 0,
   },
   qaQuestion: {
-    fontFamily, fontSize: 14, fontWeight: '600' as any,
-    color: colors.textPrimary, flex: 1, lineHeight: 21,
+    ...typography.body, fontWeight: '600' as any,
+    color: colors.textPrimary, flex: 1,
   },
-  qaAnswer: { paddingHorizontal: spacing.lg, paddingBottom: 16, paddingLeft: 52 },
-  qaAnswerText: { fontFamily, fontSize: 13, color: colors.textSecondary, lineHeight: 21, marginBottom: 12 },
+  qaAnswer: { paddingHorizontal: 24, paddingBottom: 16, paddingLeft: 60 },
+  qaAnswerText: { ...typography.bodySubtle, color: colors.textSecondary, marginBottom: 12 },
   qaLink: { flexDirection: 'row', alignItems: 'center', gap: 5, minHeight: 44 },
-  qaLinkText: { fontFamily, fontSize: 13, fontWeight: '700' as any },
+  qaLinkText: { ...typography.bodySmall, fontWeight: '700' as any },
 
   disclaimer: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     borderWidth: 1,
-    padding: spacing.lg,
-    borderRadius: radii.lg,
-    marginTop: spacing.xl,
+    padding: 24,
+    borderRadius: 16,
+    marginTop: 32,
     gap: 12,
   },
-  disclaimerMobile: { padding: spacing.md },
+  disclaimerMobile: { padding: 16 },
   disclaimerIcon: {
     width: 30, height: 30, borderRadius: 15,
     alignItems: 'center', justifyContent: 'center',
     flexShrink: 0, marginTop: 1,
   },
-  disclaimerText: { fontFamily, fontSize: 13, lineHeight: 21, flex: 1 },
+  disclaimerText: { ...typography.bodySubtle, flex: 1 },
 });
