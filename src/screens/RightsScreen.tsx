@@ -69,7 +69,9 @@ export default function RightsScreen({ universityId }: { universityId: string })
       {/* Page header */}
       <View style={[styles.pageHeader, !desktop && styles.pageHeaderMobile]}>
         <View style={[styles.headerBadge, { backgroundColor: theme.primaryLight }]}>
-          <Icon name="shield" size={14} color={theme.primary} />
+          <View style={{ marginRight: 6 }}>
+            <Icon name="shield" size={14} color={theme.primary} />
+          </View>
           <Text style={[styles.headerBadgeText, { color: theme.primary }]}>UK TENANT LAW</Text>
         </View>
         <Text style={[styles.pageTitle, !desktop && { fontSize: 24 }]}>Your Rights as a Student Renter</Text>
@@ -87,7 +89,7 @@ export default function RightsScreen({ universityId }: { universityId: string })
             <View style={styles.card}>
               {RIGHTS.map((right, i) => (
                 <View key={i} style={[styles.rightItem, i < RIGHTS.length - 1 && styles.rightItemBorder]}>
-                  <View style={[styles.rightIconWrap, { backgroundColor: right.bg }]}>
+                  <View style={[styles.rightIconWrap, { backgroundColor: right.bg, marginRight: 16 }]}>
                     <Icon name={right.icon} size={16} color={right.color} />
                   </View>
                   <View style={styles.rightText}>
@@ -98,7 +100,9 @@ export default function RightsScreen({ universityId }: { universityId: string })
               ))}
             </View>
 
-            <Text style={[styles.sectionLabel, { marginTop: spacing.xl }]}>OFFICIAL REFERENCES</Text>
+            <View style={{ marginTop: spacing.xl }}>
+              <Text style={styles.sectionLabel}>OFFICIAL REFERENCES</Text>
+            </View>
             <View style={styles.card}>
               {OFFICIAL_LINKS.map((link, i) => (
                 <TouchableOpacity
@@ -107,7 +111,7 @@ export default function RightsScreen({ universityId }: { universityId: string })
                   onPress={() => openLink(link.url)}
                   activeOpacity={0.7}
                 >
-                  <Text style={[styles.linkText, { color: theme.primary }]}>{link.label}</Text>
+                  <Text style={[styles.linkText, { color: theme.primary, marginRight: 8 }]}>{link.label}</Text>
                   <View style={[styles.linkIcon, { backgroundColor: theme.primaryLight }]}>
                     <Icon name="arrow-up-right" size={13} color={theme.primary} />
                   </View>
@@ -117,7 +121,7 @@ export default function RightsScreen({ universityId }: { universityId: string })
           </View>
 
           {/* Column 2: FAQ */}
-          <View style={[styles.col, !desktop && styles.colMobile]}>
+          <View style={[styles.col, !desktop && styles.colMobile, !desktop && { marginTop: 0 }]}>
             <Text style={styles.sectionLabel}>COMMON QUESTIONS</Text>
             <View style={styles.card}>
               {FAQ.map((item, i) => {
@@ -129,7 +133,7 @@ export default function RightsScreen({ universityId }: { universityId: string })
                       onPress={() => setExpandedIndex(isOpen ? null : i)}
                       activeOpacity={0.75}
                     >
-                      <View style={[styles.qaChevronWrap, isOpen && { backgroundColor: theme.primaryLight }]}>
+                      <View style={[styles.qaChevronWrap, isOpen && { backgroundColor: theme.primaryLight }, { marginRight: 12 }]}>
                         <Icon
                           name={isOpen ? 'chevron-up' : 'chevron-down'}
                           size={14}
@@ -143,7 +147,7 @@ export default function RightsScreen({ universityId }: { universityId: string })
                       <View style={[styles.qaAnswer, !desktop && styles.qaAnswerMobile]}>
                         <Text style={styles.qaAnswerText}>{item.a}</Text>
                         <TouchableOpacity onPress={() => openLink(item.link)} style={styles.qaLink}>
-                          <Text style={[styles.qaLinkText, { color: theme.primary }]}>Read official guidance</Text>
+                          <Text style={[styles.qaLinkText, { color: theme.primary, marginRight: 5 }]}>Read official guidance</Text>
                           <Icon name="arrow-up-right" size={12} color={theme.primary} />
                         </TouchableOpacity>
                       </View>
@@ -157,7 +161,7 @@ export default function RightsScreen({ universityId }: { universityId: string })
 
         {/* Disclaimer */}
         <View style={[styles.disclaimer, !desktop && styles.disclaimerMobile, { backgroundColor: theme.primaryLight, borderColor: theme.primaryLight }]}>
-          <View style={[styles.disclaimerIcon, { backgroundColor: theme.primary }]}>
+          <View style={[styles.disclaimerIcon, { backgroundColor: theme.primary, marginRight: 12 }]}>
             <Icon name="info" size={16} color={colors.white} />
           </View>
           <Text style={[styles.disclaimerText, { color: theme.primary }]}>
@@ -185,7 +189,6 @@ const styles = StyleSheet.create({
   headerBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
     alignSelf: 'flex-start',
     paddingHorizontal: 10,
     paddingVertical: 5,
@@ -198,10 +201,10 @@ const styles = StyleSheet.create({
 
   content: { padding: 32, maxWidth: 1152, alignSelf: 'center', width: '100%' },
   contentMobile: { padding: 16 },
-  grid: { flexDirection: 'row', gap: 24 },
-  gridMobile: { flexDirection: 'column', gap: 0 },
-  col: { flex: 1 },
-  colMobile: { width: '100%', marginBottom: 48, flexGrow: 0, flexShrink: 0 },
+  grid: { flexDirection: 'row' },
+  gridMobile: { flexDirection: 'column' },
+  col: { flex: 1, paddingHorizontal: 12 },
+  colMobile: { flex: 0, width: '100%', paddingHorizontal: 0, marginBottom: 32 },
 
   sectionLabel: {
     ...typography.eyebrow,
@@ -213,18 +216,19 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     borderColor: colors.border,
+    overflow: 'hidden',
     ...shadows.soft,
     marginBottom: spacing.lg,
   },
 
-  rightItem: { flexDirection: 'row', gap: 16, padding: 24 },
+  rightItem: { flexDirection: 'row', padding: 24 },
   rightItemBorder: { borderBottomWidth: 1, borderBottomColor: colors.border },
   rightIconWrap: {
     width: 40, height: 40, borderRadius: 8,
     alignItems: 'center', justifyContent: 'center',
     flexShrink: 0,
   },
-  rightText: { flex: 1 },
+  rightText: { flex: 1, flexShrink: 1 },
   rightTitle: { ...typography.h3Card, color: colors.textPrimary, marginBottom: 5 },
   rightDesc: { ...typography.bodySubtle, color: colors.textSecondary },
 
@@ -237,7 +241,7 @@ const styles = StyleSheet.create({
     minHeight: 44,
   },
   linkRowBorder: { borderBottomWidth: 1, borderBottomColor: colors.border },
-  linkText: { ...typography.bodySmall, fontWeight: '600' as any, flex: 1, marginRight: spacing.sm },
+  linkText: { ...typography.bodySmall, fontWeight: '600' as any, flex: 1, flexShrink: 1 },
   linkIcon: {
     width: 28, height: 28, borderRadius: 6,
     alignItems: 'center', justifyContent: 'center',
@@ -248,7 +252,6 @@ const styles = StyleSheet.create({
   qaButton: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 12,
     paddingHorizontal: 24,
     paddingVertical: 16,
     minHeight: 44,
@@ -261,7 +264,7 @@ const styles = StyleSheet.create({
   },
   qaQuestion: {
     ...typography.body, fontWeight: '600' as any,
-    color: colors.textPrimary, flex: 1,
+    color: colors.textPrimary, flex: 1, flexShrink: 1,
   },
   qaAnswer: { 
     paddingHorizontal: 24, 
@@ -272,8 +275,8 @@ const styles = StyleSheet.create({
     paddingLeft: 24,
   },
   qaAnswerText: { ...typography.bodySubtle, color: colors.textSecondary, marginBottom: 12 },
-  qaLink: { flexDirection: 'row', alignItems: 'center', gap: 5, minHeight: 44, flexWrap: 'wrap' },
-  qaLinkText: { ...typography.bodySmall, fontWeight: '700' as any },
+  qaLink: { flexDirection: 'row', alignItems: 'center', minHeight: 44 },
+  qaLinkText: { ...typography.bodySmall, fontWeight: '700' as any, flexShrink: 1 },
 
   disclaimer: {
     flexDirection: 'row',
@@ -282,7 +285,6 @@ const styles = StyleSheet.create({
     padding: 24,
     borderRadius: 16,
     marginTop: 32,
-    gap: 12,
   },
   disclaimerMobile: { padding: 16 },
   disclaimerIcon: {
@@ -290,5 +292,5 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
     flexShrink: 0, marginTop: 1,
   },
-  disclaimerText: { ...typography.bodySubtle, flex: 1 },
+  disclaimerText: { ...typography.bodySubtle, flex: 1, flexShrink: 1 },
 });
