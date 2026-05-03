@@ -25,11 +25,10 @@ export default function Sidebar({ activeTab, onTabPress, universityId, onSwitchC
 
   return (
     <View style={[styles.sidebar, { backgroundColor: theme.primary }]}>
-      {/* Brand */}
       <View style={styles.brand}>
         <View style={styles.logoRow}>
-          <View style={styles.logoMark}>
-            <Icon name="home" size={14} color={theme.primary} />
+          <View style={[styles.logoMark, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
+            <Icon name="home" size={14} color={colors.white} />
           </View>
           <Text style={styles.logoText}>ExeLodge</Text>
         </View>

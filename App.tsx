@@ -155,7 +155,7 @@ export default function App() {
       
       // We can use a colored SVG data URI as a dynamic favicon
       const faviconColor = theme.primary.replace('#', '%23');
-      link.href = `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='25' fill='white'></rect><g transform='translate(20, 20) scale(2.5)' stroke='${faviconColor}' stroke-width='2' fill='none' stroke-linecap='round' stroke-linejoin='round'><path d='M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'></path><path d='M9 22V12h6v10'></path></g></svg>`;
+      link.href = `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='25' fill='${faviconColor}'></rect><g transform='translate(20, 20) scale(2.5)' stroke='white' stroke-width='2' fill='none' stroke-linecap='round' stroke-linejoin='round'><path d='M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'></path><path d='M9 22V12h6v10'></path></g></svg>`;
     }
   }, [currentUni, showLanding, theme]);
 
