@@ -32,12 +32,24 @@ function LandingScreen({ onSelect }: { onSelect: (id: string) => void }) {
   useEffect(() => {
     async function fetchCounts() {
       try {
-        const { data, error } = await supabase.from('properties').select('university').eq('is_available', true);
-        if (error) throw error;
         const newCounts: Record<string, number> = {};
-        data.forEach(p => { newCounts[p.university] = (newCounts[p.university] || 0) + 1; });
+        await Promise.all(UNIVERSITIES.map(async (uni) => {
+          const { count, error } = await supabase
+            .from('properties')
+            .select('*', { count: 'exact', head: true })
+            .eq('university', uni.id)
+            .eq('is_available', true);
+          
+          if (!error && count !== null) {
+            newCounts[uni.id] = count;
+          }
+        }));
         setCounts(newCounts);
-      } catch (err) { console.error(err); } finally { setLoading(false); }
+      } catch (err) { 
+        console.error('Error fetching counts:', err); 
+      } finally { 
+        setLoading(false); 
+      }
     }
     fetchCounts();
   }, []);

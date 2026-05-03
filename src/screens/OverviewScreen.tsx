@@ -28,7 +28,7 @@ export default function OverviewScreen({ universityId, onSelectUniversity, onNav
         const { data } = await supabase.from('properties')
           .select('price_pppw, external_url')
           .eq('university', universityId)
-          .limit(500);
+          .eq('is_available', true);
         if (data) setProperties(data);
       } catch (err) {
         console.error(err);
