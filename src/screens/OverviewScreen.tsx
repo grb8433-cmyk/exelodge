@@ -59,8 +59,12 @@ export default function OverviewScreen({ universityId, isDarkMode = false, onSel
     return 'Good Evening';
   };
 
-  const openGuild = () => {
-    const url = universityId === 'exeter' ? 'https://www.exeterguild.com/advice' : 'https://www.bristolsu.org.uk/advice-support';
+  const openGuild = (type?: 'uob' | 'uwe' | 'exeter') => {
+    let url = 'https://www.exeterguild.com/advice';
+    if (type === 'uob') url = 'https://www.bristolsu.org.uk/advice-support';
+    if (type === 'uwe') url = 'https://www.thestudentsunion.co.uk/advice-support/housing/';
+    if (universityId === 'bristol' && !type) url = 'https://www.bristolsu.org.uk/advice-support';
+
     if (Platform.OS === 'web') window.open(url, '_blank');
     else Linking.openURL(url);
   };
@@ -80,6 +84,38 @@ export default function OverviewScreen({ universityId, isDarkMode = false, onSel
     { icon: 'shield',       label: 'Tenant Rights Guide'          },
     { icon: 'database',     label: 'Multi-Source Data'            },
   ] as const;
+
+  const renderAdviceCard = (uniType: 'exeter' | 'uob' | 'uwe') => {
+    const isExeter = uniType === 'exeter';
+    const title = isExeter ? "Exeter Students' Guild" : uniType === 'uob' ? "Bristol SU" : "UWE Bristol SU";
+    const linkText = isExeter ? "Guild" : uniType === 'uob' ? "Bristol SU" : "UWE SU";
+    
+    return (
+      <View style={[styles.guildCard, !desktop && styles.guildCardMobile, { backgroundColor: theme.primaryLight, borderColor: theme.primaryMedium, marginBottom: 24 }]}>
+        <View style={[styles.guildLeft, !desktop && styles.guildLeftMobile]}>
+          <View style={[styles.guildIconWrap, { backgroundColor: theme.primary }]}>
+            <Icon name="users" size={22} color={colors.white} />
+          </View>
+          <Text style={[styles.guildTitle, { color: theme.textPrimary }]}>{title} Housing Advice</Text>
+          <Text style={[styles.guildSub, { color: theme.textSecondary }]}>Free, independent guidance for every student.</Text>
+          <TouchableOpacity style={[styles.guildBtn, { backgroundColor: theme.surface }]} onPress={() => openGuild(uniType)} activeOpacity={0.85}>
+            <Text style={[styles.guildBtnText, { color: theme.primary }]}>Book an Appointment</Text>
+            <Icon name="external-link" size={13} color={theme.primary} />
+          </TouchableOpacity>
+        </View>
+        <View style={[styles.guildRight, !desktop && styles.guildRightMobile, { borderLeftColor: theme.primaryMedium }]}>
+          <Text style={[styles.guildDesc, { color: theme.textSecondary }]}>
+            Our housing specialists offer free advice on contracts, landlord disputes, and tenant legislation.
+            Whether you're signing your first lease or dealing with an unresponsive landlord — we're here.
+          </Text>
+          <TouchableOpacity onPress={() => openGuild(uniType)} style={styles.guildLink}>
+            <Text style={[styles.guildLinkText, { color: theme.primary }]}>Visit {linkText} Housing Advice</Text>
+            <Icon name="arrow-right" size={14} color={theme.primary} />
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  };
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: theme.background }]} contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
@@ -141,30 +177,15 @@ export default function OverviewScreen({ universityId, isDarkMode = false, onSel
           </View>
         </View>
 
-        {/* ── GUILD CARD ── */}
-        <View style={[styles.guildCard, !desktop && styles.guildCardMobile, { backgroundColor: theme.primaryLight, borderColor: theme.primaryMedium }]}>
-          <View style={[styles.guildLeft, !desktop && styles.guildLeftMobile]}>
-            <View style={[styles.guildIconWrap, { backgroundColor: theme.primary }]}>
-              <Icon name="users" size={22} color={colors.white} />
-            </View>
-            <Text style={[styles.guildTitle, { color: theme.textPrimary }]}>{universityId === 'exeter' ? "Exeter Students' Guild" : "Bristol & UWE SU"} Housing Advice</Text>
-            <Text style={[styles.guildSub, { color: theme.textSecondary }]}>Free, independent guidance for every student.</Text>
-            <TouchableOpacity style={[styles.guildBtn, { backgroundColor: theme.surface }]} onPress={openGuild} activeOpacity={0.85}>
-              <Text style={[styles.guildBtnText, { color: theme.primary }]}>Book an Appointment</Text>
-              <Icon name="external-link" size={13} color={theme.primary} />
-            </TouchableOpacity>
-          </View>
-          <View style={[styles.guildRight, !desktop && styles.guildRightMobile, { borderLeftColor: theme.primaryMedium }]}>
-            <Text style={[styles.guildDesc, { color: theme.textSecondary }]}>
-              Our housing specialists offer free advice on contracts, landlord disputes, and tenant legislation.
-              Whether you're signing your first lease or dealing with an unresponsive landlord — we're here.
-            </Text>
-            <TouchableOpacity onPress={openGuild} style={styles.guildLink}>
-              <Text style={[styles.guildLinkText, { color: theme.primary }]}>Visit {universityId === 'exeter' ? "Guild" : "SU"} Housing Advice</Text>
-              <Icon name="arrow-right" size={14} color={theme.primary} />
-            </TouchableOpacity>
-          </View>
-        </View>
+        {/* ── HOUSING ADVICE CARDS ── */}
+        {universityId === 'exeter' ? (
+          renderAdviceCard('exeter')
+        ) : (
+          <>
+            {renderAdviceCard('uob')}
+            {renderAdviceCard('uwe')}
+          </>
+        )}
 
         {/* ── STATS / FEATURES GRID ── */}
         <View style={[styles.sectionHeader, !desktop && styles.sectionHeaderMobile]}>
