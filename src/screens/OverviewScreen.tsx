@@ -147,7 +147,7 @@ export default function OverviewScreen({ universityId, isDarkMode = false, onSel
             <View style={[styles.guildIconWrap, { backgroundColor: theme.primary }]}>
               <Icon name="users" size={22} color={colors.white} />
             </View>
-            <Text style={[styles.guildTitle, { color: theme.textPrimary }]}>{universityId === 'exeter' ? "Exeter Students' Guild" : "Bristol SU"} Housing Advice</Text>
+            <Text style={[styles.guildTitle, { color: theme.textPrimary }]}>{universityId === 'exeter' ? "Exeter Students' Guild" : "Bristol & UWE SU"} Housing Advice</Text>
             <Text style={[styles.guildSub, { color: theme.textSecondary }]}>Free, independent guidance for every student.</Text>
             <TouchableOpacity style={[styles.guildBtn, { backgroundColor: theme.surface }]} onPress={openGuild} activeOpacity={0.85}>
               <Text style={[styles.guildBtnText, { color: theme.primary }]}>Book an Appointment</Text>

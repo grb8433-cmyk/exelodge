@@ -168,7 +168,7 @@ export default function RightsScreen({ universityId, isDarkMode = false }: { uni
           </View>
           <Text style={[styles.disclaimerText, { color: theme.primary }]}>
             This information is for guidance only and does not constitute legal advice. For specific cases,
-            contact {universityId === 'exeter' ? "Exeter Guild Advice" : "Bristol SU Advice"} or Citizens Advice.
+            contact {universityId === 'exeter' ? "Exeter Guild Advice" : "Bristol or UWE SU Advice"} or Citizens Advice.
           </Text>
         </View>
       </View>
