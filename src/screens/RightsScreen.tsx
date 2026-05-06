@@ -64,7 +64,7 @@ export default function RightsScreen({ universityId, isDarkMode = false }: { uni
   };
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: theme.background }]} contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+    <ScrollView style={styles.container} contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
 
       {/* Page Header */}
       <View style={[styles.header, { backgroundColor: theme.surface, borderBottomColor: theme.border }, !desktop && styles.headerMobile]}>
@@ -177,7 +177,7 @@ export default function RightsScreen({ universityId, isDarkMode = false }: { uni
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
+  container: { flex: 1 },
   scroll: { paddingBottom: 64 },
 
   // Header

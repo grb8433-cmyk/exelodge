@@ -156,7 +156,7 @@ export default function SubmitReviewScreen({ landlordId, universityId, isDarkMod
   return (
     <ScrollView 
       ref={scrollRef}
-      style={[styles.container, { backgroundColor: theme.background }]} 
+      style={styles.container} 
       contentContainerStyle={styles.content}
     >
       <View style={[styles.formCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
@@ -258,7 +258,7 @@ export default function SubmitReviewScreen({ landlordId, universityId, isDarkMod
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
+  container: { flex: 1 },
   content: { padding: 20, alignItems: 'center', paddingTop: 40, paddingBottom: 60 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   formCard: { 

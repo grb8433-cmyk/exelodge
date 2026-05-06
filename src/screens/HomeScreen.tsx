@@ -178,7 +178,7 @@ export default function HomeScreen({ universityId, isDarkMode = false, onSelectP
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
+    <View style={styles.container}>
       {/* Animated Header Wrapper */}
       <Animated.View 
         style={[
@@ -414,7 +414,7 @@ export default function HomeScreen({ universityId, isDarkMode = false, onSelectP
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
+  container: { flex: 1 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
   loadingText: { fontFamily, fontSize: 14, fontWeight: '700' as any },
 

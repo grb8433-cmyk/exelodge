@@ -124,7 +124,7 @@ export default function ReviewsScreen({ universityId, isDarkMode = false, initia
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
+    <View style={styles.container}>
       {/* Header */}
       <View style={[styles.pageHeader, { backgroundColor: theme.surface, borderBottomColor: theme.border }, !desktop && styles.pageHeaderMobile]}>
         <View>
@@ -279,7 +279,7 @@ export default function ReviewsScreen({ universityId, isDarkMode = false, initia
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
+  container: { flex: 1 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 
   pageHeader: {

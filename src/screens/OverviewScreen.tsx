@@ -118,7 +118,7 @@ export default function OverviewScreen({ universityId, isDarkMode = false, onSel
   };
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: theme.background }]} contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+    <ScrollView style={styles.container} contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
 
       {/* ── HERO ── */}
       <View style={[styles.hero, !desktop && styles.heroMobile]}>
@@ -258,7 +258,7 @@ export default function OverviewScreen({ universityId, isDarkMode = false, onSel
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
+  container: { flex: 1 },
   scroll: { paddingBottom: 48 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
   loadingText: { fontFamily, fontSize: 14, fontWeight: '700' as any },

@@ -296,6 +296,10 @@ export default function App() {
     <SafeAreaProvider>
       <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.primary }]}>
         <View style={[styles.root, { flexDirection: desktop ? 'row' : 'column', backgroundColor: theme.background }]}>
+          
+          {/* Global Background Blobs */}
+          <View style={[styles.globalBlobTop, { backgroundColor: theme.primary, opacity: isDarkMode ? 0.12 : 0.05 }]} pointerEvents="none" />
+          <View style={[styles.globalBlobBottom, { backgroundColor: theme.primary, opacity: isDarkMode ? 0.10 : 0.04 }]} pointerEvents="none" />
 
           {/* Mobile top header */}
           {!desktop && (
@@ -361,6 +365,25 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   root: { flex: 1 },
   main: { flex: 1, overflow: 'hidden' },
+
+  globalBlobTop: {
+    position: 'absolute',
+    top: -150,
+    left: -150,
+    width: 500,
+    height: 500,
+    borderRadius: 250,
+    zIndex: 0,
+  },
+  globalBlobBottom: {
+    position: 'absolute',
+    bottom: -200,
+    right: -200,
+    width: 600,
+    height: 600,
+    borderRadius: 300,
+    zIndex: 0,
+  },
 
   mobileHeader: {
     height: 56,

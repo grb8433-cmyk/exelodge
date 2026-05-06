@@ -302,7 +302,7 @@ export default function PropertyDetailScreen({ propertyId, universityId, isDarkM
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
+  container: { flex: 1 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   hero: { width: '100%', position: 'relative' },
   heroImage: { width: '100%', height: '100%', backgroundColor: colors.surfaceSubtle },
