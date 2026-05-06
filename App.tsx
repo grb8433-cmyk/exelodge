@@ -304,6 +304,9 @@ export default function App() {
           {/* Mobile top header */}
           {!desktop && (
             <View style={[styles.mobileHeader, { backgroundColor: theme.primary }]}>
+              {/* Header Bubbles */}
+              <View style={styles.mobileHeaderBubble} pointerEvents="none" />
+
               <View style={[styles.mobileLogoMark, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
                 <Icon name="home" size={12} color={colors.white} />
               </View>
@@ -393,6 +396,18 @@ const styles = StyleSheet.create({
     gap: 10,
     ...shadows.soft,
     zIndex: 10,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  mobileHeaderBubble: {
+    position: 'absolute',
+    top: -20,
+    right: -20,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: colors.white,
+    opacity: 0.15,
   },
   mobileLogoMark: {
     width: 28,

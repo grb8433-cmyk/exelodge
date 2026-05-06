@@ -26,6 +26,10 @@ export default function Sidebar({ activeTab, onTabPress, universityId, isDarkMod
 
   return (
     <View style={[styles.sidebar, { backgroundColor: theme.primary }]}>
+      {/* Background Bubbles */}
+      <View style={styles.bubbleTop} pointerEvents="none" />
+      <View style={styles.bubbleBottom} pointerEvents="none" />
+
       <View style={styles.brand}>
         <View style={styles.logoRow}>
           <View style={[styles.logoMark, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
@@ -92,6 +96,30 @@ const styles = StyleSheet.create({
     paddingTop: 28,
     paddingBottom: 24,
     ...shadows.medium,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  bubbleTop: {
+    position: 'absolute',
+    top: -60,
+    left: -60,
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: colors.white,
+    opacity: 0.12,
+    zIndex: -1,
+  },
+  bubbleBottom: {
+    position: 'absolute',
+    bottom: -80,
+    right: -40,
+    width: 240,
+    height: 240,
+    borderRadius: 120,
+    backgroundColor: colors.white,
+    opacity: 0.08,
+    zIndex: -1,
   },
   brand: {
     paddingHorizontal: 12,

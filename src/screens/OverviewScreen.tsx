@@ -131,6 +131,10 @@ export default function OverviewScreen({ universityId, isDarkMode = false, onSel
         />
         
         <View style={[styles.heroOverlayVibrant, { backgroundColor: theme.primary }]} />
+        
+        {/* Hero Background Bubbles */}
+        <View style={styles.heroBubble1} pointerEvents="none" />
+        <View style={styles.heroBubble2} pointerEvents="none" />
 
         <View style={[styles.heroContent, !desktop && styles.heroContentMobile]}>
           <View style={styles.heroPill}>
@@ -272,6 +276,26 @@ const styles = StyleSheet.create({
   heroOverlayVibrant: { 
     ...StyleSheet.absoluteFillObject, 
     opacity: 0.82, 
+  },
+  heroBubble1: {
+    position: 'absolute',
+    top: -100,
+    left: -100,
+    width: 400,
+    height: 400,
+    borderRadius: 200,
+    backgroundColor: colors.white,
+    opacity: 0.15,
+  },
+  heroBubble2: {
+    position: 'absolute',
+    bottom: -150,
+    right: -50,
+    width: 300,
+    height: 300,
+    borderRadius: 150,
+    backgroundColor: colors.white,
+    opacity: 0.12,
   },
 
   heroContent: {
