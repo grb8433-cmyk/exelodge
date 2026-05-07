@@ -193,17 +193,20 @@ export default function OverviewScreen({ universityId, isDarkMode = false, onSel
             </View>
           ) : (
             <View style={styles.cityPillRow}>
-              {UNIVERSITIES.map(uni => (
-                <TouchableOpacity
-                  key={uni.id}
-                  style={[styles.cityPill, { borderColor: uni.primaryColor }, universityId === uni.id && { backgroundColor: uni.primaryColor }]}
-                  onPress={() => onSelectUniversity(uni.id)}
-                  activeOpacity={0.8}
-                >
-                  <Text style={[styles.cityPillText, { color: universityId === uni.id ? colors.white : theme.textPrimary }]}>{uni.city}</Text>
-                  <Text style={[styles.cityPillSub, { color: universityId === uni.id ? 'rgba(255,255,255,0.75)' : theme.textMuted }]}>{uni.name}</Text>
-                </TouchableOpacity>
-              ))}
+              {UNIVERSITIES.map(uni => {
+                const shortName: Record<string, string> = { exeter: 'UoE', bristol: 'UoB & UWE', southampton: 'UoS & Solent' };
+                return (
+                  <TouchableOpacity
+                    key={uni.id}
+                    style={[styles.cityPill, { borderColor: uni.primaryColor }, universityId === uni.id && { backgroundColor: uni.primaryColor }]}
+                    onPress={() => onSelectUniversity(uni.id)}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={[styles.cityPillText, { color: universityId === uni.id ? colors.white : theme.textPrimary }]}>{uni.city}</Text>
+                    <Text numberOfLines={1} style={[styles.cityPillSub, { color: universityId === uni.id ? 'rgba(255,255,255,0.75)' : theme.textMuted }]}>{shortName[uni.id] || uni.name}</Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
           )}
         </View>
