@@ -156,10 +156,26 @@ export default function App() {
     if (Platform.OS === 'web') {
       // Title
       if (!showLanding) {
-        document.title = `ExeLodge | ${currentUni.city} Student Housing`;
+        document.title = `ExeLodge | ${currentUni.city} Student Housing & Accommodation`;
       } else {
-        document.title = 'ExeLodge | Find Your Student Home';
+        document.title = 'ExeLodge | Student Housing in Exeter, Bristol & Southampton';
       }
+
+      // Meta description
+      const cityDescriptions: Record<string, string> = {
+        exeter:       'Find student houses and accommodation in Exeter. Compare prices per person per week, distance to Streatham and St Lukes campus, and bills-inclusive options across hundreds of verified Exeter student listings.',
+        bristol:      'Find student houses and flats in Bristol. Compare prices per person per week, distance to UoB and UWE campus, and bills-inclusive options across hundreds of verified Bristol student listings.',
+        southampton:  'Find student houses and accommodation in Southampton. Compare prices per person per week, distance to Highfield and Solent campus, and bills-inclusive options across hundreds of verified Southampton student listings.',
+      };
+      let metaDesc = document.querySelector('meta[name="description"]') as HTMLMetaElement;
+      if (!metaDesc) {
+        metaDesc = document.createElement('meta');
+        metaDesc.name = 'description';
+        document.head.appendChild(metaDesc);
+      }
+      metaDesc.content = showLanding
+        ? 'Find student housing in Exeter, Bristol and Southampton. Compare prices, distance to campus, and bills-inclusive options across hundreds of verified listings.'
+        : cityDescriptions[universityId] || cityDescriptions.exeter;
 
       // Favicon
       let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;

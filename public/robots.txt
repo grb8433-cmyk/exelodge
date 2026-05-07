@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://exelodge.netlify.app/sitemap.xml
+Sitemap: https://exelodge.uk/sitemap.xml
