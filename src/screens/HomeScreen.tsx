@@ -284,7 +284,7 @@ export default function HomeScreen({ universityId, isDarkMode = false, onSelectP
             <Icon name="search" size={16} color={theme.textMuted} />
             <TextInput
               style={[styles.searchInput, { color: theme.textPrimary }]}
-              placeholder="Search by street or area…"
+              placeholder={desktop ? "Search by street or area…" : "Search"}
               placeholderTextColor={theme.textMuted}
               value={search}
               onChangeText={setSearch}
