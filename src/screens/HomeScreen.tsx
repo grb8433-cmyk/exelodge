@@ -370,10 +370,11 @@ export default function HomeScreen({ universityId, isDarkMode = false, onSelectP
         />
       ) : (
         <View style={{ flex: 1, marginTop: headerHeight }}>
-          <MapView 
-            properties={filteredProperties} 
-            universityId={universityId} 
-            onSelectProperty={onSelectProperty} 
+          <MapView
+            key={universityId}
+            properties={filteredProperties}
+            universityId={universityId}
+            onSelectProperty={onSelectProperty}
           />
         </View>
       )}

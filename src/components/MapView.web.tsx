@@ -38,7 +38,10 @@ export default function MapView({ properties, universityId, onSelectProperty }: 
       ? [uniCoords[firstKey].latitude, uniCoords[firstKey].longitude]
       : [50.7354, -3.5353];
 
-    const map = L.map(containerRef.current).setView(center, 14);
+    // Clear any stale Leaflet ID so re-initialisation never throws
+    delete (containerRef.current as any)._leaflet_id;
+
+    const map = L.map(containerRef.current, { center, zoom: 14 });
     mapRef.current = map;
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
