@@ -174,21 +174,38 @@ export default function OverviewScreen({ universityId, isDarkMode = false, onSel
         {/* ── CITY SELECTOR ── */}
         <View style={[styles.citySelector, !desktop && styles.citySelectorMobile]}>
           <Text style={[styles.citySelectorTitle, { color: theme.textMuted }]}>Switch City</Text>
-          <View style={styles.cityCards}>
-            {UNIVERSITIES.map(uni => (
-              <TouchableOpacity 
-                key={uni.id} 
-                style={[styles.cityCard, { backgroundColor: theme.surface, borderColor: theme.border }, universityId === uni.id && { borderColor: uni.primaryColor, backgroundColor: theme.primaryLight }]}
-                onPress={() => onSelectUniversity(uni.id)}
-              >
-                <Text style={[styles.cityCardName, { color: theme.textPrimary }, universityId === uni.id && { color: uni.primaryColor }]}>{uni.city}</Text>
-                <Text style={[styles.cityCardUni, { color: theme.textMuted }]}>{uni.name}</Text>
-                {universityId === uni.id && (
-                  <View style={[styles.cityActiveDot, { backgroundColor: uni.primaryColor }]} />
-                )}
-              </TouchableOpacity>
-            ))}
-          </View>
+
+          {desktop ? (
+            <View style={styles.cityCards}>
+              {UNIVERSITIES.map(uni => (
+                <TouchableOpacity
+                  key={uni.id}
+                  style={[styles.cityCard, { backgroundColor: theme.surface, borderColor: theme.border }, universityId === uni.id && { borderColor: uni.primaryColor, backgroundColor: theme.primaryLight }]}
+                  onPress={() => onSelectUniversity(uni.id)}
+                >
+                  <Text style={[styles.cityCardName, { color: theme.textPrimary }, universityId === uni.id && { color: uni.primaryColor }]}>{uni.city}</Text>
+                  <Text style={[styles.cityCardUni, { color: theme.textMuted }]}>{uni.name}</Text>
+                  {universityId === uni.id && (
+                    <View style={[styles.cityActiveDot, { backgroundColor: uni.primaryColor }]} />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </View>
+          ) : (
+            <View style={styles.cityPillRow}>
+              {UNIVERSITIES.map(uni => (
+                <TouchableOpacity
+                  key={uni.id}
+                  style={[styles.cityPill, { borderColor: uni.primaryColor }, universityId === uni.id && { backgroundColor: uni.primaryColor }]}
+                  onPress={() => onSelectUniversity(uni.id)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.cityPillText, { color: universityId === uni.id ? colors.white : theme.textPrimary }]}>{uni.city}</Text>
+                  <Text style={[styles.cityPillSub, { color: universityId === uni.id ? 'rgba(255,255,255,0.75)' : theme.textMuted }]}>{uni.name}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
         </View>
 
         {/* ── HOUSING ADVICE CARDS ── */}
@@ -415,6 +432,31 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
+  },
+  cityPillRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  cityPill: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cityPillText: {
+    fontFamily,
+    fontSize: 15,
+    fontWeight: '800' as any,
+    textAlign: 'center' as any,
+  },
+  cityPillSub: {
+    fontFamily,
+    fontSize: 10,
+    marginTop: 2,
+    textAlign: 'center' as any,
   },
 
   guildCard: {

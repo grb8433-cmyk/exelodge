@@ -166,7 +166,7 @@ export default function HomeScreen({ universityId, isDarkMode = false, onSelectP
     });
 
     return result;
-  }, [properties, search, selectedAreas, selectedBeds, maxPrice, billsIncluded, selectedSources, maxDistance, distanceCampusIdx, sortOption]);
+  }, [properties, search, selectedAreas, selectedBeds, maxPrice, billsIncluded, selectedSources, maxDistance, distanceCampusIdx, sortOption, showSavedOnly, favorites]);
 
   const displayedProperties = useMemo(() => filteredProperties.slice(0, displayLimit), [filteredProperties, displayLimit]);
 
