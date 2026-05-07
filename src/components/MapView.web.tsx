@@ -18,11 +18,15 @@ interface MapViewProps {
 export default function MapView({ properties, universityId, onSelectProperty }: MapViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
+  const markersRef = useRef<any[]>([]);
+  // Keep a stable ref to the callback so the marker effect doesn't re-run on every render
+  const onSelectRef = useRef(onSelectProperty);
+  useEffect(() => { onSelectRef.current = onSelectProperty; }, [onSelectProperty]);
 
+  // Initialise (or re-centre) the map only when the university changes
   useEffect(() => {
     if (!containerRef.current) return;
 
-    // Destroy previous instance when universityId changes
     if (mapRef.current) {
       mapRef.current.remove();
       mapRef.current = null;
@@ -41,6 +45,22 @@ export default function MapView({ properties, universityId, onSelectProperty }: 
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     }).addTo(map);
 
+    return () => {
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
+    };
+  }, [universityId]);
+
+  // Update markers whenever properties change (without touching the map centre)
+  useEffect(() => {
+    if (!mapRef.current) return;
+
+    // Clear old markers
+    markersRef.current.forEach((m) => m.remove());
+    markersRef.current = [];
+
     properties.forEach((p) => {
       if (!p.latitude || !p.longitude) return;
       const price = parseFloat(p.price_pppw);
@@ -55,7 +75,7 @@ export default function MapView({ properties, universityId, onSelectProperty }: 
       });
 
       const marker = L.marker([p.latitude, p.longitude], { icon });
-      marker.addTo(map);
+      marker.addTo(mapRef.current);
       marker.bindPopup(`
         <div style="min-width:140px;font-family:sans-serif;">
           <div style="font-weight:700;font-size:13px;margin-bottom:4px;">${p.address || 'Property'}</div>
@@ -66,20 +86,11 @@ export default function MapView({ properties, universityId, onSelectProperty }: 
           </button>
         </div>
       `);
+      markersRef.current.push(marker);
     });
 
-    // Bridge for popup button clicks
-    (window as any).__mapSelectProperty = (id: string) => {
-      onSelectProperty(id);
-    };
-
-    return () => {
-      if (mapRef.current) {
-        mapRef.current.remove();
-        mapRef.current = null;
-      }
-    };
-  }, [universityId, properties]);
+    (window as any).__mapSelectProperty = (id: string) => onSelectRef.current(id);
+  }, [properties]);
 
   return (
     <div
