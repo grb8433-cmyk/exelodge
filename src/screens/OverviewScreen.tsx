@@ -202,7 +202,7 @@ export default function OverviewScreen({ universityId, isDarkMode = false, onSel
                     onPress={() => onSelectUniversity(uni.id)}
                     activeOpacity={0.8}
                   >
-                    <Text style={[styles.cityPillText, { color: universityId === uni.id ? colors.white : theme.textPrimary }]}>{uni.city}</Text>
+                    <Text numberOfLines={1} style={[styles.cityPillText, { color: universityId === uni.id ? colors.white : theme.textPrimary }]}>{uni.city}</Text>
                     <Text numberOfLines={1} style={[styles.cityPillSub, { color: universityId === uni.id ? 'rgba(255,255,255,0.75)' : theme.textMuted }]}>{shortName[uni.id] || uni.name}</Text>
                   </TouchableOpacity>
                 );
@@ -452,7 +452,7 @@ const styles = StyleSheet.create({
   },
   cityPillText: {
     fontFamily,
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: '800' as any,
     textAlign: 'center' as any,
   },
