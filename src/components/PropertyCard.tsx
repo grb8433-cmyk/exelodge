@@ -31,14 +31,15 @@ const timeAgo = (dateStr: string) => {
   }
 };
 
-export default function PropertyCard({ 
-  item, 
-  universityId, 
-  isDarkMode = false, 
-  onPress, 
+export default function PropertyCard({
+  item,
+  universityId,
+  isDarkMode = false,
+  onPress,
   marketAverage,
   isFavorite = false,
-  onToggleFavorite
+  onToggleFavorite,
+  landlordRating,
 }: {
   item: any;
   universityId: string;
@@ -47,6 +48,7 @@ export default function PropertyCard({
   marketAverage: number;
   isFavorite?: boolean;
   onToggleFavorite?: () => void;
+  landlordRating?: { avg: number; count: number };
 }) {
   const price = parseFloat(item.price_pppw);
   const theme = getUniversityColors(universityId, isDarkMode);
@@ -112,6 +114,14 @@ export default function PropertyCard({
             <Text style={[styles.metaText, { color: theme.textSecondary }]}>{item.bedrooms} bed</Text>
           </View>
         </View>
+
+        {landlordRating && landlordRating.count > 0 && (
+          <View style={styles.ratingRow}>
+            <Icon name="star" size={11} color="#F59E0B" fill="#F59E0B" />
+            <Text style={[styles.ratingText, { color: theme.textPrimary }]}>{landlordRating.avg.toFixed(1)}</Text>
+            <Text style={[styles.ratingCount, { color: theme.textMuted }]}>· {landlordRating.count} review{landlordRating.count !== 1 ? 's' : ''}</Text>
+          </View>
+        )}
 
         <View style={styles.footer}>
           <View style={styles.valueRow}>
@@ -253,6 +263,21 @@ const styles = StyleSheet.create({
   updatedText: {
     ...typography.caption,
     color: colors.textMuted,
+  },
+  ratingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 6,
+  },
+  ratingText: {
+    fontFamily,
+    fontSize: 12,
+    fontWeight: '700' as any,
+  },
+  ratingCount: {
+    fontFamily,
+    fontSize: 11,
   },
   budgetBadge: { 
     position: 'absolute', 

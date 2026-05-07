@@ -59,6 +59,7 @@ export default function HomeScreen({ universityId, isDarkMode = false, onSelectP
   const [favorites, setFavorites] = useState<string[]>([]);
   const [showSavedOnly, setShowSavedOnly] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
+  const [landlordRatings, setLandlordRatings] = useState<Record<string, { avg: number; count: number }>>({});
 
   // Animation states
   const scrollY = useRef(new Animated.Value(0)).current;
@@ -71,12 +72,34 @@ export default function HomeScreen({ universityId, isDarkMode = false, onSelectP
     extrapolate: 'clamp',
   }), [clampedScrollY, headerHeight]);
 
-  useEffect(() => { 
+  useEffect(() => {
     setSelectedAreas([]);
     setSelectedSources([]);
-    fetchProperties(); 
+    fetchProperties();
+    fetchLandlordRatings();
     loadFavorites();
   }, [universityId]);
+
+  async function fetchLandlordRatings() {
+    try {
+      const { data } = await supabase
+        .from('reviews')
+        .select('landlord_id, overall_rating')
+        .eq('approved', true);
+      if (!data) return;
+      const map: Record<string, { sum: number; count: number }> = {};
+      data.forEach(r => {
+        if (!map[r.landlord_id]) map[r.landlord_id] = { sum: 0, count: 0 };
+        map[r.landlord_id].sum += r.overall_rating || 0;
+        map[r.landlord_id].count += 1;
+      });
+      const ratings: Record<string, { avg: number; count: number }> = {};
+      Object.entries(map).forEach(([id, s]) => {
+        if (s.count > 0) ratings[id] = { avg: Math.round((s.sum / s.count) * 10) / 10, count: s.count };
+      });
+      setLandlordRatings(ratings);
+    } catch {}
+  }
 
   async function loadFavorites() {
     const favs = await getFavorites();
@@ -355,14 +378,15 @@ export default function HomeScreen({ universityId, isDarkMode = false, onSelectP
             </View>
           }
           renderItem={({ item }) => (
-            <PropertyCard 
-              item={item} 
-              universityId={universityId} 
-              isDarkMode={isDarkMode} 
-              marketAverage={marketAverage} 
+            <PropertyCard
+              item={item}
+              universityId={universityId}
+              isDarkMode={isDarkMode}
+              marketAverage={marketAverage}
               onPress={() => onSelectProperty(item.id)}
               isFavorite={favorites.includes(item.id.toString())}
               onToggleFavorite={() => handleToggleFavorite(item.id.toString())}
+              landlordRating={landlordRatings[item.landlord_id]}
             />
           )}
           onEndReached={() => setDisplayLimit(prev => prev + 12)}
