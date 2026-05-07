@@ -17,19 +17,22 @@ import UNIVERSITIES from '../../config/universities.json';
 const AREAS_MAP: Record<string, string[]> = {
   exeter: ['Pennsylvania', 'St James', 'Heavitree', 'Newtown', 'Mount Pleasant', 'Haldon', 'City Centre', 'St Davids', 'St Leonards', 'Riverside'],
   bristol: ['City Centre', 'Clifton', 'Redland', 'Cotham', 'Stokes Croft', 'Southville', 'Horfield', 'Bishopston', 'Filton', 'Stoke Bishop'],
-  southampton: ['City Centre', 'Highfield', 'Portswood', 'Shirley', 'Swaythling', 'Bassett']
+  southampton: ['City Centre', 'Highfield', 'Portswood', 'Shirley', 'Swaythling', 'Bassett'],
+  cardiff: ['Cathays', 'Roath', 'City Centre', 'Canton', 'Pontcanna', 'Heath'],
 };
 
 const SOURCES_MAP: Record<string, string[]> = {
   exeter: ['UniHomes', 'StuRents', 'AccommodationForStudents', 'Rightmove', 'Cardens', 'RSJInvestments', 'StarStudents', 'Gillams'],
   bristol: ['UniHomes', 'StuRents', 'AccommodationForStudents', 'Rightmove', 'UWEStudentPad', 'BristolSULettings', 'CJHole', 'BristolDigs', 'StudentCrowd', 'JointLiving', 'UniteStudents'],
-  southampton: ['UniHomes', 'StuRents', 'AccommodationForStudents', 'Rightmove', 'OnTheMarket', 'StudentCrowd', 'EveryStudent', 'AmberStudent', 'StudNoFee', 'iStudentLets']
+  southampton: ['UniHomes', 'StuRents', 'AccommodationForStudents', 'Rightmove', 'OnTheMarket', 'StudentCrowd', 'EveryStudent', 'AmberStudent', 'StudNoFee', 'iStudentLets'],
+  cardiff: ['UniHomes', 'Rightmove', 'StudentCrowd', 'AccommodationForStudents', 'CardiffStudentLetting', 'CPSHomes', 'KingstonsCardiff', 'StudentHousesCardiff', 'AmberStudent'],
 };
 
 const CAMPUS_MAP: Record<string, {id: string, label: string}[]> = {
   exeter: [{id: 'streatham', label: 'Streatham'}, {id: 'st_lukes', label: 'St Lukes'}],
   bristol: [{id: 'uob', label: 'UoB'}, {id: 'uwe', label: 'UWE'}],
-  southampton: [{id: 'highfield', label: 'Highfield'}, {id: 'solent', label: 'Solent'}]
+  southampton: [{id: 'highfield', label: 'Highfield'}, {id: 'solent', label: 'Solent'}],
+  cardiff: [{id: 'cardiff_uni', label: 'Cardiff Uni'}, {id: 'cardiffmet', label: 'Cardiff Met'}],
 };
 
 type SortOption = 'price_asc' | 'price_desc' | 'dist_campus1' | 'dist_campus2' | 'newest';

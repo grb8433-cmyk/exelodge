@@ -145,7 +145,34 @@ UNIVERSITY_SETTINGS = {
             'StudNoFee': 'https://www.studnofee.com/properties/',
             'iStudentLets': 'https://www.istudentlets.com/search/0_location-ANY/rent_00.00-99.99/rooms_0-9',
         }
-    }
+    },
+    'cardiff': {
+        'city': 'Cardiff',
+        'coords': {
+            'cardiff_uni': (51.4881, -3.1785),
+            'cardiffmet':  (51.4956, -3.2196),
+        },
+        'postcode_range': r'CF[1-9]|CF1[0-9]|CF2[0-4]',
+        'area_mappings': {
+            'Cathays':     ['cathays', 'cf24', 'colum road', 'miskin street', 'richmond road', 'woodville road'],
+            'Roath':       ['roath', 'cf24', 'cf23', 'claude road', 'mackintosh place', 'penylan'],
+            'City Centre': ['city centre', 'cf10', 'cf24 0', 'st mary street', 'queen street', 'central square'],
+            'Canton':      ['canton', 'cf5', 'romilly road', 'kings road', 'wyndham road'],
+            'Pontcanna':   ['pontcanna', 'cf11', 'cathedral road', 'connaught road', 'plasturton'],
+            'Heath':       ['heath', 'cf14', 'allensbank', 'whitchurch road', 'penylan'],
+        },
+        'search_urls': {
+            'UniHomes':                 'https://www.unihomes.co.uk/student-accommodation/cardiff',
+            'Rightmove':                'https://www.rightmove.co.uk/student-accommodation/Cardiff.html',
+            'StudentCrowd':             'https://www.studentcrowd.com/student-accommodation-l1001046-cardiff',
+            'AccommodationForStudents': 'https://www.accommodationforstudents.com/cardiff',
+            'CardiffStudentLetting':    'https://www.cardiffstudentletting.co.uk/search',
+            'CPSHomes':                 'https://www.cpshomes.co.uk/search.asp',
+            'KingstonsCardiff':         'https://kingstonscardiff.co.uk/properties',
+            'StudentHousesCardiff':     'https://studenthousescardiff.co.uk/property-search/',
+            'AmberStudent':             'https://amberstudent.com/places/search/cardiff-1811021315133',
+        }
+    },
 }
 
 
@@ -1934,6 +1961,192 @@ def scrape_onthemarket(search_url, university_id, settings):
     return results
 
 
+def scrape_cardiffstudentletting(search_url, university_id, settings):
+    BASE = 'https://www.cardiffstudentletting.co.uk'
+    results, seen = [], set()
+
+    for page in range(1, 20):
+        url = search_url if page == 1 else f"{search_url}?page={page}"
+        soup, _ = get_page(url)
+        if not soup: break
+        cards = soup.select('.property, .property-card, [class*="property"], .listing, .result-item')
+        if not cards: break
+        added = 0
+        for card in cards:
+            a = card.select_one('a[href]')
+            if not a: continue
+            ext_url = urljoin(BASE, a['href']).split('?')[0]
+            if ext_url in seen: continue
+            seen.add(ext_url)
+            text = re.sub(r'\s+', ' ', card.get_text(' ')).strip()
+            pm = re.search(r'£\s*([\d,]+)', text)
+            if not pm: continue
+            price_raw = float(pm.group(1).replace(',', ''))
+            unit = 'pppm' if re.search(r'month|pcm', text, re.I) else 'pppw'
+            bm = re.search(r'(\d+)\s*bed', text, re.I)
+            beds = int(bm.group(1)) if bm else 1
+            price_pppw = calculate_pppw(price_raw, unit, beds, ext_url, 'CardiffStudentLetting')
+            if not price_pppw: continue
+            addr_el = card.select_one('h2, h3, .address, [class*="address"], [class*="title"]')
+            address = addr_el.get_text(strip=True) if addr_el else settings['city']
+            results.append({
+                'address':       address,
+                'price_pppw':    price_pppw,
+                'bedrooms':      beds,
+                'bathrooms':     1,
+                'area':          detect_area(address + ' ' + text, settings['area_mappings'], settings['city']),
+                'external_url':  ext_url,
+                'image_url':     pick_image(card, BASE),
+                'bills_included': bool(re.search(r'bills?\s+inclu', text, re.I)),
+                'landlord_id':   'CardiffStudentLetting',
+            })
+            added += 1
+        if added == 0: break
+        time.sleep(1)
+    print(f'  [CardiffStudentLetting] {len(results)} listings found')
+    return results
+
+
+def scrape_cpshomes(search_url, university_id, settings):
+    BASE = 'https://www.cpshomes.co.uk'
+    results, seen = [], set()
+
+    for page in range(1, 20):
+        url = search_url if page == 1 else f"{BASE}/search.asp?page={page}"
+        soup, _ = get_page(url)
+        if not soup: break
+        cards = soup.select('.property, .property-result, [class*="property"], .listing')
+        if not cards: break
+        added = 0
+        for card in cards:
+            a = card.select_one('a[href]')
+            if not a: continue
+            ext_url = urljoin(BASE, a['href']).split('?')[0]
+            if ext_url in seen: continue
+            seen.add(ext_url)
+            text = re.sub(r'\s+', ' ', card.get_text(' ')).strip()
+            pm = re.search(r'£\s*([\d,]+)', text)
+            if not pm: continue
+            price_raw = float(pm.group(1).replace(',', ''))
+            unit = 'pppm' if re.search(r'month|pcm', text, re.I) else 'pppw'
+            bm = re.search(r'(\d+)\s*bed', text, re.I)
+            beds = int(bm.group(1)) if bm else 1
+            price_pppw = calculate_pppw(price_raw, unit, beds, ext_url, 'CPSHomes')
+            if not price_pppw: continue
+            addr_el = card.select_one('h2, h3, .address, [class*="address"], [class*="title"]')
+            address = addr_el.get_text(strip=True) if addr_el else settings['city']
+            results.append({
+                'address':       address,
+                'price_pppw':    price_pppw,
+                'bedrooms':      beds,
+                'bathrooms':     1,
+                'area':          detect_area(address + ' ' + text, settings['area_mappings'], settings['city']),
+                'external_url':  ext_url,
+                'image_url':     pick_image(card, BASE),
+                'bills_included': bool(re.search(r'bills?\s+inclu', text, re.I)),
+                'landlord_id':   'CPSHomes',
+            })
+            added += 1
+        if added == 0: break
+        time.sleep(1)
+    print(f'  [CPSHomes] {len(results)} listings found')
+    return results
+
+
+def scrape_kingstonscardiff(search_url, university_id, settings):
+    BASE = 'https://kingstonscardiff.co.uk'
+    results, seen = [], set()
+
+    for page in range(1, 20):
+        url = search_url if page == 1 else f"{search_url}?page={page}"
+        soup, _ = get_page(url)
+        if not soup: break
+        cards = soup.select('.property, .property-card, [class*="property"], .listing')
+        if not cards: break
+        added = 0
+        for card in cards:
+            a = card.select_one('a[href]')
+            if not a: continue
+            ext_url = urljoin(BASE, a['href']).split('?')[0]
+            if ext_url in seen: continue
+            seen.add(ext_url)
+            text = re.sub(r'\s+', ' ', card.get_text(' ')).strip()
+            pm = re.search(r'£\s*([\d,]+)', text)
+            if not pm: continue
+            price_raw = float(pm.group(1).replace(',', ''))
+            unit = 'pppm' if re.search(r'month|pcm', text, re.I) else 'pppw'
+            bm = re.search(r'(\d+)\s*bed', text, re.I)
+            beds = int(bm.group(1)) if bm else 1
+            price_pppw = calculate_pppw(price_raw, unit, beds, ext_url, 'KingstonsCardiff')
+            if not price_pppw: continue
+            addr_el = card.select_one('h2, h3, .address, [class*="address"], [class*="title"]')
+            address = addr_el.get_text(strip=True) if addr_el else settings['city']
+            results.append({
+                'address':       address,
+                'price_pppw':    price_pppw,
+                'bedrooms':      beds,
+                'bathrooms':     1,
+                'area':          detect_area(address + ' ' + text, settings['area_mappings'], settings['city']),
+                'external_url':  ext_url,
+                'image_url':     pick_image(card, BASE),
+                'bills_included': bool(re.search(r'bills?\s+inclu', text, re.I)),
+                'landlord_id':   'KingstonsCardiff',
+            })
+            added += 1
+        if added == 0: break
+        time.sleep(1)
+    print(f'  [KingstonsCardiff] {len(results)} listings found')
+    return results
+
+
+def scrape_studenthousescardiff(search_url, university_id, settings):
+    BASE = 'https://studenthousescardiff.co.uk'
+    results, seen = [], set()
+
+    for page in range(1, 30):
+        url = search_url if page == 1 else f"{search_url}?page={page}"
+        soup, _ = get_page(url)
+        if not soup: break
+        cards = soup.select('.property, .property-card, .listing, article, [class*="property"]')
+        if not cards: break
+        added = 0
+        for card in cards:
+            a = card.select_one('a[href]')
+            if not a: continue
+            href = a['href']
+            if not href or href == '#': continue
+            ext_url = urljoin(BASE, href).split('?')[0]
+            if ext_url in seen or ext_url == search_url.rstrip('/'): continue
+            seen.add(ext_url)
+            text = re.sub(r'\s+', ' ', card.get_text(' ')).strip()
+            pm = re.search(r'£\s*([\d,]+)', text)
+            if not pm: continue
+            price_raw = float(pm.group(1).replace(',', ''))
+            unit = 'pppm' if re.search(r'month|pcm', text, re.I) else 'pppw'
+            bm = re.search(r'(\d+)\s*bed', text, re.I)
+            beds = int(bm.group(1)) if bm else 1
+            price_pppw = calculate_pppw(price_raw, unit, beds, ext_url, 'StudentHousesCardiff')
+            if not price_pppw: continue
+            addr_el = card.select_one('h2, h3, h4, .address, [class*="address"], [class*="title"], [class*="name"]')
+            address = addr_el.get_text(strip=True) if addr_el else settings['city']
+            results.append({
+                'address':       address,
+                'price_pppw':    price_pppw,
+                'bedrooms':      beds,
+                'bathrooms':     1,
+                'area':          detect_area(address + ' ' + text, settings['area_mappings'], settings['city']),
+                'external_url':  ext_url,
+                'image_url':     pick_image(card, BASE),
+                'bills_included': bool(re.search(r'bills?\s+inclu', text, re.I)),
+                'landlord_id':   'StudentHousesCardiff',
+            })
+            added += 1
+        if added == 0: break
+        time.sleep(1)
+    print(f'  [StudentHousesCardiff] {len(results)} listings found')
+    return results
+
+
 # ─── DEDUPLICATION ────────────────────────────────────────────────────────────
 
 def deduplicate(listings):
@@ -2044,6 +2257,10 @@ def main():
         'iStudentLets': scrape_istudentlets,
         'JointLiving': scrape_jointliving,
         'UniteStudents': scrape_unitestudents,
+        'CardiffStudentLetting': scrape_cardiffstudentletting,
+        'CPSHomes': scrape_cpshomes,
+        'KingstonsCardiff': scrape_kingstonscardiff,
+        'StudentHousesCardiff': scrape_studenthousescardiff,
     }
 
     for name, search_url in search_urls.items():

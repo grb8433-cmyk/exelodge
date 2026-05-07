@@ -19,5 +19,12 @@
     "city": "Southampton",
     "primaryColor": "#E07B20",
     "primaryLight": "#FEF6EC"
+  },
+  {
+    "id": "cardiff",
+    "name": "Cardiff University & Cardiff Met",
+    "city": "Cardiff",
+    "primaryColor": "#C8102E",
+    "primaryLight": "#FCEEF1"
   }
 ]

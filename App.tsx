@@ -163,9 +163,10 @@ export default function App() {
 
       // Meta description
       const cityDescriptions: Record<string, string> = {
-        exeter:       'Find student houses and accommodation in Exeter. Compare prices per person per week, distance to Streatham and St Lukes campus, and bills-inclusive options across hundreds of verified Exeter student listings.',
-        bristol:      'Find student houses and flats in Bristol. Compare prices per person per week, distance to UoB and UWE campus, and bills-inclusive options across hundreds of verified Bristol student listings.',
-        southampton:  'Find student houses and accommodation in Southampton. Compare prices per person per week, distance to Highfield and Solent campus, and bills-inclusive options across hundreds of verified Southampton student listings.',
+        exeter:      'Find student houses and accommodation in Exeter. Compare prices per person per week, distance to Streatham and St Lukes campus, and bills-inclusive options across hundreds of verified Exeter student listings.',
+        bristol:     'Find student houses and flats in Bristol. Compare prices per person per week, distance to UoB and UWE campus, and bills-inclusive options across hundreds of verified Bristol student listings.',
+        southampton: 'Find student houses and accommodation in Southampton. Compare prices per person per week, distance to Highfield and Solent campus, and bills-inclusive options across hundreds of verified Southampton student listings.',
+        cardiff:     'Find student houses and accommodation in Cardiff. Compare prices per person per week, distance to Cardiff University and Cardiff Met campus, and bills-inclusive options across hundreds of verified Cardiff student listings.',
       };
       let metaDesc = document.querySelector('meta[name="description"]') as HTMLMetaElement;
       if (!metaDesc) {

@@ -59,14 +59,17 @@ export default function OverviewScreen({ universityId, isDarkMode = false, onSel
     return 'Good Evening';
   };
 
-  const openGuild = (type?: 'uob' | 'uwe' | 'exeter' | 'susu' | 'solent') => {
+  const openGuild = (type?: 'uob' | 'uwe' | 'exeter' | 'susu' | 'solent' | 'cardiffsu' | 'cardiffmet') => {
     let url = 'https://www.exeterguild.com/advice';
-    if (type === 'uob')    url = 'https://www.bristolsu.org.uk/advice-support';
-    if (type === 'uwe')    url = 'https://www.thestudentsunion.co.uk/advice-support/housing/';
-    if (type === 'susu')   url = 'https://www.susu.org/advice/housing';
-    if (type === 'solent') url = 'https://www.solentsu.co.uk/advice/';
+    if (type === 'uob')       url = 'https://www.bristolsu.org.uk/advice-support';
+    if (type === 'uwe')       url = 'https://www.thestudentsunion.co.uk/advice-support/housing/';
+    if (type === 'susu')      url = 'https://www.susu.org/advice/housing';
+    if (type === 'solent')    url = 'https://www.solentsu.co.uk/advice/';
+    if (type === 'cardiffsu') url = 'https://www.cardiffsu.com/advice/housing/';
+    if (type === 'cardiffmet') url = 'https://www.cardiffmetsu.co.uk/advice/housing/';
     if (universityId === 'bristol' && !type)     url = 'https://www.bristolsu.org.uk/advice-support';
     if (universityId === 'southampton' && !type) url = 'https://www.susu.org/advice/housing';
+    if (universityId === 'cardiff' && !type)     url = 'https://www.cardiffsu.com/advice/housing/';
 
     if (Platform.OS === 'web') window.open(url, '_blank');
     else Linking.openURL(url);
@@ -88,13 +91,15 @@ export default function OverviewScreen({ universityId, isDarkMode = false, onSel
     { icon: 'database',     label: 'Multi-Source Data'            },
   ] as const;
 
-  const renderAdviceCard = (uniType: 'exeter' | 'uob' | 'uwe' | 'susu' | 'solent') => {
+  const renderAdviceCard = (uniType: 'exeter' | 'uob' | 'uwe' | 'susu' | 'solent' | 'cardiffsu' | 'cardiffmet') => {
     const CONFIG = {
-      exeter: { title: "Exeter Students' Guild", linkText: "Guild",       sub: "Free, independent guidance for every Exeter student." },
-      uob:    { title: "Bristol SU",              linkText: "Bristol SU",  sub: "Free, independent guidance for University of Bristol students." },
-      uwe:    { title: "UWE Bristol SU",          linkText: "UWE SU",      sub: "Free, independent guidance for UWE Bristol students." },
-      susu:   { title: "Southampton SUSU",        linkText: "SUSU",        sub: "Free, independent guidance for University of Southampton students." },
-      solent: { title: "Solent SU",               linkText: "Solent SU",   sub: "Free, independent guidance for Southampton Solent students." },
+      exeter:     { title: "Exeter Students' Guild",  linkText: "Guild",         sub: "Free, independent guidance for every Exeter student." },
+      uob:        { title: "Bristol SU",               linkText: "Bristol SU",    sub: "Free, independent guidance for University of Bristol students." },
+      uwe:        { title: "UWE Bristol SU",           linkText: "UWE SU",        sub: "Free, independent guidance for UWE Bristol students." },
+      susu:       { title: "Southampton SUSU",         linkText: "SUSU",          sub: "Free, independent guidance for University of Southampton students." },
+      solent:     { title: "Solent SU",                linkText: "Solent SU",     sub: "Free, independent guidance for Southampton Solent students." },
+      cardiffsu:  { title: "Cardiff SU",               linkText: "Cardiff SU",    sub: "Free, independent guidance for Cardiff University students." },
+      cardiffmet: { title: "Cardiff Met SU",           linkText: "Cardiff Met SU", sub: "Free, independent guidance for Cardiff Metropolitan University students." },
     };
     const { title, linkText, sub } = CONFIG[uniType];
 
@@ -131,10 +136,12 @@ export default function OverviewScreen({ universityId, isDarkMode = false, onSel
       {/* ── HERO ── */}
       <View style={[styles.hero, !desktop && styles.heroMobile]}>
         <Image
-          source={{ uri: universityId === 'exeter' 
+          source={{ uri: universityId === 'exeter'
             ? 'https://images.unsplash.com/photo-1569329007721-f00490129200?q=80&w=2070&auto=format&fit=crop'
             : universityId === 'bristol'
             ? 'https://images.unsplash.com/photo-1541410945376-a7872656acec?q=80&w=2070&auto=format&fit=crop'
+            : universityId === 'cardiff'
+            ? 'https://images.unsplash.com/photo-1598300042247-d088f8ab3a91?q=80&w=2070&auto=format&fit=crop'
             : 'https://images.unsplash.com/photo-1548123282-3e2888993753?q=80&w=2070&auto=format&fit=crop' }}
           style={styles.heroImage}
           resizeMode="cover"
@@ -194,7 +201,7 @@ export default function OverviewScreen({ universityId, isDarkMode = false, onSel
           ) : (
             <View style={styles.cityPillRow}>
               {UNIVERSITIES.map(uni => {
-                const shortName: Record<string, string> = { exeter: 'UoE', bristol: 'UoB & UWE', southampton: 'UoS & Solent' };
+                const shortName: Record<string, string> = { exeter: 'UoE', bristol: 'UoB & UWE', southampton: 'UoS & Solent', cardiff: 'CU & Met' };
                 return (
                   <TouchableOpacity
                     key={uni.id}
@@ -218,6 +225,11 @@ export default function OverviewScreen({ universityId, isDarkMode = false, onSel
           <>
             {renderAdviceCard('susu')}
             {renderAdviceCard('solent')}
+          </>
+        ) : universityId === 'cardiff' ? (
+          <>
+            {renderAdviceCard('cardiffsu')}
+            {renderAdviceCard('cardiffmet')}
           </>
         ) : (
           <>
