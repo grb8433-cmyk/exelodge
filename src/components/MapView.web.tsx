@@ -1,6 +1,18 @@
 import React, { useRef, useEffect } from 'react';
 import L from 'leaflet';
-import { CAMPUS_COORDS } from '../data/seeds';
+
+const CITY_CENTERS: Record<string, [number, number]> = {
+  exeter:       [50.7354, -3.5353],
+  bristol:      [51.4584, -2.6030],
+  southampton:  [50.9350, -1.3960],
+};
+
+// Only show pins within a sensible radius of each city — filters out bad geocoding
+const CITY_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: number; maxLon: number }> = {
+  exeter:      { minLat: 50.65, maxLat: 50.82, minLon: -3.70, maxLon: -3.40 },
+  bristol:     { minLat: 51.38, maxLat: 51.58, minLon: -2.75, maxLon: -2.48 },
+  southampton: { minLat: 50.85, maxLat: 51.02, minLon: -1.60, maxLon: -1.20 },
+};
 
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -32,11 +44,7 @@ export default function MapView({ properties, universityId, onSelectProperty }: 
       mapRef.current = null;
     }
 
-    const uniCoords = (CAMPUS_COORDS as any)[universityId];
-    const firstKey = Object.keys(uniCoords || {})[0];
-    const center: [number, number] = uniCoords && firstKey
-      ? [uniCoords[firstKey].latitude, uniCoords[firstKey].longitude]
-      : [50.7354, -3.5353];
+    const center: [number, number] = CITY_CENTERS[universityId] ?? CITY_CENTERS.exeter;
 
     // Clear any stale Leaflet ID so re-initialisation never throws
     delete (containerRef.current as any)._leaflet_id;
@@ -64,8 +72,14 @@ export default function MapView({ properties, universityId, onSelectProperty }: 
     markersRef.current.forEach((m) => m.remove());
     markersRef.current = [];
 
+    const bounds = CITY_BOUNDS[universityId];
     properties.forEach((p) => {
       if (!p.latitude || !p.longitude) return;
+      if (bounds) {
+        const lat = parseFloat(p.latitude);
+        const lon = parseFloat(p.longitude);
+        if (lat < bounds.minLat || lat > bounds.maxLat || lon < bounds.minLon || lon > bounds.maxLon) return;
+      }
       const price = parseFloat(p.price_pppw);
       const color = price < 130 ? '#10B981' : price <= 180 ? '#F59E0B' : '#EF4444';
 

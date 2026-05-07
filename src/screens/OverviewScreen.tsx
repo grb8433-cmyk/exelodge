@@ -442,8 +442,9 @@ const styles = StyleSheet.create({
   },
   cityPill: {
     flex: 1,
+    minWidth: 90,
     paddingVertical: 10,
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
     borderRadius: 12,
     borderWidth: 2,
     alignItems: 'center',
