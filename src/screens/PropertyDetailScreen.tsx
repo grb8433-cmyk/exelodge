@@ -140,7 +140,7 @@ export default function PropertyDetailScreen({ propertyId, universityId, isDarkM
   }
 
   const onShare = async () => {
-    const shareUrl = `https://exelodge.netlify.app/${universityId}?property=${propertyId}`;
+    const shareUrl = `https://exelodge.uk/${universityId}?property=${propertyId}`;
     const message = `Check out this property in ${currentUni.city}: ${property.address}\n\n${shareUrl}`;
 
     try {
