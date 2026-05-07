@@ -27,8 +27,8 @@
     "web": {
       "favicon": "./assets/favicon.png",
       "backgroundColor": "#F9FAFB",
-      "description": "Exeter student housing platform",
-      "name": "ExeLodge - Exeter Student Housing"
+      "description": "Find student accommodation in Exeter, Bristol, and Southampton. Compare prices, read reviews, and find bills-inclusive student houses near campus.",
+      "name": "ExeLodge - Student Housing Exeter, Bristol & Southampton"
     },
     "newArchEnabled": false
   }

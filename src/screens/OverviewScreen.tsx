@@ -59,11 +59,14 @@ export default function OverviewScreen({ universityId, isDarkMode = false, onSel
     return 'Good Evening';
   };
 
-  const openGuild = (type?: 'uob' | 'uwe' | 'exeter') => {
+  const openGuild = (type?: 'uob' | 'uwe' | 'exeter' | 'susu' | 'solent') => {
     let url = 'https://www.exeterguild.com/advice';
-    if (type === 'uob') url = 'https://www.bristolsu.org.uk/advice-support';
-    if (type === 'uwe') url = 'https://www.thestudentsunion.co.uk/advice-support/housing/';
-    if (universityId === 'bristol' && !type) url = 'https://www.bristolsu.org.uk/advice-support';
+    if (type === 'uob')    url = 'https://www.bristolsu.org.uk/advice-support';
+    if (type === 'uwe')    url = 'https://www.thestudentsunion.co.uk/advice-support/housing/';
+    if (type === 'susu')   url = 'https://www.susu.org/advice/housing';
+    if (type === 'solent') url = 'https://www.solentsu.co.uk/advice/';
+    if (universityId === 'bristol' && !type)     url = 'https://www.bristolsu.org.uk/advice-support';
+    if (universityId === 'southampton' && !type) url = 'https://www.susu.org/advice/housing';
 
     if (Platform.OS === 'web') window.open(url, '_blank');
     else Linking.openURL(url);
@@ -85,11 +88,16 @@ export default function OverviewScreen({ universityId, isDarkMode = false, onSel
     { icon: 'database',     label: 'Multi-Source Data'            },
   ] as const;
 
-  const renderAdviceCard = (uniType: 'exeter' | 'uob' | 'uwe') => {
-    const isExeter = uniType === 'exeter';
-    const title = isExeter ? "Exeter Students' Guild" : uniType === 'uob' ? "Bristol SU" : "UWE Bristol SU";
-    const linkText = isExeter ? "Guild" : uniType === 'uob' ? "Bristol SU" : "UWE SU";
-    
+  const renderAdviceCard = (uniType: 'exeter' | 'uob' | 'uwe' | 'susu' | 'solent') => {
+    const CONFIG = {
+      exeter: { title: "Exeter Students' Guild", linkText: "Guild",       sub: "Free, independent guidance for every Exeter student." },
+      uob:    { title: "Bristol SU",              linkText: "Bristol SU",  sub: "Free, independent guidance for University of Bristol students." },
+      uwe:    { title: "UWE Bristol SU",          linkText: "UWE SU",      sub: "Free, independent guidance for UWE Bristol students." },
+      susu:   { title: "Southampton SUSU",        linkText: "SUSU",        sub: "Free, independent guidance for University of Southampton students." },
+      solent: { title: "Solent SU",               linkText: "Solent SU",   sub: "Free, independent guidance for Southampton Solent students." },
+    };
+    const { title, linkText, sub } = CONFIG[uniType];
+
     return (
       <View style={[styles.guildCard, !desktop && styles.guildCardMobile, { backgroundColor: theme.primaryLight, borderColor: theme.primaryMedium, marginBottom: 24 }]}>
         <View style={[styles.guildLeft, !desktop && styles.guildLeftMobile]}>
@@ -97,7 +105,7 @@ export default function OverviewScreen({ universityId, isDarkMode = false, onSel
             <Icon name="users" size={22} color={colors.white} />
           </View>
           <Text style={[styles.guildTitle, { color: theme.textPrimary }]}>{title} Housing Advice</Text>
-          <Text style={[styles.guildSub, { color: theme.textSecondary }]}>Free, independent guidance for every student.</Text>
+          <Text style={[styles.guildSub, { color: theme.textSecondary }]}>{sub}</Text>
           <TouchableOpacity style={[styles.guildBtn, { backgroundColor: theme.surface }]} onPress={() => openGuild(uniType)} activeOpacity={0.85}>
             <Text style={[styles.guildBtnText, { color: theme.primary }]}>Book an Appointment</Text>
             <Icon name="external-link" size={13} color={theme.primary} />
@@ -105,8 +113,8 @@ export default function OverviewScreen({ universityId, isDarkMode = false, onSel
         </View>
         <View style={[styles.guildRight, !desktop && styles.guildRightMobile, { borderLeftColor: theme.primaryMedium }]}>
           <Text style={[styles.guildDesc, { color: theme.textSecondary }]}>
-            Our housing specialists offer free advice on contracts, landlord disputes, and tenant legislation.
-            Whether you're signing your first lease or dealing with an unresponsive landlord — we're here.
+            Housing specialists offer free advice on contracts, landlord disputes, and tenant legislation.
+            Whether you're signing your first lease or dealing with an unresponsive landlord — they're here.
           </Text>
           <TouchableOpacity onPress={() => openGuild(uniType)} style={styles.guildLink}>
             <Text style={[styles.guildLinkText, { color: theme.primary }]}>Visit {linkText} Housing Advice</Text>
@@ -125,7 +133,9 @@ export default function OverviewScreen({ universityId, isDarkMode = false, onSel
         <Image
           source={{ uri: universityId === 'exeter' 
             ? 'https://images.unsplash.com/photo-1569329007721-f00490129200?q=80&w=2070&auto=format&fit=crop'
-            : 'https://images.unsplash.com/photo-1541410945376-a7872656acec?q=80&w=2070&auto=format&fit=crop' }}
+            : universityId === 'bristol'
+            ? 'https://images.unsplash.com/photo-1541410945376-a7872656acec?q=80&w=2070&auto=format&fit=crop'
+            : 'https://images.unsplash.com/photo-1548123282-3e2888993753?q=80&w=2070&auto=format&fit=crop' }}
           style={styles.heroImage}
           resizeMode="cover"
         />
@@ -184,6 +194,11 @@ export default function OverviewScreen({ universityId, isDarkMode = false, onSel
         {/* ── HOUSING ADVICE CARDS ── */}
         {universityId === 'exeter' ? (
           renderAdviceCard('exeter')
+        ) : universityId === 'southampton' ? (
+          <>
+            {renderAdviceCard('susu')}
+            {renderAdviceCard('solent')}
+          </>
         ) : (
           <>
             {renderAdviceCard('uob')}

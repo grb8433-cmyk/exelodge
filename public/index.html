@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    
+    <!-- SEO -->
+    <title>ExeLodge | Student Housing</title>
+    <meta name="description" content="Find the best student housing in Exeter, Bristol, and Southampton. Compare prices, distances to campus, and bills-inclusive options." />
+    
+    <!-- Open Graph -->
+    <meta property="og:title" content="ExeLodge | Student Housing" />
+    <meta property="og:description" content="Find the best student housing in Exeter, Bristol, and Southampton." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://exelodge.netlify.app/" />
+    <meta property="og:image" content="https://exelodge.netlify.app/og-image.png" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="ExeLodge | Student Housing" />
+    <meta name="twitter:description" content="Find the best student housing in Exeter, Bristol, and Southampton. Compare prices, distances to campus, and bills-inclusive options." />
+    <meta name="twitter:image" content="https://exelodge.netlify.app/og-image.png" />
+
+    <!-- JSON-LD Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "ExeLodge",
+      "url": "https://exelodge.netlify.app/",
+      "description": "Student housing search for Exeter, Bristol, and Southampton. Compare prices, reviews, and distances to campus.",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": {
+          "@type": "EntryPoint",
+          "urlTemplate": "https://exelodge.netlify.app/exeter?search={search_term_string}"
+        },
+        "query-input": "required name=search_term_string"
+      }
+    }
+    </script>
+    
+    <!-- Google Analytics 4 -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-8MTEFEN65Q"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-8MTEFEN65Q');
+    </script>
+    
+    <!-- Leaflet CSS for Maps -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <style>
+      #root, body, html {
+        width: 100%;
+        -webkit-overflow-scrolling: touch;
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        overflow: hidden;
+      }
+      #root {
+        display: flex;
+        flex-direction: column;
+      }
+    </style>
+  </head>
+  <body>
+    <noscript>
+      <form action="" style="background-color: #fff; position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+        <p>You need to enable JavaScript to run this app.</p>
+      </form>
+    </noscript>
+    <div id="root"></div>
+  </body>
+</html>

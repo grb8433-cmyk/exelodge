@@ -7,23 +7,29 @@ import {
 import Icon from '../components/Icon';
 import { supabase } from '../lib/supabase';
 import PropertyCard from '../components/PropertyCard';
+import MapView from '../components/MapView';
 import { colors, spacing, radii, typography, shadows, fontFamily, isDesktop, getUniversityColors } from '../utils/theme';
+import { getFavorites, toggleFavorite } from '../utils/favorites';
+import { trackEvent } from '../utils/analytics';
 
 import UNIVERSITIES from '../../config/universities.json';
 
 const AREAS_MAP: Record<string, string[]> = {
   exeter: ['Pennsylvania', 'St James', 'Heavitree', 'Newtown', 'Mount Pleasant', 'Haldon', 'City Centre', 'St Davids', 'St Leonards', 'Riverside'],
-  bristol: ['City Centre', 'Clifton', 'Redland', 'Cotham', 'Stokes Croft', 'Southville', 'Horfield', 'Bishopston', 'Filton', 'Stoke Bishop']
+  bristol: ['City Centre', 'Clifton', 'Redland', 'Cotham', 'Stokes Croft', 'Southville', 'Horfield', 'Bishopston', 'Filton', 'Stoke Bishop'],
+  southampton: ['City Centre', 'Highfield', 'Portswood', 'Shirley', 'Swaythling', 'Bassett']
 };
 
 const SOURCES_MAP: Record<string, string[]> = {
   exeter: ['UniHomes', 'StuRents', 'AccommodationForStudents', 'Rightmove', 'Cardens', 'RSJInvestments', 'StarStudents', 'Gillams'],
-  bristol: ['UniHomes', 'StuRents', 'AccommodationForStudents', 'Rightmove', 'UWEStudentPad', 'BristolSULettings', 'CJHole', 'BristolDigs', 'StudentCrowd', 'JointLiving', 'UniteStudents']
+  bristol: ['UniHomes', 'StuRents', 'AccommodationForStudents', 'Rightmove', 'UWEStudentPad', 'BristolSULettings', 'CJHole', 'BristolDigs', 'StudentCrowd', 'JointLiving', 'UniteStudents'],
+  southampton: ['UniHomes', 'StuRents', 'AccommodationForStudents', 'Rightmove', 'OnTheMarket', 'StudentCrowd', 'EveryStudent', 'AmberStudent', 'StudNoFee', 'iStudentLets']
 };
 
 const CAMPUS_MAP: Record<string, {id: string, label: string}[]> = {
   exeter: [{id: 'streatham', label: 'Streatham'}, {id: 'st_lukes', label: 'St Lukes'}],
-  bristol: [{id: 'uob', label: 'UoB'}, {id: 'uwe', label: 'UWE'}]
+  bristol: [{id: 'uob', label: 'UoB'}, {id: 'uwe', label: 'UWE'}],
+  southampton: [{id: 'highfield', label: 'Highfield'}, {id: 'solent', label: 'Solent'}]
 };
 
 type SortOption = 'price_asc' | 'price_desc' | 'dist_campus1' | 'dist_campus2' | 'newest';
@@ -50,6 +56,9 @@ export default function HomeScreen({ universityId, isDarkMode = false, onSelectP
   const [maxDistance, setMaxDistance] = useState<number | null>(null);
   const [distanceCampusIdx, setDistanceCampusIdx] = useState(0);
   const [sortOption, setSortOption] = useState<SortOption>('price_asc');
+  const [favorites, setFavorites] = useState<string[]>([]);
+  const [showSavedOnly, setShowSavedOnly] = useState(false);
+  const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
 
   // Animation states
   const scrollY = useRef(new Animated.Value(0)).current;
@@ -66,7 +75,18 @@ export default function HomeScreen({ universityId, isDarkMode = false, onSelectP
     setSelectedAreas([]);
     setSelectedSources([]);
     fetchProperties(); 
+    loadFavorites();
   }, [universityId]);
+
+  async function loadFavorites() {
+    const favs = await getFavorites();
+    setFavorites(favs);
+  }
+
+  const handleToggleFavorite = async (id: string) => {
+    const newFavs = await toggleFavorite(id);
+    setFavorites(newFavs);
+  };
 
   async function fetchProperties() {
     try {
@@ -109,6 +129,7 @@ export default function HomeScreen({ universityId, isDarkMode = false, onSelectP
       const matchesPrice  = maxPrice ? parseFloat(p.price_pppw) <= maxPrice : true;
       const matchesBills  = billsIncluded === null ? true : p.bills_included === billsIncluded;
       const matchesSource = !selectedSources.length || selectedSources.includes(p.landlord_id);
+      const matchesSaved  = !showSavedOnly || favorites.includes(p.id.toString());
       
       let matchesDist = true;
       if (maxDistance) {
@@ -117,7 +138,7 @@ export default function HomeScreen({ universityId, isDarkMode = false, onSelectP
         matchesDist = dist !== null && dist <= maxDistance;
       }
 
-      return matchesSearch && matchesArea && matchesBeds && matchesPrice && matchesBills && matchesSource && matchesDist;
+      return matchesSearch && matchesArea && matchesBeds && matchesPrice && matchesBills && matchesSource && matchesDist && matchesSaved;
     });
 
     result.sort((a, b) => {
@@ -156,9 +177,42 @@ export default function HomeScreen({ universityId, isDarkMode = false, onSelectP
                             (selectedSources.length > 0 ? 1 : 0) +
                             (maxDistance ? 1 : 0);
 
-  const toggleArea = (area: string) => setSelectedAreas(prev => prev.includes(area) ? prev.filter(a => a !== area) : [...prev, area]);
-  const toggleBed = (bed: number) => setSelectedBeds(prev => prev.includes(bed) ? prev.filter(b => b !== bed) : [...prev, bed]);
-  const toggleSource = (src: string) => setSelectedSources(prev => prev.includes(src) ? prev.filter(s => s !== src) : [...prev, src]);
+  const toggleArea = (area: string) => {
+    setSelectedAreas(prev => {
+      const next = prev.includes(area) ? prev.filter(a => a !== area) : [...prev, area];
+      trackEvent('filter_applied', { filter: 'area', value: area, universityId });
+      return next;
+    });
+  };
+  const toggleBed = (bed: number) => {
+    setSelectedBeds(prev => {
+      const next = prev.includes(bed) ? prev.filter(b => b !== bed) : [...prev, bed];
+      trackEvent('filter_applied', { filter: 'beds', value: bed, universityId });
+      return next;
+    });
+  };
+  const toggleSource = (src: string) => {
+    setSelectedSources(prev => {
+      const next = prev.includes(src) ? prev.filter(s => s !== src) : [...prev, src];
+      trackEvent('filter_applied', { filter: 'source', value: src, universityId });
+      return next;
+    });
+  };
+
+  const handleSetMaxPrice = (price: number | null) => {
+    setMaxPrice(price);
+    if (price !== null) trackEvent('filter_applied', { filter: 'max_price', value: price, universityId });
+  };
+
+  const handleSetSortOption = (option: SortOption) => {
+    setSortOption(option);
+    trackEvent('filter_applied', { filter: 'sort', value: option, universityId });
+  };
+
+  const handleSetBillsIncluded = (val: boolean | null) => {
+    setBillsIncluded(val);
+    if (val !== null) trackEvent('filter_applied', { filter: 'bills_included', value: val, universityId });
+  };
 
   const resetFilters = () => {
     setSelectedAreas([]); setSelectedBeds([]); setMaxPrice(null); setBillsIncluded(null); 
@@ -191,7 +245,29 @@ export default function HomeScreen({ universityId, isDarkMode = false, onSelectP
         <View style={[styles.header, !desktop && styles.headerMobile]}>
           <View>
             <Text style={[styles.headerEyebrow, { color: theme.primary }]}>{currentUni.city} Student Housing</Text>
-            <Text style={[styles.headerTitle, { color: theme.textPrimary }, !desktop && { fontSize: 22 }]}>Find Your Next Home</Text>
+            <View style={styles.titleRow}>
+              <Text style={[styles.headerTitle, { color: theme.textPrimary }, !desktop && { fontSize: 22 }]}>Find Your Next Home</Text>
+              
+              {/* View Toggle */}
+              {Platform.OS === 'web' && (
+                <View style={[styles.viewToggle, { backgroundColor: theme.primaryLight }]}>
+                  <TouchableOpacity
+                    style={[styles.toggleBtn, viewMode === 'list' && { backgroundColor: theme.primary }]}
+                    onPress={() => setViewMode('list')}
+                  >
+                    <Icon name="list" size={14} color={viewMode === 'list' ? colors.white : theme.primary} />
+                    <Text style={[styles.toggleBtnLabel, { color: viewMode === 'list' ? colors.white : theme.primary }]}>List</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.toggleBtn, viewMode === 'map' && { backgroundColor: theme.primary }]}
+                    onPress={() => setViewMode('map')}
+                  >
+                    <Icon name="map" size={14} color={viewMode === 'map' ? colors.white : theme.primary} />
+                    <Text style={[styles.toggleBtnLabel, { color: viewMode === 'map' ? colors.white : theme.primary }]}>Map</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
           </View>
           <View style={[styles.marketWidget, !desktop && styles.marketWidgetMobile, { backgroundColor: theme.primaryLight }]}>
             <View style={[styles.marketWidgetInner, !desktop && styles.marketWidgetInnerMobile]}>
@@ -230,6 +306,16 @@ export default function HomeScreen({ universityId, isDarkMode = false, onSelectP
               Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
             </Text>
           </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.filterBtn, { backgroundColor: theme.surface, borderColor: theme.border }, showSavedOnly && { backgroundColor: '#ef4444', borderColor: '#ef4444' }]}
+            onPress={() => setShowSavedOnly(!showSavedOnly)}
+            activeOpacity={0.8}
+          >
+            <Icon name="heart" size={15} color={showSavedOnly ? colors.white : '#ef4444'} fill={showSavedOnly ? colors.white : 'transparent'} />
+            {!desktop && <Text style={[styles.filterBtnText, { color: showSavedOnly ? colors.white : '#ef4444' }]}>Saved</Text>}
+            {desktop && <Text style={[styles.filterBtnText, { color: showSavedOnly ? colors.white : '#ef4444' }]}>Saved ({favorites.length})</Text>}
+          </TouchableOpacity>
         </View>
 
         {/* Results count */}
@@ -241,36 +327,56 @@ export default function HomeScreen({ universityId, isDarkMode = false, onSelectP
         </View>
       </Animated.View>
 
-      {/* Listing grid */}
-      <Animated.FlatList
-        data={displayedProperties}
-        keyExtractor={(item) => item.id.toString()}
-        numColumns={desktop ? 3 : 1}
-        key={desktop ? 'desktop' : 'mobile'}
-        contentContainerStyle={[styles.list, { paddingTop: headerHeight + 20, paddingHorizontal: desktop ? 32 : 16 }]}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: false }
-        )}
-        scrollEventThrottle={16}
-        ListEmptyComponent={
-          <View style={styles.emptyState}>
-            <View style={[styles.emptyIconWrap, { backgroundColor: theme.primaryLight }]}>
-              <Icon name="search" size={32} color={theme.primary} />
+      {/* View Content (List or Map) */}
+      {viewMode === 'list' ? (
+        <Animated.FlatList
+          data={displayedProperties}
+          keyExtractor={(item) => item.id.toString()}
+          numColumns={desktop ? 3 : 1}
+          key={desktop ? 'desktop' : 'mobile'}
+          contentContainerStyle={[styles.list, { paddingTop: headerHeight + 20, paddingHorizontal: desktop ? 32 : 16 }]}
+          onScroll={Animated.event(
+            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+            { useNativeDriver: false }
+          )}
+          scrollEventThrottle={16}
+          ListEmptyComponent={
+            <View style={styles.emptyState}>
+              <View style={[styles.emptyIconWrap, { backgroundColor: theme.primaryLight }]}>
+                <Icon name={showSavedOnly ? "heart" : "search"} size={32} color={theme.primary} />
+              </View>
+              <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>{showSavedOnly ? "No saved homes" : "No matching properties"}</Text>
+              <Text style={[styles.emptyDesc, { color: theme.textMuted }]}>
+                {showSavedOnly ? "You haven't saved any properties to your favorites yet." : `Try adjusting your filters or search terms to find more results in ${currentUni.city}.`}
+              </Text>
+              <TouchableOpacity style={[styles.resetBtn, { backgroundColor: theme.primary }]} onPress={showSavedOnly ? () => setShowSavedOnly(false) : resetFilters}>
+                <Text style={styles.resetBtnText}>{showSavedOnly ? "Show All Properties" : "Clear All Filters"}</Text>
+              </TouchableOpacity>
             </View>
-            <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>No matching properties</Text>
-            <Text style={[styles.emptyDesc, { color: theme.textMuted }]}>Try adjusting your filters or search terms to find more results in {currentUni.city}.</Text>
-            <TouchableOpacity style={[styles.resetBtn, { backgroundColor: theme.primary }]} onPress={resetFilters}>
-              <Text style={styles.resetBtnText}>Clear All Filters</Text>
-            </TouchableOpacity>
-          </View>
-        }
-        renderItem={({ item }) => (
-          <PropertyCard item={item} universityId={universityId} isDarkMode={isDarkMode} marketAverage={marketAverage} onPress={() => onSelectProperty(item.id)} />
-        )}
-        onEndReached={() => setDisplayLimit(prev => prev + 12)}
-        onEndReachedThreshold={0.5}
-      />
+          }
+          renderItem={({ item }) => (
+            <PropertyCard 
+              item={item} 
+              universityId={universityId} 
+              isDarkMode={isDarkMode} 
+              marketAverage={marketAverage} 
+              onPress={() => onSelectProperty(item.id)}
+              isFavorite={favorites.includes(item.id.toString())}
+              onToggleFavorite={() => handleToggleFavorite(item.id.toString())}
+            />
+          )}
+          onEndReached={() => setDisplayLimit(prev => prev + 12)}
+          onEndReachedThreshold={0.5}
+        />
+      ) : (
+        <View style={{ flex: 1, marginTop: headerHeight }}>
+          <MapView 
+            properties={filteredProperties} 
+            universityId={universityId} 
+            onSelectProperty={onSelectProperty} 
+          />
+        </View>
+      )}
 
       {/* Filter Modal */}
       <Modal visible={showFilters} animationType="slide" transparent>
@@ -287,19 +393,19 @@ export default function HomeScreen({ universityId, isDarkMode = false, onSelectP
               <View style={styles.filterGroup}>
                 <Text style={[styles.filterGroupLabel, { color: theme.textMuted }]}>Sort By</Text>
                 <View style={styles.chipRow}>
-                  <TouchableOpacity style={[styles.chip, { backgroundColor: theme.surface, borderColor: theme.border }, sortOption === 'price_asc' && { backgroundColor: theme.primary, borderColor: theme.primary }]} onPress={() => setSortOption('price_asc')}>
+                  <TouchableOpacity style={[styles.chip, { backgroundColor: theme.surface, borderColor: theme.border }, sortOption === 'price_asc' && { backgroundColor: theme.primary, borderColor: theme.primary }]} onPress={() => handleSetSortOption('price_asc')}>
                     <Text style={[styles.chipText, { color: theme.textSecondary }, sortOption === 'price_asc' && { color: colors.white }]}>Price: Low to High</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity style={[styles.chip, { backgroundColor: theme.surface, borderColor: theme.border }, sortOption === 'price_desc' && { backgroundColor: theme.primary, borderColor: theme.primary }]} onPress={() => setSortOption('price_desc')}>
+                  <TouchableOpacity style={[styles.chip, { backgroundColor: theme.surface, borderColor: theme.border }, sortOption === 'price_desc' && { backgroundColor: theme.primary, borderColor: theme.primary }]} onPress={() => handleSetSortOption('price_desc')}>
                     <Text style={[styles.chipText, { color: theme.textSecondary }, sortOption === 'price_desc' && { color: colors.white }]}>Price: High to Low</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity style={[styles.chip, { backgroundColor: theme.surface, borderColor: theme.border }, sortOption === 'dist_campus1' && { backgroundColor: theme.primary, borderColor: theme.primary }]} onPress={() => setSortOption('dist_campus1')}>
+                  <TouchableOpacity style={[styles.chip, { backgroundColor: theme.surface, borderColor: theme.border }, sortOption === 'dist_campus1' && { backgroundColor: theme.primary, borderColor: theme.primary }]} onPress={() => handleSetSortOption('dist_campus1')}>
                     <Text style={[styles.chipText, { color: theme.textSecondary }, sortOption === 'dist_campus1' && { color: colors.white }]}>Distance: {CAMPUSES[0].label}</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity style={[styles.chip, { backgroundColor: theme.surface, borderColor: theme.border }, sortOption === 'dist_campus2' && { backgroundColor: theme.primary, borderColor: theme.primary }]} onPress={() => setSortOption('dist_campus2')}>
+                  <TouchableOpacity style={[styles.chip, { backgroundColor: theme.surface, borderColor: theme.border }, sortOption === 'dist_campus2' && { backgroundColor: theme.primary, borderColor: theme.primary }]} onPress={() => handleSetSortOption('dist_campus2')}>
                     <Text style={[styles.chipText, { color: theme.textSecondary }, sortOption === 'dist_campus2' && { color: colors.white }]}>Distance: {CAMPUSES[1].label}</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity style={[styles.chip, { backgroundColor: theme.surface, borderColor: theme.border }, sortOption === 'newest' && { backgroundColor: theme.primary, borderColor: theme.primary }]} onPress={() => setSortOption('newest')}>
+                  <TouchableOpacity style={[styles.chip, { backgroundColor: theme.surface, borderColor: theme.border }, sortOption === 'newest' && { backgroundColor: theme.primary, borderColor: theme.primary }]} onPress={() => handleSetSortOption('newest')}>
                     <Text style={[styles.chipText, { color: theme.textSecondary }, sortOption === 'newest' && { color: colors.white }]}>Newest Listed</Text>
                   </TouchableOpacity>
                 </View>
@@ -334,11 +440,11 @@ export default function HomeScreen({ universityId, isDarkMode = false, onSelectP
               <View style={styles.filterGroup}>
                 <Text style={[styles.filterGroupLabel, { color: theme.textMuted }]}>Max Price (per person / week)</Text>
                 <View style={styles.chipRow}>
-                  <TouchableOpacity style={[styles.chip, { backgroundColor: theme.surface, borderColor: theme.border }, maxPrice === null && { backgroundColor: theme.primary, borderColor: theme.primary }]} onPress={() => setMaxPrice(null)}>
+                  <TouchableOpacity style={[styles.chip, { backgroundColor: theme.surface, borderColor: theme.border }, maxPrice === null && { backgroundColor: theme.primary, borderColor: theme.primary }]} onPress={() => handleSetMaxPrice(null)}>
                     <Text style={[styles.chipText, { color: theme.textSecondary }, maxPrice === null && { color: colors.white }]}>Any</Text>
                   </TouchableOpacity>
                   {[100, 120, 150, 180, 200, 250, 300, 400].map(price => (
-                    <TouchableOpacity key={price} style={[styles.chip, { backgroundColor: theme.surface, borderColor: theme.border }, maxPrice === price && { backgroundColor: theme.primary, borderColor: theme.primary }]} onPress={() => setMaxPrice(price)}>
+                    <TouchableOpacity key={price} style={[styles.chip, { backgroundColor: theme.surface, borderColor: theme.border }, maxPrice === price && { backgroundColor: theme.primary, borderColor: theme.primary }]} onPress={() => handleSetMaxPrice(price)}>
                       <Text style={[styles.chipText, { color: theme.textSecondary }, maxPrice === price && { color: colors.white }]}>£{price}</Text>
                     </TouchableOpacity>
                   ))}
@@ -363,10 +469,10 @@ export default function HomeScreen({ universityId, isDarkMode = false, onSelectP
               <View style={styles.filterGroup}>
                 <Text style={[styles.filterGroupLabel, { color: theme.textMuted }]}>Utilities</Text>
                 <View style={styles.chipRow}>
-                  <TouchableOpacity style={[styles.chip, { backgroundColor: theme.surface, borderColor: theme.border }, billsIncluded === null && { backgroundColor: theme.primary, borderColor: theme.primary }]} onPress={() => setBillsIncluded(null)}>
+                  <TouchableOpacity style={[styles.chip, { backgroundColor: theme.surface, borderColor: theme.border }, billsIncluded === null && { backgroundColor: theme.primary, borderColor: theme.primary }]} onPress={() => handleSetBillsIncluded(null)}>
                     <Text style={[styles.chipText, { color: theme.textSecondary }, billsIncluded === null && { color: colors.white }]}>Any</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity style={[styles.chip, { backgroundColor: theme.surface, borderColor: theme.border }, billsIncluded === true && { backgroundColor: theme.primary, borderColor: theme.primary }]} onPress={() => setBillsIncluded(true)}>
+                  <TouchableOpacity style={[styles.chip, { backgroundColor: theme.surface, borderColor: theme.border }, billsIncluded === true && { backgroundColor: theme.primary, borderColor: theme.primary }]} onPress={() => handleSetBillsIncluded(true)}>
                     <Text style={[styles.chipText, { color: theme.textSecondary }, billsIncluded === true && { color: colors.white }]}>Bills Included</Text>
                   </TouchableOpacity>
                 </View>
@@ -442,6 +548,26 @@ const styles = StyleSheet.create({
   },
   headerEyebrow: { ...typography.eyebrow, marginBottom: 2 },
   headerTitle: { ...typography.h1Page, color: colors.textPrimary },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 4 },
+  viewToggle: {
+    flexDirection: 'row',
+    borderRadius: 8,
+    padding: 2,
+    gap: 2,
+  },
+  toggleBtn: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+  },
+  toggleBtnLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
   
   marketWidget: {
     flexDirection: 'row',

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://exelodge.netlify.app/sitemap.xml

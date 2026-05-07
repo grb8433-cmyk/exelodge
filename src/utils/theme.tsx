@@ -129,6 +129,16 @@ export const getUniversityColors = (universityId: string, isDarkMode = false) =>
     };
   }
 
+  if (universityId === 'southampton') {
+    return {
+      ...base,
+      primary: '#E07B20',
+      primaryDark: '#B85D14',
+      primaryMedium: isDarkMode ? '#3D2010' : '#FDDCB8',
+      primaryLight: isDarkMode ? '#261508' : '#FEF6EC',
+    };
+  }
+
   // Exeter (Default)
   return {
     ...base,

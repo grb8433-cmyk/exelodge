@@ -17,6 +17,10 @@ const BRISTOL_LANDLORDS = [
   'UniHomes', 'StuRents', 'AccommodationForStudents', 'Rightmove', 'UWEStudentPad', 'BristolSULettings', 'CJHole', 'BristolDigs', 'StudentCrowd', 'JointLiving', 'UniteStudents'
 ];
 
+const SOUTHAMPTON_LANDLORDS = [
+  'UniHomes', 'StuRents', 'AccommodationForStudents', 'Rightmove', 'OnTheMarket', 'StudentCrowd', 'EveryStudent', 'AmberStudent', 'StudNoFee', 'iStudentLets'
+];
+
 export default function ReviewsScreen({ universityId, isDarkMode = false, initialLandlordId, onAddReview }: { 
   universityId: string,
   isDarkMode?: boolean,
@@ -40,18 +44,53 @@ export default function ReviewsScreen({ universityId, isDarkMode = false, initia
   const fetchLandlords = async () => {
     try {
       setFetchError(false);
-      const { data, error } = await supabase.from('landlords').select('*').order('name');
-      if (error) throw error;
       
-      const targetIds = universityId === 'bristol' ? BRISTOL_LANDLORDS : EXETER_LANDLORDS;
+      // 1. Fetch Landlords
+      const { data: landlordData, error: lError } = await supabase.from('landlords').select('*').order('name');
+      if (lError) throw lError;
+      
+      // 2. Fetch Review Stats
+      const { data: reviewStats, error: rError } = await supabase
+        .from('reviews')
+        .select('landlord_id, overall_rating')
+        .eq('approved', true);
+      if (rError) throw rError;
+
+      // 3. Process Stats
+      const statsMap: Record<string, { sum: number, count: number }> = {};
+      reviewStats?.forEach(r => {
+        if (!statsMap[r.landlord_id]) statsMap[r.landlord_id] = { sum: 0, count: 0 };
+        statsMap[r.landlord_id].sum += (r.overall_rating || 0);
+        statsMap[r.landlord_id].count += 1;
+      });
+
+      const targetIds = universityId === 'bristol' ? BRISTOL_LANDLORDS
+        : universityId === 'southampton' ? SOUTHAMPTON_LANDLORDS
+        : EXETER_LANDLORDS;
       
       const fullList = targetIds.map(id => {
-        const dbEntry = (data || []).find(l => l.id === id || l.name === id);
-        return dbEntry || { id, name: id, type: 'Verified Provider' };
+        const dbEntry = (landlordData || []).find(l => l.id === id || l.name === id);
+        const stats = statsMap[id] || statsMap[dbEntry?.id] || { sum: 0, count: 0 };
+        const avg = stats.count > 0 ? stats.sum / stats.count : 0;
+        
+        return { 
+          ...(dbEntry || { id, name: id, type: 'Verified Provider' }),
+          avgRating: avg,
+          reviewCount: stats.count
+        };
       });
 
       fullList.sort((a, b) => a.name.localeCompare(b.name));
-      const finalList = [...fullList, { id: 'other', name: 'General Landlords', type: 'Private Providers' }];
+      
+      const otherStats = statsMap['general'] || { sum: 0, count: 0 };
+      const otherAvg = otherStats.count > 0 ? otherStats.sum / otherStats.count : 0;
+      const finalList = [...fullList, { 
+        id: 'other', 
+        name: 'General Landlords', 
+        type: 'Private Providers',
+        avgRating: otherAvg,
+        reviewCount: otherStats.count
+      }];
       
       setLandlords(finalList);
       
@@ -152,6 +191,9 @@ export default function ReviewsScreen({ universityId, isDarkMode = false, initia
             contentContainerStyle={desktop ? styles.desktopList : styles.mobileList}
             renderItem={({ item }) => {
               const isActive = selectedLandlord?.id === item.id;
+              const hasReviews = item.reviewCount > 0;
+              const scoreColor = getScoreColor(item.avgRating);
+              
               return (
                 <TouchableOpacity
                   style={[
@@ -175,9 +217,22 @@ export default function ReviewsScreen({ universityId, isDarkMode = false, initia
                     <Text style={[styles.landlordName, { color: theme.textPrimary }, isActive && { color: colors.white }]} numberOfLines={1}>
                       {item.name}
                     </Text>
-                    <Text style={[styles.landlordType, { color: isActive ? 'rgba(255,255,255,0.7)' : theme.textMuted }]}>
-                      {item.type || 'Verified Provider'}
-                    </Text>
+                    <View style={styles.landlordScoreRow}>
+                      {hasReviews ? (
+                        <>
+                          <Text style={[styles.landlordScoreText, { color: isActive ? colors.white : scoreColor }]}>
+                            ★ {item.avgRating.toFixed(1)}
+                          </Text>
+                          <Text style={[styles.landlordReviewCount, { color: isActive ? 'rgba(255,255,255,0.7)' : theme.textMuted }]}>
+                            ({item.reviewCount})
+                          </Text>
+                        </>
+                      ) : (
+                        <Text style={[styles.landlordType, { color: isActive ? 'rgba(255,255,255,0.7)' : theme.textMuted }]}>
+                          No reviews
+                        </Text>
+                      )}
+                    </View>
                   </View>
                 </TouchableOpacity>
               );
@@ -345,6 +400,9 @@ const styles = StyleSheet.create({
   landlordMeta: { flex: 1 },
   landlordName: { ...typography.body, fontWeight: '600' as any, color: colors.textPrimary },
   landlordType: { ...typography.caption, color: colors.textMuted },
+  landlordScoreRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 },
+  landlordScoreText: { ...typography.caption, fontWeight: '800' as any },
+  landlordReviewCount: { ...typography.caption, fontSize: 10 },
 
   reviewsPanel: { flex: 1, backgroundColor: colors.background },
   reviewsHero: {

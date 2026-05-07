@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import Icon from './Icon';
 import { colors, spacing, radii, shadows, fontFamily, getUniversityColors, typography } from '../utils/theme';
+import { trackEvent } from '../utils/analytics';
 
 const SOURCE_COLORS: Record<string, string> = {
   UniHomes: '#10B981',
@@ -30,12 +31,22 @@ const timeAgo = (dateStr: string) => {
   }
 };
 
-export default function PropertyCard({ item, universityId, isDarkMode = false, onPress, marketAverage }: {
+export default function PropertyCard({ 
+  item, 
+  universityId, 
+  isDarkMode = false, 
+  onPress, 
+  marketAverage,
+  isFavorite = false,
+  onToggleFavorite
+}: {
   item: any;
   universityId: string;
   isDarkMode?: boolean;
   onPress: () => void;
   marketAverage: number;
+  isFavorite?: boolean;
+  onToggleFavorite?: () => void;
 }) {
   const price = parseFloat(item.price_pppw);
   const theme = getUniversityColors(universityId, isDarkMode);
@@ -48,11 +59,33 @@ export default function PropertyCard({ item, universityId, isDarkMode = false, o
 
   const updatedText = timeAgo(item.last_scraped);
 
+  const handlePress = () => {
+    trackEvent('click_property', { propertyId: item.id, universityId });
+    onPress();
+  };
+
   return (
-    <TouchableOpacity style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]} onPress={onPress} activeOpacity={0.95}>
+    <TouchableOpacity style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]} onPress={handlePress} activeOpacity={0.95}>
       <View style={[styles.imageContainer, { backgroundColor: theme.surfaceSubtle }]}>
         <Image source={{ uri: imageUrl }} style={styles.image} resizeMode="cover" />
         
+        {/* Budget Badge */}
+        {item.price_pppw <= 80 && (
+          <View style={styles.budgetBadge}>
+            <Text style={styles.budgetBadgeText}>BUDGET</Text>
+          </View>
+        )}
+
+        {/* Heart Button */}
+        <TouchableOpacity style={styles.heartBtn} onPress={onToggleFavorite} activeOpacity={0.7}>
+          <Icon 
+            name="heart" 
+            size={18} 
+            color={isFavorite ? '#ef4444' : '#ffffff'} 
+            fill={isFavorite ? '#ef4444' : 'transparent'} 
+          />
+        </TouchableOpacity>
+
         {/* Price Badge */}
         <View style={[styles.priceBadge, { backgroundColor: theme.primary }]}>
           <Text style={styles.priceText}>£{Math.round(price)}<Text style={styles.priceUnit}> pppw</Text></Text>
@@ -220,5 +253,29 @@ const styles = StyleSheet.create({
   updatedText: {
     ...typography.caption,
     color: colors.textMuted,
+  },
+  budgetBadge: { 
+    position: 'absolute', 
+    top: 12, 
+    left: 12, 
+    backgroundColor: '#10B981', 
+    paddingHorizontal: 8, 
+    paddingVertical: 4, 
+    borderRadius: 6, 
+    zIndex: 10 
+  },
+  budgetBadgeText: { 
+    fontSize: 12, 
+    fontWeight: 'bold', 
+    color: '#ffffff' 
+  },
+  heartBtn: { 
+    position: 'absolute', 
+    top: 12, 
+    right: 12, 
+    backgroundColor: 'rgba(0,0,0,0.3)', 
+    borderRadius: 20, 
+    padding: 6, 
+    zIndex: 10 
   },
 });

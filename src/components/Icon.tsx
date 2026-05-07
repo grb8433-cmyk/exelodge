@@ -206,11 +206,36 @@ const ICONS: Record<string, El[]> = {
     c(12, 12, 10),
     pl('12 6 12 12 16 14'),
   ],
+
+  // Favourites / sharing / view toggles
+  'heart': [
+    p('M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z'),
+  ],
+  'share-2': [
+    c(18, 5, 3),
+    c(6, 12, 3),
+    c(18, 19, 3),
+    l(8.59, 13.51, 15.42, 17.49),
+    l(15.41, 6.51, 8.59, 10.49),
+  ],
+  'map': [
+    pg('1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6'),
+    l(8, 2, 8, 18),
+    l(16, 6, 16, 22),
+  ],
+  'list': [
+    l(8, 6, 21, 6),
+    l(8, 12, 21, 12),
+    l(8, 18, 21, 18),
+    l(3, 6, 3.01, 6),
+    l(3, 12, 3.01, 12),
+    l(3, 18, 3.01, 18),
+  ],
 };
 
 // ── Renderer ─────────────────────────────────────────────────────────────────
 
-function toSVGEl(el: El, i: number, color: string): React.ReactElement {
+function toSVGEl(el: El, i: number, color: string, fillOverride?: string): React.ReactElement {
   const sharedStroke = {
     fill: 'none',
     stroke: color,
@@ -222,7 +247,7 @@ function toSVGEl(el: El, i: number, color: string): React.ReactElement {
 
   switch (el.t) {
     case 'path':
-      return React.createElement('path', { ...sharedStroke, d: el.d, fill: el.fill ?? 'none' });
+      return React.createElement('path', { ...sharedStroke, d: el.d, fill: fillOverride ?? el.fill ?? 'none' });
     case 'circle':
       return React.createElement('circle', { ...sharedStroke, cx: el.cx, cy: el.cy, r: el.r });
     case 'line':
@@ -276,7 +301,7 @@ export default function Icon({ name, size = 24, color = '#000', fill, style }: I
       strokeLinejoin: 'round',
       style: { display: 'block', flexShrink: 0, ...(style || {}) },
     },
-    ...els.map((el, i) => toSVGEl(el, i, color)),
+    ...els.map((el, i) => toSVGEl(el, i, color, fill)),
   );
 
   return svgEl;
