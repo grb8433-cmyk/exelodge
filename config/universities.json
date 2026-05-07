@@ -12,5 +12,12 @@
     "city": "Bristol",
     "primaryColor": "#BE0F34",
     "primaryLight": "#FDF2F3"
+  },
+  {
+    "id": "southampton",
+    "name": "UoS & Solent Southampton",
+    "city": "Southampton",
+    "primaryColor": "#E07B20",
+    "primaryLight": "#FEF6EC"
   }
 ]

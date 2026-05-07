@@ -85,7 +85,7 @@ function LandingScreen({ onSelect, isDarkMode, toggleDarkMode }: { onSelect: (id
             <Icon name="home" size={32} color={colors.white} />
           </View>
           <Text style={styles.landingLogoText}>ExeLodge</Text>
-          <Text style={styles.landingTitle}>The Student Housing{'\n'}Platform for Exeter & Bristol</Text>
+          <Text style={styles.landingTitle}>The Student Housing{'\n'}Platform for Exeter, Bristol & Southampton</Text>
           <Text style={styles.landingSub}>Verified listings, real reviews, and tenant legal empowerment.</Text>
         </Animated.View>
 
@@ -127,7 +127,7 @@ function LandingScreen({ onSelect, isDarkMode, toggleDarkMode }: { onSelect: (id
           entering={FadeInDown.duration(800).delay(600)}
           style={styles.landingFooter}
         >
-          <Text style={styles.landingFooterText}>Exeter & Bristol Student Housing Platform • 2026</Text>
+          <Text style={styles.landingFooterText}>Exeter, Bristol & Southampton Student Housing Platform • 2026</Text>
         </Animated.View>
       </ScrollView>
     </View>
@@ -178,12 +178,20 @@ export default function App() {
   // URL Syncing for Web
   useEffect(() => {
     if (Platform.OS === 'web') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const propertyParam = urlParams.get('property');
+      if (propertyParam) {
+        setSelectedPropertyId(propertyParam);
+        setShowLanding(false);
+      }
+
       const path = window.location.pathname.substring(1).split('/')[0];
       if (path === '') {
-        setShowLanding(true);
+        // Keep showLanding true
       } else if (UNIVERSITIES.some(u => u.id === path)) {
-        setShowLanding(true);
-        window.history.replaceState({}, '', '/');
+        setUniversityId(path);
+        setShowLanding(false);
+        setActiveTab('Houses');
       }
     }
   }, []);
@@ -213,6 +221,19 @@ export default function App() {
       }
     }
   }, [universityId, showLanding]);
+
+  useEffect(() => {
+    if (Platform.OS === 'web' && !showLanding) {
+      if (selectedPropertyId) {
+        window.history.pushState({}, '', `/${universityId}?property=${selectedPropertyId}`);
+      } else {
+        const params = new URLSearchParams(window.location.search);
+        if (params.has('property')) {
+          window.history.pushState({}, '', `/${universityId}`);
+        }
+      }
+    }
+  }, [selectedPropertyId, universityId, showLanding]);
 
   const selectUniversity = (id: string) => {
     setUniversityId(id);

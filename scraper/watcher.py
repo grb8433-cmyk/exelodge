@@ -38,8 +38,8 @@ UNIVERSITIES = load_universities()
 # ─── CONFIG ──────────────────────────────────────────────────────────────────
 
 DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1518780664697-55e3ad937233'
-MIN_PPPW      = 75.0
-MAX_PPPW      = 300.0
+MIN_PPPW      = 50.0
+MAX_PPPW      = 400.0
 
 UNIVERSITY_SETTINGS = {
     'exeter': {
@@ -117,8 +117,37 @@ UNIVERSITY_SETTINGS = {
             'JointLiving': 'https://jointliving.co.uk/cities/bristol/',
             'UniteStudents': 'https://www.unitestudents.com/student-accommodation/bristol?roomTypes=&lengthOfStay=Full+Year,Academic+Year&academicYear=2026+-+2027&city=BS'
         }
+    },
+    'southampton': {
+        'city': 'Southampton',
+        'coords': {
+            'highfield': (50.935, -1.396),
+            'solent': (50.908, -1.400),
+        },
+        'postcode_range': r'SO',
+        'area_mappings': {
+             'City Centre': ['city centre', 'so14'],
+             'Highfield': ['highfield', 'so17'],
+             'Portswood': ['portswood', 'so17'],
+             'Shirley': ['shirley', 'so15'],
+             'Swaythling': ['swaythling', 'so16'],
+             'Bassett': ['bassett', 'so16'],
+        },
+        'search_urls': {
+            'UniHomes': 'https://www.unihomes.co.uk/student-accommodation/southampton',
+            'StuRents': 'https://sturents.com/student-accommodation/southampton',
+            'AccommodationForStudents': 'https://www.accommodationforstudents.com/southampton',
+            'Rightmove': 'https://www.rightmove.co.uk/student-accommodation/Southampton.html',
+            'OnTheMarket': 'https://www.onthemarket.com/to-rent/property/southampton/',
+            'StudentCrowd': 'https://www.studentcrowd.com/student-accommodation-l1006420-southampton',
+            'EveryStudent': 'https://everystudent.co.uk/southampton-student-accommodation/',
+            'AmberStudent': 'https://amberstudent.com/places/search/southampton-1811022771524',
+            'StudNoFee': 'https://www.studnofee.com/properties/',
+            'iStudentLets': 'https://www.istudentlets.com/search/0_location-ANY/rent_00.00-99.99/rooms_0-9',
+        }
     }
 }
+
 
 # ─── HELPERS ─────────────────────────────────────────────────────────────────
 
@@ -1470,7 +1499,7 @@ def scrape_studentcrowd(search_url, university_id, settings):
         price_pppw = calculate_pppw(price_raw, 'pppw', 1, ext_url, 'StudentCrowd')
         if not price_pppw: continue
         
-        address = card.select_one('.title, .name, h2, h3').text.strip() if card.select_one('.title, .name, h2, h3') else "Bristol"
+        address = card.select_one('.title, .name, h2, h3').text.strip() if card.select_one('.title, .name, h2, h3') else settings['city']
 
         results.append({
             'address': address,
@@ -1482,6 +1511,287 @@ def scrape_studentcrowd(search_url, university_id, settings):
             'image_url': pick_image(card, BASE),
             'landlord_id': 'StudentCrowd',
         })
+    return results
+
+
+def scrape_everystudent(search_url, university_id, settings):
+    BASE = 'https://everystudent.co.uk'
+    results, seen = [], set()
+
+    for page in range(1, 8):
+        url = search_url.rstrip('/') + (f'/page/{page}/' if page > 1 else '/')
+        soup, _ = get_page(url)
+        if not soup: break
+
+        cards = soup.select('.property, .listing-item, article.type-property, article.post')
+        if not cards:
+            cards = soup.find_all(['article', 'div'], class_=re.compile(r'property|listing|accommodation', re.I))
+        if not cards: break
+
+        added = 0
+        for card in cards:
+            link = card.select_one('a[href*="everystudent"]') or card.find('a', href=re.compile(r'/\d+|/property'))
+            if not link: continue
+            ext_url = urljoin(BASE, link['href']).split('?')[0]
+            if ext_url in seen or ext_url.rstrip('/') == search_url.rstrip('/'):
+                continue
+            seen.add(ext_url)
+
+            text = re.sub(r'\s+', ' ', card.get_text(' ')).strip()
+            pm = re.search(r'£\s*([\d,]+)', text)
+            if not pm: continue
+            price_raw = float(pm.group(1).replace(',', ''))
+
+            unit = 'ppm_property' if re.search(r'pcm|per.?month', text, re.I) else 'pppw'
+            bm = re.search(r'(\d+)\s*bed', text, re.I)
+            beds = int(bm.group(1)) if bm else 1
+
+            price_pppw = calculate_pppw(price_raw, unit, beds, ext_url, 'EveryStudent')
+            if not price_pppw: continue
+
+            h = card.select_one('h2, h3, h4, .entry-title, .property-title')
+            address = h.get_text(strip=True) if h else settings['city']
+
+            results.append({
+                'address':       address,
+                'price_pppw':    price_pppw,
+                'bedrooms':      beds,
+                'bathrooms':     1,
+                'area':          detect_area(address + ' ' + text, settings['area_mappings'], settings['city']),
+                'external_url':  ext_url,
+                'image_url':     pick_image(card, BASE),
+                'bills_included': bool(re.search(r'bills?\s+inclu', text, re.I)),
+                'landlord_id':   'EveryStudent',
+            })
+            added += 1
+
+        print(f'  [EveryStudent] page {page}: {added} new')
+        if added == 0: break
+        time.sleep(1)
+
+    return results
+
+
+def scrape_amberstudent(search_url, university_id, settings):
+    BASE = 'https://amberstudent.com'
+    results, seen = [], set()
+
+    soup, _ = get_page(search_url)
+    if not soup: return []
+
+    # AmberStudent is a Next.js SPA — try __NEXT_DATA__ first
+    nd_script = soup.find('script', id='__NEXT_DATA__')
+    if nd_script:
+        try:
+            nd = json.loads(nd_script.string or '{}')
+            page_props = nd.get('props', {}).get('pageProps', {})
+
+            def _find_list(obj, depth=0):
+                if depth > 6: return []
+                if isinstance(obj, list) and len(obj) > 0:
+                    if isinstance(obj[0], dict) and any(k in obj[0] for k in ('name', 'title', 'slug', 'price', 'rent')):
+                        return obj
+                if isinstance(obj, dict):
+                    for v in obj.values():
+                        found = _find_list(v, depth + 1)
+                        if found: return found
+                return []
+
+            listings = _find_list(page_props)
+            for prop in listings:
+                if not isinstance(prop, dict): continue
+                slug = prop.get('slug') or prop.get('id') or ''
+                ext_url = f"{BASE}/places/{slug}" if slug else ''
+                if not ext_url or ext_url in seen: continue
+                seen.add(ext_url)
+
+                name = prop.get('name') or prop.get('title') or prop.get('address') or settings['city']
+                price_raw = float(prop.get('price') or prop.get('min_price') or prop.get('rent') or 0)
+                if not price_raw: continue
+                beds = max(1, int(prop.get('bedrooms') or prop.get('beds') or 1))
+                blob = str(prop).lower()
+                unit = 'pppw' if 'week' in blob else 'pppm'
+
+                price_pppw = calculate_pppw(price_raw, unit, beds, ext_url, 'AmberStudent')
+                if not price_pppw: continue
+
+                results.append({
+                    'address':       name,
+                    'price_pppw':    price_pppw,
+                    'bedrooms':      beds,
+                    'bathrooms':     1,
+                    'area':          detect_area(name, settings['area_mappings'], settings['city']),
+                    'external_url':  ext_url,
+                    'image_url':     prop.get('image') or prop.get('thumbnail') or None,
+                    'bills_included': bool(prop.get('bills_included') or 'bill' in blob),
+                    'landlord_id':   'AmberStudent',
+                })
+        except Exception as e:
+            print(f'  [AmberStudent] NEXT_DATA error: {e}')
+
+    # HTML fallback for card-based layouts
+    if not results:
+        for card in soup.select('[class*="PropertyCard"], [class*="property-card"], [data-testid*="property"]'):
+            link = card.select_one(f'a[href*="/places/"]')
+            if not link: continue
+            ext_url = urljoin(BASE, link['href']).split('?')[0]
+            if ext_url in seen: continue
+            seen.add(ext_url)
+
+            text = re.sub(r'\s+', ' ', card.get_text(' ')).strip()
+            pm = re.search(r'£\s*([\d,]+)', text)
+            if not pm: continue
+            price_raw = float(pm.group(1).replace(',', ''))
+            unit = 'pppm' if re.search(r'month|pcm', text, re.I) else 'pppw'
+            price_pppw = calculate_pppw(price_raw, unit, 1, ext_url, 'AmberStudent')
+            if not price_pppw: continue
+
+            h = card.select_one('h2, h3, h4, [class*="name"], [class*="title"]')
+            address = h.get_text(strip=True) if h else settings['city']
+
+            results.append({
+                'address':       address,
+                'price_pppw':    price_pppw,
+                'bedrooms':      1,
+                'bathrooms':     1,
+                'area':          detect_area(address, settings['area_mappings'], settings['city']),
+                'external_url':  ext_url,
+                'image_url':     pick_image(card, BASE),
+                'bills_included': bool(re.search(r'bills?\s+inclu', text, re.I)),
+                'landlord_id':   'AmberStudent',
+            })
+
+    print(f'  [AmberStudent] {len(results)} listings found')
+    return results
+
+
+def scrape_studnofee(search_url, university_id, settings):
+    BASE = 'https://www.studnofee.com'
+    results, seen = [], set()
+
+    for page in range(1, 10):
+        url = search_url.rstrip('/') + (f'/page/{page}/' if page > 1 else '/')
+        soup, _ = get_page(url)
+        if not soup: break
+
+        cards = soup.select(
+            'article.property, .property-listing, .property-item, '
+            '.listing-item, [class*="property-card"], [class*="listing"]'
+        )
+        if not cards:
+            cards = soup.find_all(['article', 'div'], class_=re.compile(r'property|listing', re.I))
+        if not cards: break
+
+        added = 0
+        for card in cards:
+            link = (card if card.name == 'a' else
+                    card.select_one('a[href*="/property"], a[href*="/properties"], a.property-link, h2 a, h3 a'))
+            if not link: continue
+            href = link.get('href', '')
+            ext_url = urljoin(BASE, href).split('?')[0]
+            if ext_url in seen or ext_url.rstrip('/') == search_url.rstrip('/'):
+                continue
+            seen.add(ext_url)
+
+            text = re.sub(r'\s+', ' ', card.get_text(' ')).strip()
+            pm = re.search(r'£\s*([\d,]+(?:\.\d+)?)', text)
+            if not pm: continue
+            price_raw = float(pm.group(1).replace(',', ''))
+
+            unit = 'ppm_property' if re.search(r'pcm|per.?month', text, re.I) else 'pppw'
+            bm = re.search(r'(\d+)\s*bed', text, re.I)
+            beds = int(bm.group(1)) if bm else 1
+
+            price_pppw = calculate_pppw(price_raw, unit, beds, ext_url, 'StudNoFee')
+            if not price_pppw: continue
+
+            h = card.select_one('h2, h3, h4, .property-title, .listing-title')
+            address = h.get_text(strip=True) if h else settings['city']
+
+            results.append({
+                'address':        address,
+                'price_pppw':     price_pppw,
+                'bedrooms':       beds,
+                'bathrooms':      1,
+                'area':           detect_area(address + ' ' + text, settings['area_mappings'], settings['city']),
+                'external_url':   ext_url,
+                'image_url':      pick_image(card, BASE),
+                'bills_included': bool(re.search(r'bills?\s+inclu|no.?fee', text, re.I)),
+                'landlord_id':    'StudNoFee',
+            })
+            added += 1
+
+        print(f'  [StudNoFee] page {page}: {added} new')
+        if added == 0: break
+        time.sleep(1)
+
+    return results
+
+
+def scrape_istudentlets(search_url, university_id, settings):
+    BASE = 'https://www.istudentlets.com'
+    results, seen = [], set()
+
+    # iStudentLets uses a slug-based URL. Swap in page number before the last segment.
+    # Pattern: /search/0_location-ANY/rent_00.00-99.99/rooms_0-9[/page/N]
+    for page in range(1, 10):
+        url = search_url.rstrip('/') + (f'/page/{page}' if page > 1 else '')
+        soup, _ = get_page(url)
+        if not soup: break
+
+        cards = soup.select(
+            '.property-listing, .search-result, .property-item, '
+            '[class*="property"], [class*="listing-card"]'
+        )
+        if not cards:
+            cards = soup.find_all(['div', 'article'], class_=re.compile(r'property|listing|result', re.I))
+        if not cards: break
+
+        added = 0
+        for card in cards:
+            link = (card.select_one('a[href*="/property/"], a[href*="/student-lets/"], h2 a, h3 a')
+                    or (card if card.name == 'a' else None))
+            if not link: continue
+            ext_url = urljoin(BASE, link.get('href', '')).split('?')[0]
+            if '/search' in ext_url or ext_url in seen: continue
+            seen.add(ext_url)
+
+            text = re.sub(r'\s+', ' ', card.get_text(' ')).strip()
+            pm = re.search(r'£\s*([\d,]+(?:\.\d+)?)', text)
+            if not pm: continue
+            price_raw = float(pm.group(1).replace(',', ''))
+
+            # iStudentLets typically shows pppw for HMOs, pppm for some studios
+            unit = 'ppm_property' if re.search(r'pcm|per.?month', text, re.I) else 'pppw'
+            bm = re.search(r'(\d+)\s*bed', text, re.I)
+            beds = int(bm.group(1)) if bm else 1
+
+            price_pppw = calculate_pppw(price_raw, unit, beds, ext_url, 'iStudentLets')
+            if not price_pppw: continue
+
+            h = card.select_one('h2, h3, h4, .property-address, .address, .title')
+            address = h.get_text(strip=True) if h else settings['city']
+
+            btm = re.search(r'(\d+)\s*bath', text, re.I)
+            baths = min(int(btm.group(1)), beds) if (btm and beds > 0) else 1
+
+            results.append({
+                'address':        address,
+                'price_pppw':     price_pppw,
+                'bedrooms':       beds,
+                'bathrooms':      baths,
+                'area':           detect_area(address + ' ' + text, settings['area_mappings'], settings['city']),
+                'external_url':   ext_url,
+                'image_url':      pick_image(card, BASE),
+                'bills_included': bool(re.search(r'bills?\s+inclu', text, re.I)),
+                'landlord_id':    'iStudentLets',
+            })
+            added += 1
+
+        print(f'  [iStudentLets] page {page}: {added} new')
+        if added == 0: break
+        time.sleep(1)
+
     return results
 
 
@@ -1728,6 +2038,10 @@ def main():
         'CJHole': scrape_cjhole,
         'BristolDigs': scrape_bristoldigs,
         'StudentCrowd': scrape_studentcrowd,
+        'EveryStudent': scrape_everystudent,
+        'AmberStudent': scrape_amberstudent,
+        'StudNoFee': scrape_studnofee,
+        'iStudentLets': scrape_istudentlets,
         'JointLiving': scrape_jointliving,
         'UniteStudents': scrape_unitestudents,
     }

@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, useWindowDimensions, Platform, Linking, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, useWindowDimensions, Platform, Linking, ActivityIndicator, Share } from 'react-native';
 import { supabase } from '../lib/supabase';
 import { colors, spacing, radii, typography, shadows, getUniversityColors, isDesktop } from '../utils/theme';
 import { AREA_COORDS, CAMPUS_COORDS } from '../data/seeds';
+import { trackEvent } from '../utils/analytics';
+import Icon from '../components/Icon';
 import UNIVERSITIES from '../../config/universities.json';
 
 const DEFAULT_FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1518780664697-55e3ad937233';
@@ -38,6 +40,10 @@ const CAMPUS_DATA = {
   bristol: [
     { id: 'uob', label: 'UoB', icon: '🎓' },
     { id: 'uwe', label: 'UWE', icon: '🏢' }
+  ],
+  southampton: [
+    { id: 'highfield', label: 'Highfield', icon: '🎓' },
+    { id: 'solent', label: 'Solent', icon: '🏢' }
   ]
 };
 
@@ -65,6 +71,7 @@ export default function PropertyDetailScreen({ propertyId, universityId, isDarkM
 
   useEffect(() => {
     fetchData();
+    trackEvent('view_property', { propertyId, universityId });
   }, [propertyId]);
 
   const fetchData = async () => {
@@ -132,6 +139,39 @@ export default function PropertyDetailScreen({ propertyId, universityId, isDarkM
     }
   }
 
+  const onShare = async () => {
+    const shareUrl = `https://exelodge.netlify.app/${universityId}?property=${propertyId}`;
+    const message = `Check out this property in ${currentUni.city}: ${property.address}\n\n${shareUrl}`;
+
+    try {
+      if (Platform.OS === 'web' && navigator.share) {
+        await navigator.share({
+          title: 'ExeLodge Property',
+          text: message,
+          url: shareUrl,
+        });
+      } else {
+        await Share.share({
+          message,
+          url: shareUrl, // URL only works on iOS, so it's good to include it in message too
+          title: 'ExeLodge Property'
+        });
+      }
+      trackEvent('share_property', { propertyId, universityId });
+    } catch (error) {
+      console.log('Error sharing:', error);
+      // Fallback: Copy to clipboard if navigator.share fails or doesn't exist on web
+      if (Platform.OS === 'web') {
+        try {
+          await navigator.clipboard.writeText(shareUrl);
+          alert('Link copied to clipboard!');
+        } catch (clipErr) {
+          console.error('Clipboard error:', clipErr);
+        }
+      }
+    }
+  };
+
   const openInMaps = () => {
     const lat = property.latitude;
     const lon = property.longitude;
@@ -161,7 +201,10 @@ export default function PropertyDetailScreen({ propertyId, universityId, isDarkM
           resizeMode="cover"
         />
         <TouchableOpacity style={styles.backBtn} onPress={onBack}>
-          <Text style={{ fontSize: 24, color: colors.white }}>←</Text>
+          <Icon name="arrow-left" size={20} color={colors.white} />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.shareBtn} onPress={onShare}>
+          <Icon name="share-2" size={20} color={colors.white} />
         </TouchableOpacity>
         <View style={styles.sourceBadge}>
           <Text style={styles.sourceText}>{property.landlord_id || 'Original Listing'}</Text>
@@ -310,6 +353,17 @@ const styles = StyleSheet.create({
     position: 'absolute', 
     top: 40, 
     left: 24, 
+    backgroundColor: 'rgba(15, 23, 42, 0.6)', 
+    padding: 12, 
+    borderRadius: radii.full,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  shareBtn: { 
+    position: 'absolute', 
+    top: 40, 
+    right: 24, 
     backgroundColor: 'rgba(15, 23, 42, 0.6)', 
     padding: 12, 
     borderRadius: radii.full,
