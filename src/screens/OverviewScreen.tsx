@@ -134,16 +134,11 @@ export default function OverviewScreen({ universityId, isDarkMode = false, onSel
       {/* ── HERO ── */}
       <View style={[styles.hero, !desktop && styles.heroMobile]}>
         <Image
-          source={{ uri: universityId === 'exeter' 
-            ? 'https://images.unsplash.com/photo-1569329007721-f00490129200?q=80&w=2070&auto=format&fit=crop'
+          source={{ uri: universityId === 'exeter'
+            ? 'https://images.unsplash.com/photo-h3WFG7y8eyQ?q=80&w=2070&auto=format&fit=crop'
             : universityId === 'bristol'
-<<<<<<< HEAD
-            ? 'https://images.unsplash.com/photo-1541410945376-a7872656acec?q=80&w=2070&auto=format&fit=crop'
-            : 'https://images.unsplash.com/photo-1548123282-3e2888993753?q=80&w=2070&auto=format&fit=crop' }}
-=======
-            ? 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?q=80&w=2070&auto=format&fit=crop'
-            : 'https://images.unsplash.com/photo-1600585154526-990dced4db0d?q=80&w=2070&auto=format&fit=crop' }}
->>>>>>> a83c811a (feat: focus on three cities, expand Southampton, min £75 price floor)
+            ? 'https://images.unsplash.com/photo-bdoHlRE78TA?q=80&w=2070&auto=format&fit=crop'
+            : 'https://images.unsplash.com/photo-7w4nbbYLJKY?q=80&w=2070&auto=format&fit=crop' }}
           style={styles.heroImage}
           resizeMode="cover"
         />
