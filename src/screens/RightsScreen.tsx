@@ -4,12 +4,29 @@ import Icon from '../components/Icon';
 import { colors, spacing, radii, typography, shadows, fontFamily, isDesktop, getUniversityColors } from '../utils/theme';
 import UNIVERSITIES from '../../config/universities.json';
 
-const OFFICIAL_LINKS = [
+const UK_LINKS = [
   { label: 'Private Renting (GOV.UK)',           url: 'https://www.gov.uk/private-renting' },
   { label: 'Tenancy Deposit Protection',          url: 'https://www.gov.uk/tenancy-deposit-protection' },
   { label: 'Shelter England — Student Housing',  url: 'https://england.shelter.org.uk/housing_advice/private_renting/student_housing' },
   { label: 'Citizens Advice — Renting',          url: 'https://www.citizensadvice.org.uk/housing/renting-privately/' },
 ];
+
+const CITY_LINKS: Record<string, { label: string; url: string }[]> = {
+  exeter: [
+    { label: 'Exeter City Council — Private Sector Housing', url: 'https://exeter.gov.uk/housing/private-sector-housing/contact-the-private-sector-housing-team/' },
+    { label: "Exeter Students' Guild — Housing Advice",      url: 'https://www.exeterguild.com/advice' },
+  ],
+  bristol: [
+    { label: 'Bristol City Council — Private Tenants',       url: 'https://www.bristol.gov.uk/residents/housing/private-tenants/report-a-rogue-landlord-or-letting-agent' },
+    { label: 'Bristol SU — Housing Advice',                  url: 'https://www.bristolsu.org.uk/advice-support' },
+    { label: 'UWE SU — Housing Advice',                      url: 'https://www.thestudentsunion.co.uk/advice-support/housing/' },
+  ],
+  southampton: [
+    { label: 'Southampton City Council — Private Renting',   url: 'https://www.southampton.gov.uk/housing/private-renting/' },
+    { label: 'SUSU — Housing Advice',                        url: 'https://www.susu.org/advice/housing' },
+    { label: 'Solent SU — Advice',                           url: 'https://www.solentsu.co.uk/advice/' },
+  ],
+};
 
 export default function RightsScreen({ universityId, isDarkMode = false }: { universityId: string, isDarkMode?: boolean }) {
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
@@ -52,7 +69,7 @@ export default function RightsScreen({ universityId, isDarkMode = false }: { uni
 
   const FAQ = [
     { q: "What does the 2025 Act mean for my rolling contract?", a: "The 2025 Act transitions all tenancies to a single periodic system. This means fixed-terms are being phased out, giving you more flexibility to leave with 2 months' notice if your circumstances change.", link: 'https://www.gov.uk/government/publications/renters-rights-bill-2024-guide-for-tenants' },
-    { q: "What do I do if my landlord won't fix the heating?", a: `Landlords are legally required to keep the supply of water, gas, electricity, and space heating in good repair. First, notify them in writing. If they don't respond, contact ${currentUni.city} City Council's Private Sector Housing team.`, link: universityId === 'exeter' ? 'https://exeter.gov.uk/housing/private-sector-housing/contact-the-private-sector-housing-team/' : 'https://www.bristol.gov.uk/residents/housing/private-tenants/report-a-rogue-landlord-or-letting-agent' },
+    { q: "What do I do if my landlord won't fix the heating?", a: `Landlords are legally required to keep the supply of water, gas, electricity, and space heating in good repair. First, notify them in writing. If they don't respond, contact ${currentUni.city} City Council's Private Sector Housing team.`, link: universityId === 'exeter' ? 'https://exeter.gov.uk/housing/private-sector-housing/contact-the-private-sector-housing-team/' : universityId === 'southampton' ? 'https://www.southampton.gov.uk/housing/private-renting/' : 'https://www.bristol.gov.uk/residents/housing/private-tenants/report-a-rogue-landlord-or-letting-agent' },
     { q: "What do I do if I want to leave my contract early?", a: "Under the new 2025 rules, you can end your tenancy by giving two months' notice. You are no longer 'trapped' in a 12-month fixed term if the property is substandard or your situation changes.", link: 'https://england.shelter.org.uk/housing_advice/private_renting/how_to_end_a_fixed_term_tenancy_early' },
     { q: "What do I do if my deposit hasn't been protected?", a: "Your landlord must place your deposit in a government-backed scheme within 30 days. If they haven't, you can claim compensation of 1–3 times the deposit amount through the county court.", link: 'https://www.gov.uk/tenancy-deposit-protection/if-your-landlord-does-not-protect-your-deposit' },
     { q: "What do I do if the landlord enters without notice?", a: "Unless it is an emergency, landlords must give at least 24 hours' notice in writing before entering. You have the right to 'quiet enjoyment' of your home and can refuse entry if the time is inconvenient.", link: 'https://www.citizensadvice.org.uk/housing/renting-privately/during-your-tenancy/your-landlord-needs-to-come-into-your-home/' },
@@ -104,10 +121,10 @@ export default function RightsScreen({ universityId, isDarkMode = false }: { uni
             <View style={{ marginTop: 32 }}>
               <Text style={[styles.sectionLabel, { color: theme.textMuted }]}>OFFICIAL REFERENCES</Text>
               <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-                {OFFICIAL_LINKS.map((link, i) => (
+                {UK_LINKS.map((link, i) => (
                   <TouchableOpacity
                     key={i}
-                    style={[styles.linkRow, i < OFFICIAL_LINKS.length - 1 && [styles.borderBottom, { borderBottomColor: theme.border }]]}
+                    style={[styles.linkRow, i < UK_LINKS.length - 1 && [styles.borderBottom, { borderBottomColor: theme.border }]]}
                     onPress={() => openLink(link.url)}
                     activeOpacity={0.7}
                   >
@@ -119,6 +136,28 @@ export default function RightsScreen({ universityId, isDarkMode = false }: { uni
                 ))}
               </View>
             </View>
+
+            {/* City-specific local resources */}
+            {CITY_LINKS[universityId] && (
+              <View style={{ marginTop: 24 }}>
+                <Text style={[styles.sectionLabel, { color: theme.textMuted }]}>{currentUni.city.toUpperCase()} LOCAL RESOURCES</Text>
+                <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                  {CITY_LINKS[universityId].map((link, i) => (
+                    <TouchableOpacity
+                      key={i}
+                      style={[styles.linkRow, i < CITY_LINKS[universityId].length - 1 && [styles.borderBottom, { borderBottomColor: theme.border }]]}
+                      onPress={() => openLink(link.url)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[styles.linkText, { color: theme.primary }]}>{link.label}</Text>
+                      <View style={[styles.linkIcon, { backgroundColor: theme.primaryLight }]}>
+                        <Icon name="arrow-up-right" size={13} color={theme.primary} />
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            )}
           </View>
 
           {/* Column/Section 2: FAQ */}
