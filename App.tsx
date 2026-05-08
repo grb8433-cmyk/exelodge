@@ -85,7 +85,7 @@ function LandingScreen({ onSelect, isDarkMode, toggleDarkMode }: { onSelect: (id
             <Icon name="home" size={32} color={colors.white} />
           </View>
           <Text style={styles.landingLogoText}>ExeLodge</Text>
-          <Text style={styles.landingTitle}>The Student Housing{'\n'}Platform for Exeter, Bristol & Southampton</Text>
+          <Text style={styles.landingTitle}>The Student{'\n'}Housing Platform</Text>
           <Text style={styles.landingSub}>Verified listings, real reviews, and tenant legal empowerment.</Text>
         </Animated.View>
 
