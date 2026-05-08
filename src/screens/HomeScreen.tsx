@@ -117,7 +117,8 @@ export default function HomeScreen({ universityId, isDarkMode = false, onSelectP
       const { data, error } = await supabase.from('properties')
         .select('*')
         .eq('is_available', true)
-        .eq('university', universityId);
+        .eq('university', universityId)
+        .limit(5000);
       if (error) throw error;
       setProperties(data || []);
     } catch (err) {

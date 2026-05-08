@@ -15,6 +15,7 @@ export default function OverviewScreen({ universityId, isDarkMode = false, onSel
   onNavigateToHouses: () => void 
 }) {
   const [properties, setProperties] = useState<any[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const { width } = useWindowDimensions();
   const desktop = isDesktop(width);
@@ -26,11 +27,12 @@ export default function OverviewScreen({ universityId, isDarkMode = false, onSel
     const load = async () => {
       setLoading(true);
       try {
-        const { data } = await supabase.from('properties')
-          .select('price_pppw, external_url')
+        const { data, count } = await supabase.from('properties')
+          .select('price_pppw, external_url', { count: 'exact' })
           .eq('university', universityId)
           .eq('is_available', true);
         if (data) setProperties(data);
+        if (count !== null) setTotalCount(count);
       } catch (err) {
         console.error(err);
       } finally {
@@ -41,16 +43,16 @@ export default function OverviewScreen({ universityId, isDarkMode = false, onSel
   }, [universityId]);
 
   const stats = useMemo(() => {
-    if (!properties.length) return { avg: 0, count: 0, sources: 0 };
+    if (!properties.length) return { avg: 0, count: totalCount, sources: 0 };
     const valid = properties.map(p => parseFloat(p.price_pppw)).filter(p => !isNaN(p) && p > 0);
     const avg = valid.length ? Math.round(valid.reduce((a, b) => a + b, 0) / valid.length) : 0;
-    
+
     const hosts = new Set(properties.map(p => {
         try { return new URL(p.external_url).hostname; } catch { return 'Other'; }
     }));
 
-    return { avg, count: properties.length, sources: hosts.size };
-  }, [properties]);
+    return { avg, count: totalCount, sources: hosts.size };
+  }, [properties, totalCount]);
 
   const getGreeting = () => {
     const hr = new Date().getHours();
