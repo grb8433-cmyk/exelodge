@@ -135,10 +135,10 @@ export default function OverviewScreen({ universityId, isDarkMode = false, onSel
       <View style={[styles.hero, !desktop && styles.heroMobile]}>
         <Image
           source={{ uri: universityId === 'exeter'
-            ? 'https://images.unsplash.com/photo-h3WFG7y8eyQ?q=80&w=2070&auto=format&fit=crop'
+            ? 'https://images.unsplash.com/photo-1639940018964-aec05bec7aa0?q=80&w=2070&auto=format&fit=crop'
             : universityId === 'bristol'
-            ? 'https://images.unsplash.com/photo-bdoHlRE78TA?q=80&w=2070&auto=format&fit=crop'
-            : 'https://images.unsplash.com/photo-7w4nbbYLJKY?q=80&w=2070&auto=format&fit=crop' }}
+            ? 'https://images.unsplash.com/photo-1743178566300-161c0f97bfa3?q=80&w=2070&auto=format&fit=crop'
+            : 'https://images.unsplash.com/photo-1592224331355-da2971caee3b?q=80&w=2070&auto=format&fit=crop' }}
           style={styles.heroImage}
           resizeMode="cover"
         />
