@@ -55,39 +55,46 @@ function LandingScreen({ onSelect, isDarkMode, toggleDarkMode }: { onSelect: (id
     fetchCounts();
   }, []);
 
+  const fg       = isDarkMode ? colors.white    : '#0D1117';
+  const fgMuted  = isDarkMode ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.45)';
+  const cardBg   = isDarkMode ? 'rgba(255,255,255,0.03)' : '#FFFFFF';
+  const cardBorder = isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)';
+  const toggleBg = isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)';
+  const toggleBorder = isDarkMode ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)';
+
   return (
-    <View style={styles.landingContainer}>
+    <View style={[styles.landingContainer, { backgroundColor: isDarkMode ? '#0D1117' : '#FFFFFF' }]}>
       {/* Decorative Blobs */}
-      <View style={styles.blobExeter} />
-      <View style={styles.blobBristol} />
-      <View style={styles.blobCenter} />
+      <View style={[styles.blobExeter, { opacity: isDarkMode ? 0.20 : 0.12 }]} />
+      <View style={[styles.blobBristol, { opacity: isDarkMode ? 0.15 : 0.10 }]} />
+      <View style={[styles.blobCenter, { opacity: isDarkMode ? 0.05 : 0 }]} />
 
       {/* Dark Mode Toggle */}
       <View style={styles.themeToggleWrap}>
-        <TouchableOpacity 
-          style={styles.themeToggle} 
+        <TouchableOpacity
+          style={[styles.themeToggle, { backgroundColor: toggleBg, borderColor: toggleBorder }]}
           onPress={toggleDarkMode}
           activeOpacity={0.8}
         >
-          <Icon name={isDarkMode ? 'moon' : 'sun'} size={14} color={colors.white} />
-          <Text style={styles.themeToggleText}>{isDarkMode ? 'Dark Mode' : 'Light Mode'}</Text>
-          <View style={[styles.toggleTrack, { backgroundColor: isDarkMode ? '#0B6E4F' : 'rgba(255,255,255,0.2)' }]}>
+          <Icon name={isDarkMode ? 'moon' : 'sun'} size={14} color={fg} />
+          <Text style={[styles.themeToggleText, { color: fg }]}>{isDarkMode ? 'Dark Mode' : 'Light Mode'}</Text>
+          <View style={[styles.toggleTrack, { backgroundColor: isDarkMode ? '#0B6E4F' : 'rgba(0,0,0,0.15)' }]}>
             <View style={[styles.toggleThumb, isDarkMode && { transform: [{ translateX: 16 }] }]} />
           </View>
         </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={styles.landingContent} showsVerticalScrollIndicator={false}>
-        <Animated.View 
+        <Animated.View
           entering={FadeInUp.duration(600).springify()}
           style={styles.landingHero}
         >
           <View style={styles.landingIconBox}>
             <Icon name="home" size={32} color={colors.white} />
           </View>
-          <Text style={styles.landingLogoText}>ExeLodge</Text>
-          <Text style={styles.landingTitle}>The Student{'\n'}Housing Platform</Text>
-          <Text style={styles.landingSub}>Verified listings, real reviews, and tenant legal empowerment.</Text>
+          <Text style={[styles.landingLogoText, { color: fg }]}>ExeLodge</Text>
+          <Text style={[styles.landingTitle, { color: fg }]}>The Student{'\n'}Housing Platform</Text>
+          <Text style={[styles.landingSub, { color: fgMuted }]}>Verified listings, real reviews, and tenant legal empowerment.</Text>
         </Animated.View>
 
         <View style={[styles.cityCards, !desktop && styles.cityCardsMobile]}>
@@ -98,7 +105,7 @@ function LandingScreen({ onSelect, isDarkMode, toggleDarkMode }: { onSelect: (id
               style={{ flex: 1 }}
             >
               <TouchableOpacity
-                style={[styles.cityCard, { borderColor: 'rgba(255,255,255,0.1)' }]}
+                style={[styles.cityCard, { borderColor: cardBorder, backgroundColor: cardBg }]}
                 onPress={() => onSelect(uni.id)}
                 activeOpacity={0.9}
               >
@@ -106,7 +113,7 @@ function LandingScreen({ onSelect, isDarkMode, toggleDarkMode }: { onSelect: (id
                   <Text style={styles.cityCardName}>{uni.city}</Text>
                 </View>
                 <View style={styles.cityCardFooter}>
-                  <Text style={styles.cityCardUni}>{uni.name}</Text>
+                  <Text style={[styles.cityCardUni, { color: isDarkMode ? colors.white : '#374151' }]}>{uni.name}</Text>
                   {loading ? (
                     <ActivityIndicator size="small" color={uni.primaryColor} />
                   ) : (
@@ -123,12 +130,12 @@ function LandingScreen({ onSelect, isDarkMode, toggleDarkMode }: { onSelect: (id
             </Animated.View>
           ))}
         </View>
-        
-        <Animated.View 
+
+        <Animated.View
           entering={FadeInDown.duration(800).delay(600)}
           style={styles.landingFooter}
         >
-          <Text style={styles.landingFooterText}>Exeter, Bristol & Southampton Student Housing Platform • 2026</Text>
+          <Text style={[styles.landingFooterText, { color: isDarkMode ? colors.white : '#6B7280' }]}>Exeter, Bristol & Southampton Student Housing Platform • 2026</Text>
         </Animated.View>
       </ScrollView>
     </View>
