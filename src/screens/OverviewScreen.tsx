@@ -30,7 +30,8 @@ export default function OverviewScreen({ universityId, isDarkMode = false, onSel
         const { data, count } = await supabase.from('properties')
           .select('price_pppw, external_url', { count: 'exact' })
           .eq('university', universityId)
-          .eq('is_available', true);
+          .eq('is_available', true)
+          .gte('price_pppw', 75);
         if (data) setProperties(data);
         if (count !== null) setTotalCount(count);
       } catch (err) {
@@ -136,8 +137,13 @@ export default function OverviewScreen({ universityId, isDarkMode = false, onSel
           source={{ uri: universityId === 'exeter' 
             ? 'https://images.unsplash.com/photo-1569329007721-f00490129200?q=80&w=2070&auto=format&fit=crop'
             : universityId === 'bristol'
+<<<<<<< HEAD
             ? 'https://images.unsplash.com/photo-1541410945376-a7872656acec?q=80&w=2070&auto=format&fit=crop'
             : 'https://images.unsplash.com/photo-1548123282-3e2888993753?q=80&w=2070&auto=format&fit=crop' }}
+=======
+            ? 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?q=80&w=2070&auto=format&fit=crop'
+            : 'https://images.unsplash.com/photo-1600585154526-990dced4db0d?q=80&w=2070&auto=format&fit=crop' }}
+>>>>>>> a83c811a (feat: focus on three cities, expand Southampton, min £75 price floor)
           style={styles.heroImage}
           resizeMode="cover"
         />
