@@ -58,7 +58,7 @@ export default function HomeScreen({ universityId, isDarkMode = false, onSelectP
   const [sortOption, setSortOption] = useState<SortOption>('price_asc');
   const [favorites, setFavorites] = useState<string[]>([]);
   const [showSavedOnly, setShowSavedOnly] = useState(false);
-  const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
+  const [viewMode, setViewMode] = useState<'list' | 'map'>('map');
   const [landlordRatings, setLandlordRatings] = useState<Record<string, { avg: number; count: number }>>({});
 
   // Animation states
