@@ -139,6 +139,16 @@ export const getUniversityColors = (universityId: string, isDarkMode = false) =>
     };
   }
 
+  if (universityId === 'cardiff') {
+    return {
+      ...base,
+      primary: '#C8102E',
+      primaryDark: '#A00C24',
+      primaryMedium: isDarkMode ? '#3D0C14' : '#F2C8CF',
+      primaryLight: isDarkMode ? '#240710' : '#FCEEF1',
+    };
+  }
+
   // Exeter (Default)
   return {
     ...base,

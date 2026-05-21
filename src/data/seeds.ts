@@ -234,7 +234,15 @@ export const CAMPUS_COORDS = {
   bristol: {
     uob: { latitude: 51.4584, longitude: -2.6030 },
     uwe: { latitude: 51.5000, longitude: -2.5484 },
-  }
+  },
+  southampton: {
+    highfield: { latitude: 50.935, longitude: -1.396 },
+    solent: { latitude: 50.908, longitude: -1.400 },
+  },
+  cardiff: {
+    cardiff_uni: { latitude: 51.4881, longitude: -3.1785 },
+    cardiffmet:  { latitude: 51.4956, longitude: -3.2196 },
+  },
 };
 
 export const AREA_COORDS: Record<string, Record<string, {latitude: number, longitude: number}>> = {
@@ -261,7 +269,23 @@ export const AREA_COORDS: Record<string, Record<string, {latitude: number, longi
     'Bishopston': { latitude: 51.4780, longitude: -2.5920 },
     'Filton': { latitude: 51.5050, longitude: -2.5600 },
     'Stoke Bishop': { latitude: 51.4750, longitude: -2.6250 },
-  }
+  },
+  southampton: {
+    'City Centre': { latitude: 50.9000, longitude: -1.4000 },
+    'Highfield': { latitude: 50.9350, longitude: -1.3960 },
+    'Portswood': { latitude: 50.9250, longitude: -1.3900 },
+    'Shirley': { latitude: 51.0500, longitude: -1.4300 },
+    'Swaythling': { latitude: 50.9400, longitude: -1.3800 },
+    'Bassett': { latitude: 50.9450, longitude: -1.4050 },
+  },
+  cardiff: {
+    'Cathays':     { latitude: 51.4947, longitude: -3.1785 },
+    'Roath':       { latitude: 51.4880, longitude: -3.1660 },
+    'City Centre': { latitude: 51.4816, longitude: -3.1791 },
+    'Canton':      { latitude: 51.4824, longitude: -3.2050 },
+    'Pontcanna':   { latitude: 51.4890, longitude: -3.2010 },
+    'Heath':       { latitude: 51.5070, longitude: -3.1820 },
+  },
 };
 
 export const PROPERTIES_SEED = [

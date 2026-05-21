@@ -21,6 +21,10 @@ const SOUTHAMPTON_LANDLORDS = [
   'UniHomes', 'StuRents', 'AccommodationForStudents', 'Rightmove', 'OnTheMarket', 'StudentCrowd', 'EveryStudent', 'AmberStudent', 'StudNoFee', 'iStudentLets'
 ];
 
+const CARDIFF_LANDLORDS = [
+  'UniHomes', 'Rightmove', 'StudentCrowd', 'AccommodationForStudents', 'CardiffStudentLetting', 'CPSHomes', 'KingstonsCardiff', 'StudentHousesCardiff', 'AmberStudent'
+];
+
 export default function ReviewsScreen({ universityId, isDarkMode = false, initialLandlordId, onAddReview }: { 
   universityId: string,
   isDarkMode?: boolean,
@@ -66,6 +70,7 @@ export default function ReviewsScreen({ universityId, isDarkMode = false, initia
 
       const targetIds = universityId === 'bristol' ? BRISTOL_LANDLORDS
         : universityId === 'southampton' ? SOUTHAMPTON_LANDLORDS
+        : universityId === 'cardiff' ? CARDIFF_LANDLORDS
         : EXETER_LANDLORDS;
       
       const fullList = targetIds.map(id => {

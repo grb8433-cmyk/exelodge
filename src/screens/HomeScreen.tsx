@@ -34,7 +34,7 @@ const CAMPUS_MAP: Record<string, {id: string, label: string}[]> = {
 
 type SortOption = 'price_asc' | 'price_desc' | 'dist_campus1' | 'dist_campus2' | 'newest';
 
-export default function HomeScreen({ universityId, isDarkMode = false, onSelectProperty }: { universityId: string, isDarkMode?: boolean, onSelectProperty: (id: string) => void }) {
+export default function HomeScreen({ universityId, isDarkMode = false, onSelectProperty, preselectedArea }: { universityId: string, isDarkMode?: boolean, onSelectProperty: (id: string) => void, preselectedArea?: string }) {
   const [properties, setProperties] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -47,8 +47,9 @@ export default function HomeScreen({ universityId, isDarkMode = false, onSelectP
   const SOURCES = SOURCES_MAP[universityId] || SOURCES_MAP.exeter;
   const CAMPUSES = CAMPUS_MAP[universityId] || CAMPUS_MAP.exeter;
 
+  const isFirstRender = useRef(true);
   const [showFilters, setShowFilters] = useState(false);
-  const [selectedAreas, setSelectedAreas] = useState<string[]>([]);
+  const [selectedAreas, setSelectedAreas] = useState<string[]>(preselectedArea ? [preselectedArea] : []);
   const [selectedBeds, setSelectedBeds] = useState<number[]>([]);
   const [maxPrice, setMaxPrice] = useState<number | null>(null);
   const [billsIncluded, setBillsIncluded] = useState<boolean | null>(null);
@@ -73,7 +74,12 @@ export default function HomeScreen({ universityId, isDarkMode = false, onSelectP
   }), [clampedScrollY, headerHeight]);
 
   useEffect(() => {
-    setSelectedAreas([]);
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      setSelectedAreas(preselectedArea ? [preselectedArea] : []);
+    } else {
+      setSelectedAreas([]);
+    }
     setSelectedSources([]);
     fetchProperties();
     fetchLandlordRatings();

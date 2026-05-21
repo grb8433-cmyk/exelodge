@@ -149,6 +149,7 @@ export default function App() {
   const [landlordIdForReview, setLandlordIdForReview] = useState<string | null>(null);
   const [targetLandlordId, setTargetLandlordId] = useState<string | null>(null);
   const [universityId, setUniversityId] = useState('exeter');
+  const [preselectedArea, setPreselectedArea] = useState<string | null>(null);
   const [showLanding, setShowLanding] = useState(true); // Always start with landing for hard refresh
   const [fontLoadingTimedOut, setFontLoadingTimedOut] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -209,13 +210,19 @@ export default function App() {
         setShowLanding(false);
       }
 
-      const path = window.location.pathname.substring(1).split('/')[0];
+      const segments = window.location.pathname.substring(1).split('/');
+      const path = segments[0];
+      const areaSlug = segments[1];
       if (path === '') {
         // Keep showLanding true
       } else if (UNIVERSITIES.some(u => u.id === path)) {
         setUniversityId(path);
         setShowLanding(false);
         setActiveTab('Houses');
+        if (areaSlug) {
+          const areaName = areaSlug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+          setPreselectedArea(areaName);
+        }
       }
     }
   }, []);
@@ -330,7 +337,7 @@ export default function App() {
     }
     switch (activeTab) {
       case 'Home':    return <OverviewScreen universityId={universityId} isDarkMode={isDarkMode} onSelectUniversity={(id) => setUniversityId(id)} onNavigateToHouses={() => setActiveTab('Houses')} />;
-      case 'Houses':  return <HomeScreen universityId={universityId} isDarkMode={isDarkMode} onSelectProperty={(id) => setSelectedPropertyId(id)} />;
+      case 'Houses':  return <HomeScreen universityId={universityId} isDarkMode={isDarkMode} onSelectProperty={(id) => setSelectedPropertyId(id)} preselectedArea={preselectedArea ?? undefined} />;
       case 'Reviews': return <ReviewsScreen universityId={universityId} isDarkMode={isDarkMode} initialLandlordId={targetLandlordId} onAddReview={(id) => setLandlordIdForReview(id)} />;
       case 'Rights':  return <RightsScreen universityId={universityId} isDarkMode={isDarkMode} />;
       default:        return <OverviewScreen universityId={universityId} isDarkMode={isDarkMode} onSelectUniversity={(id) => setUniversityId(id)} onNavigateToHouses={() => setActiveTab('Houses')} />;

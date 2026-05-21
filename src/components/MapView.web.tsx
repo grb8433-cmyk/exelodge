@@ -5,6 +5,7 @@ const CITY_CENTERS: Record<string, [number, number]> = {
   exeter:       [50.7354, -3.5353],
   bristol:      [51.4584, -2.6030],
   southampton:  [50.9350, -1.3960],
+  cardiff:      [51.4816, -3.1791],
 };
 
 // Only show pins within a sensible radius of each city — filters out bad geocoding
@@ -12,6 +13,7 @@ const CITY_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: numb
   exeter:      { minLat: 50.65, maxLat: 50.82, minLon: -3.70, maxLon: -3.40 },
   bristol:     { minLat: 51.38, maxLat: 51.58, minLon: -2.75, maxLon: -2.48 },
   southampton: { minLat: 50.85, maxLat: 51.02, minLon: -1.60, maxLon: -1.20 },
+  cardiff:     { minLat: 51.43, maxLat: 51.55, minLon: -3.30, maxLon: -3.05 },
 };
 
 delete (L.Icon.Default.prototype as any)._getIconUrl;
