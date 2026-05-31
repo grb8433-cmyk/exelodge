@@ -2343,10 +2343,17 @@ def main():
             upserted += 1
             stats[l['landlord_id']]['inserted'] += 1
         except Exception as e:
-            if "schema cache" in str(e):
-                print(f"  [DB ERROR] Schema sync needed: {e}")
-                break
-            pass
+            if "schema cache" in str(e).lower():
+                print(f"  [DB WARN] Schema cache stale, refreshing client and retrying...")
+                supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+                try:
+                    supabase.table('properties').upsert(row, on_conflict='external_url').execute()
+                    upserted += 1
+                    stats[l['landlord_id']]['inserted'] += 1
+                except Exception as e2:
+                    print(f"  [DB ERROR] Retry failed for {l.get('external_url', 'unknown')}: {e2}")
+            else:
+                print(f"  [DB ERROR] Upsert failed for {l.get('external_url', 'unknown')}: {e}")
 
     print(f'\nDone. {upserted} listings live for {university_id}.')
 
