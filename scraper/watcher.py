@@ -2230,6 +2230,7 @@ def main():
         print('[FATAL] Missing SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY')
         return
 
+    print(f"[CONFIG] Writing to Supabase: {SUPABASE_URL}")
     supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
     # ── Scrapers ────────────────────────────────────────────────────────────
